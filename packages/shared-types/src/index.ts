@@ -1,2 +1,5 @@
-// Sprint 1 — types will be populated in Tâche 3
-export {};
+// ─── @esn/shared-types — Public API ──────────────────────────────────────────
+export * from './enums';
+export * from './entities';
+export * from './api';
+export * from './guards';

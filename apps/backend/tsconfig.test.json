@@ -1,10 +1,9 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "rootDir": ".",
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },
-  "include": ["src/**/*", "test/**/*"],
+  "include": ["src/**/*", "test/**/*", "../../packages/shared-types/src/**/*", "../../packages/shared-utils/src/**/*"],
   "exclude": ["node_modules", "dist"]
 }
