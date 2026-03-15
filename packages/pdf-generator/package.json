@@ -1,0 +1,20 @@
+{
+  "name": "@esn/pdf-generator",
+  "version": "0.1.0",
+  "private": true,
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "scripts": {
+    "build":     "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint":      "eslint \"src/**/*.ts\""
+  },
+  "dependencies": {
+    "puppeteer-core": "^22.10.0",
+    "pdf-lib":        "^1.17.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.12.12",
+    "typescript":  "^5.4.5"
+  }
+}

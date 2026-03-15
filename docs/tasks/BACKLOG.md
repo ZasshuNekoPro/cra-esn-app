@@ -44,3 +44,16 @@
 - [ ] Tests e2e complets
 - [ ] Audit sécurité (/review-security)
 - [ ] PR Sprint 5 → main
+
+## Phase 2 — Post-MVP
+
+### Multi-missions (à planifier après validation du MVP)
+- [ ] Ajouter `isCurrent: Boolean` sur `Mission` (ou date de fin comme marqueur)
+- [ ] Permettre plusieurs `Mission` actives par salarié simultanément
+- [ ] Adapter `CraMonth` : retirer la contrainte unique strict sur `missionId`
+      ou passer à un modèle `CraMonth` par mission active
+- [ ] Adapter la UI saisie journalière : sélecteur de mission + ventilation projets multi-mission
+- [ ] Adapter les calculs de soldes CP/RTT (agrégation cross-missions)
+- [ ] Adapter les PDF CRA (section par mission ou CRA consolidé)
+- [ ] Adapter `ConsentGuard` : consentement par mission ou global salarié ?
+- [ ] Migration Prisma non-breaking (champ optionnel + backfill)
