@@ -1,0 +1,46 @@
+# Backlog — Phase 1 (MVP)
+
+## Sprint 1 — Fondations
+- [ ] Init git + remote GitHub (Prompt 0)
+- [ ] Setup Turborepo + pnpm workspaces + package.json des apps
+- [ ] Schema Prisma complet (toutes entités)
+- [ ] Auth NestJS (JWT + RBAC guards + ConsentGuard)
+- [ ] Auth Frontend (NextAuth v5 + middleware de route)
+- [ ] Layout dashboard de base (shadcn/ui)
+- [ ] PR Sprint 1 → main
+
+## Sprint 2 — Module CRA
+- [ ] Entités CraEntry + CraMonth + LeaveBalance (Prisma)
+- [ ] API CRUD CRA (NestJS) + DTOs
+- [ ] Calcul automatique soldes CP/RTT
+- [ ] Interface saisie journalière (frontend)
+- [ ] Dashboard jours consommés / restants
+- [ ] Tests unit CRA service (TDD)
+- [ ] Tests e2e workflow de signature
+- [ ] PR Sprint 2 → main
+
+## Sprint 3 — Module Projets
+- [ ] Entités Project + WeatherEntry + ProjectComment + Milestone (Prisma)
+- [ ] API projets (NestJS) + DTOs
+- [ ] Règles d'escalade météo automatique (cron ou event-driven)
+- [ ] Interface météo + commentaires (frontend)
+- [ ] Composant WeatherIcon avec 6 états
+- [ ] Tests unit projects service
+- [ ] PR Sprint 3 → main
+
+## Sprint 4 — Documents & Signature
+- [ ] Upload S3 avec MinIO (backend)
+- [ ] Interface upload / partage (frontend)
+- [ ] Génération PDF CRA (packages/pdf-generator)
+- [ ] Workflow signature complet (backend + frontend)
+- [ ] Annexe projets dans le CRA PDF
+- [ ] Tests e2e signature tripartite
+- [ ] PR Sprint 4 → main
+
+## Sprint 5 — Reports & Finitions
+- [ ] Bilan mensuel automatique
+- [ ] Dashboard partageable (token temporaire)
+- [ ] Présentation projets PDF + lien live
+- [ ] Tests e2e complets
+- [ ] Audit sécurité (/review-security)
+- [ ] PR Sprint 5 → main

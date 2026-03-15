@@ -1,0 +1,58 @@
+version: '3.9'
+
+services:
+  # PostgreSQL 15 avec extension pgvector (requis pour le module RAG)
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: esn_cra_postgres
+    environment:
+      POSTGRES_USER: esn_user
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: esn_cra_dev
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U esn_user"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # MinIO — stockage S3-compatible pour les documents
+  minio:
+    image: minio/minio:latest
+    container_name: esn_cra_minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Redis — cache applicatif et queues de notifications
+  redis:
+    image: redis:7-alpine
+    container_name: esn_cra_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
+volumes:
+  postgres_data:
+  minio_data:
+  redis_data:

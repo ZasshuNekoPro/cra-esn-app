@@ -1,0 +1,9 @@
+# <type>(<scope>): <sujet en impératif, max 72 chars>
+#
+# Types  : feat | fix | docs | refactor | test | chore | perf | security
+# Scopes : auth | cra | projects | documents | reports | rag | admin | infra
+#
+# Corps (optionnel) — expliquer POURQUOI, pas QUOI (le diff dit quoi)
+#
+# Footer — breaking changes ou références issues
+# Exemple : "feat(cra): add project activity breakdown in daily entry"

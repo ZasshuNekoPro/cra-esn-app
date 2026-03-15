@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "strict": true,
+    "noImplicitAny": true,
+    "strictNullChecks": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "exactOptionalPropertyTypes": true,
+    "baseUrl": ".",
+    "paths": {
+      "@esn/shared-types":  ["packages/shared-types/src"],
+      "@esn/shared-utils":  ["packages/shared-utils/src"],
+      "@esn/pdf-generator": ["packages/pdf-generator/src"],
+      "@esn/rag-engine":    ["packages/rag-engine/src"]
+    }
+  }
+}
