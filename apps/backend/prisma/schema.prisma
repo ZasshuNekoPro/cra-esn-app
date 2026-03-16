@@ -25,8 +25,28 @@ enum CraStatus {
   DRAFT
   SUBMITTED
   SIGNED_EMPLOYEE
+  SIGNED_ESN
   SIGNED_CLIENT
   LOCKED
+}
+
+enum CraEntryType {
+  WORK_ONSITE
+  WORK_REMOTE
+  WORK_TRAVEL
+  LEAVE_CP
+  LEAVE_RTT
+  SICK
+  HOLIDAY
+  TRAINING
+  ASTREINTE
+  OVERTIME
+}
+
+enum PortionType {
+  FULL
+  HALF_AM
+  HALF_PM
 }
 
 enum WeatherStatus {
@@ -149,9 +169,13 @@ model CraMonth {
   month       Int       // 1–12
   status      CraStatus @default(DRAFT)
   pdfUrl      String?   @map("pdf_url")
-  submittedAt DateTime? @map("submitted_at")
-  lockedAt    DateTime? @map("locked_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  submittedAt          DateTime? @map("submitted_at")
+  lockedAt             DateTime? @map("locked_at")
+  signedByEmployeeAt   DateTime? @map("signed_by_employee_at")
+  signedByEsnAt        DateTime? @map("signed_by_esn_at")
+  signedByClientAt     DateTime? @map("signed_by_client_at")
+  rejectionComment     String?   @map("rejection_comment")
+  createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
   employeeId  String    @map("employee_id")
@@ -169,16 +193,18 @@ model CraMonth {
 }
 
 model CraEntry {
-  id         String    @id @default(uuid())
-  date       DateTime  @db.Date
-  dayFraction Decimal  @default(1) @map("day_fraction") @db.Decimal(3, 2) // 0.5 or 1.0
-  leaveType  LeaveType? @map("leave_type")
-  comment    String?
-  createdAt  DateTime  @default(now()) @map("created_at")
-  updatedAt  DateTime  @updatedAt @map("updated_at")
+  id          String       @id @default(uuid())
+  date        DateTime     @db.Date
+  dayFraction Decimal      @default(1) @map("day_fraction") @db.Decimal(3, 2) // 0.5 or 1.0
+  entryType   CraEntryType @default(WORK_ONSITE) @map("entry_type")
+  comment     String?
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
 
-  craMonthId String    @map("cra_month_id")
-  craMonth   CraMonth  @relation(fields: [craMonthId], references: [id], onDelete: Cascade)
+  craMonthId   String        @map("cra_month_id")
+  craMonth     CraMonth      @relation(fields: [craMonthId], references: [id], onDelete: Cascade)
+
+  projectEntries ProjectEntry[]
 
   @@unique([craMonthId, date])
   @@map("cra_entries")
@@ -199,6 +225,18 @@ model LeaveBalance {
 
   @@unique([userId, year, leaveType])
   @@map("leave_balances")
+}
+
+// ─── Public Holiday ───────────────────────────────────────────────────────────
+
+model PublicHoliday {
+  id      String   @id @default(uuid())
+  date    DateTime @db.Date
+  name    String
+  country String   @default("FR")
+
+  @@unique([date, country])
+  @@map("public_holidays")
 }
 
 // ─── Project ──────────────────────────────────────────────────────────────────
@@ -231,11 +269,15 @@ model ProjectEntry {
   description String?
   createdAt   DateTime  @default(now()) @map("created_at")
 
-  projectId   String    @map("project_id")
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String      @map("project_id")
+  project     Project     @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  employeeId  String    @map("employee_id")
-  employee    User      @relation("EmployeeProjectEntries", fields: [employeeId], references: [id])
+  employeeId  String      @map("employee_id")
+  employee    User        @relation("EmployeeProjectEntries", fields: [employeeId], references: [id])
+
+  portion     PortionType? @map("portion")
+  craEntryId  String?      @map("cra_entry_id")
+  craEntry    CraEntry?    @relation(fields: [craEntryId], references: [id], onDelete: SetNull)
 
   @@map("project_entries")
 }

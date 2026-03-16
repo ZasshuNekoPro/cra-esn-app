@@ -2,6 +2,8 @@
 import {
   Role,
   CraStatus,
+  CraEntryType,
+  PortionType,
   WeatherStatus,
   LeaveType,
   DocumentType,
@@ -56,6 +58,10 @@ export interface CraMonth extends BaseEntity {
   pdfUrl?: string | null;
   submittedAt?: Date | null;
   lockedAt?: Date | null;
+  signedByEmployeeAt?: Date | null;
+  signedByEsnAt?: Date | null;
+  signedByClientAt?: Date | null;
+  rejectionComment?: string | null;
   employeeId: string;
   missionId: string;
 }
@@ -64,7 +70,7 @@ export interface CraEntry {
   id: string;
   date: Date;
   dayFraction: number; // 0.5 or 1.0
-  leaveType?: LeaveType | null;
+  entryType: CraEntryType;
   comment?: string | null;
   craMonthId: string;
   createdAt: Date;
@@ -101,7 +107,18 @@ export interface ProjectEntry {
   description?: string | null;
   projectId: string;
   employeeId: string;
+  portion?: PortionType | null;
+  craEntryId?: string | null;
   createdAt: Date;
+}
+
+// ── Public Holiday ─────────────────────────────────────────────────────────────
+
+export interface PublicHoliday {
+  id: string;
+  date: Date;
+  name: string;
+  country: string;
 }
 
 // ── Weather ───────────────────────────────────────────────────────────────────

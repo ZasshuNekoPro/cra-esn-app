@@ -1,6 +1,6 @@
 // ─── API Types — request/response contracts ───────────────────────────────────
 
-import { Role, CraStatus, WeatherStatus } from './enums';
+import { Role, CraStatus, CraEntryType, PortionType, WeatherStatus, LeaveType } from './enums';
 import { PublicUser, Mission, CraMonth, CraEntry, Project, WeatherEntry } from './entities';
 
 // ── Generic wrappers ──────────────────────────────────────────────────────────
@@ -92,16 +92,39 @@ export interface CraMonthWithEntries extends CraMonth {
 }
 
 export interface CreateCraEntryRequest {
-  date: string; // ISO date string (YYYY-MM-DD)
-  dayFraction: 0.5 | 1;
-  leaveType?: string;
+  date: string; // ISO date YYYY-MM-DD
+  entryType: CraEntryType;
+  dayFraction: number; // 0.5 or 1.0
   comment?: string;
+  projectEntries?: Array<{ projectId: string; portion: PortionType }>;
 }
 
 export interface UpdateCraEntryRequest {
-  dayFraction?: 0.5 | 1;
-  leaveType?: string | null;
-  comment?: string | null;
+  entryType?: CraEntryType;
+  dayFraction?: number;
+  comment?: string;
+  projectEntries?: Array<{ projectId: string; portion: PortionType }>;
+}
+
+export interface LeaveBalanceSummary {
+  leaveType: LeaveType;
+  totalDays: number;
+  usedDays: number;
+  remainingDays: number;
+}
+
+export interface CraMonthSummary {
+  craMonthId: string;
+  year: number;
+  month: number;
+  status: CraStatus;
+  totalWorkDays: number;
+  totalLeaveDays: number;
+  totalSickDays: number;
+  totalHolidayDays: number;
+  workingDaysInMonth: number;
+  isOvertime: boolean;
+  leaveBalances: LeaveBalanceSummary[];
 }
 
 export interface SubmitCraRequest {
