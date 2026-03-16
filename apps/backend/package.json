@@ -18,15 +18,16 @@
     "db:studio": "prisma studio --schema=prisma/schema.prisma"
   },
   "dependencies": {
+    "@esn/pdf-generator": "workspace:^",
     "@esn/shared-types": "workspace:^",
     "@esn/shared-utils": "workspace:^",
-    "@esn/pdf-generator": "workspace:^",
     "@nestjs/common": "^10.3.0",
     "@nestjs/config": "^3.2.0",
     "@nestjs/core": "^10.3.0",
     "@nestjs/jwt": "^10.2.0",
     "@nestjs/passport": "^10.0.3",
     "@nestjs/platform-express": "^10.3.0",
+    "@nestjs/schedule": "^6.1.1",
     "@nestjs/swagger": "^7.3.0",
     "@nestjs/throttler": "^5.1.2",
     "@prisma/client": "^5.13.0",
