@@ -170,7 +170,7 @@ describe('CraPdfService', () => {
 
     const uploadCall = vi.mocked(mockStorage.uploadFile).mock.calls[0];
     // uploadFile(buffer, key, mimeType, sizeBytes)
-    const key: string = uploadCall[1] as string;
+    const key = uploadCall[1];
     // key = `cra/{employeeId}/{year}/{month:02d}/cra-{craMonthId}.pdf`
     expect(key).toBe(`cra/${employeeId}/2026/03/cra-${craMonthId}.pdf`);
     expect(uploadCall[2]).toBe('application/pdf');
