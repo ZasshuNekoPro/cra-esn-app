@@ -212,7 +212,8 @@ export class CraPdfService {
     // 7. Upload to storage
     const monthPadded = String(craMonth.month).padStart(2, '0');
     const s3Key = `cra/${craMonth.employeeId}/${craMonth.year}/${monthPadded}/cra-${craMonthId}.pdf`;
-    const pdfUrl = await this.storage.upload(s3Key, pdfBuffer, 'application/pdf');
+    await this.storage.uploadFile(pdfBuffer, s3Key, 'application/pdf', pdfBuffer.length);
+    const pdfUrl = s3Key;
 
     const now = new Date();
 

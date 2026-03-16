@@ -1,30 +1,25 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
+import { IStorageService, STORAGE_SERVICE } from './storage.interface';
 
 /**
- * StorageService — abstraction over MinIO/S3 for file upload.
- *
- * In dev/test environments, returns a mock MinIO URL.
- * In production, integrate with AWS S3 or a configured MinIO instance.
+ * Thin facade so existing code can inject StorageService directly
+ * while the actual implementation is selected at runtime via STORAGE_DRIVER.
  */
 @Injectable()
-export class StorageService {
-  private readonly logger = new Logger(StorageService.name);
+export class StorageService implements IStorageService {
+  constructor(
+    @Inject(STORAGE_SERVICE) private readonly driver: IStorageService,
+  ) {}
 
-  /**
-   * Upload a buffer to object storage.
-   *
-   * @param key         Object key (path), e.g. "cra/employee-id/2026/03/cra-xxx.pdf"
-   * @param buffer      File content
-   * @param contentType MIME type, e.g. "application/pdf"
-   * @returns           Public URL of the uploaded object
-   */
-  upload(key: string, buffer: Buffer, contentType: string): Promise<string> {
-    // TODO (production): replace with real S3/MinIO SDK call
-    // Example using @aws-sdk/client-s3:
-    //   const command = new PutObjectCommand({ Bucket: 'cra', Key: key, Body: buffer, ContentType: contentType });
-    //   await this.s3Client.send(command);
-    //   return `https://${bucket}.s3.amazonaws.com/${key}`;
-    this.logger.log(`Uploading ${key} (${contentType}, ${buffer.length} bytes)`);
-    return Promise.resolve(`http://minio:9000/cra/${key}`);
+  uploadFile(buffer: Buffer, key: string, mimeType: string, sizeBytes: number): Promise<string> {
+    return this.driver.uploadFile(buffer, key, mimeType, sizeBytes);
+  }
+
+  getDownloadUrl(key: string, expiresInSeconds?: number): Promise<string> {
+    return this.driver.getDownloadUrl(key, expiresInSeconds);
+  }
+
+  deleteObject(key: string): Promise<void> {
+    return this.driver.deleteObject(key);
   }
 }

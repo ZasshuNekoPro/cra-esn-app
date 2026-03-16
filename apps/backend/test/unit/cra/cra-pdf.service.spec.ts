@@ -125,7 +125,7 @@ const mockPrisma = {
 } as unknown as PrismaService;
 
 const mockStorage = {
-  upload: vi.fn(),
+  uploadFile: vi.fn(),
 } as unknown as StorageService;
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -144,7 +144,7 @@ describe('CraPdfService', () => {
       status: CraStatus.LOCKED,
       pdfUrl: 'http://minio:9000/cra/cra-test.pdf',
     } as never);
-    vi.mocked(mockStorage.upload).mockResolvedValue('http://minio:9000/cra/cra-test.pdf');
+    vi.mocked(mockStorage.uploadFile).mockResolvedValue('cra/employee-uuid-1/2026/03/cra-cra-month-uuid-1.pdf');
     vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
   });
 
@@ -162,26 +162,27 @@ describe('CraPdfService', () => {
     // We can't directly spy on the internal generator without DI,
     // but we can verify the pipeline ran by checking storage was called
     await service.generateAndUpload(craMonthId);
-    expect(mockStorage.upload).toHaveBeenCalled();
+    expect(mockStorage.uploadFile).toHaveBeenCalled();
   });
 
   it('should upload resulting Buffer to storage with correct S3 key', async () => {
     await service.generateAndUpload(craMonthId);
 
-    const uploadCall = vi.mocked(mockStorage.upload).mock.calls[0];
-    const key: string = uploadCall[0];
+    const uploadCall = vi.mocked(mockStorage.uploadFile).mock.calls[0];
+    // uploadFile(buffer, key, mimeType, sizeBytes)
+    const key: string = uploadCall[1] as string;
     // key = `cra/{employeeId}/{year}/{month:02d}/cra-{craMonthId}.pdf`
     expect(key).toBe(`cra/${employeeId}/2026/03/cra-${craMonthId}.pdf`);
     expect(uploadCall[2]).toBe('application/pdf');
   });
 
-  it('should update CraMonth.pdfUrl with the returned URL', async () => {
+  it('should update CraMonth.pdfUrl with the s3Key', async () => {
     await service.generateAndUpload(craMonthId);
 
     expect(mockPrisma.craMonth.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          pdfUrl: 'http://minio:9000/cra/cra-test.pdf',
+          pdfUrl: `cra/${employeeId}/2026/03/cra-${craMonthId}.pdf`,
         }),
       }),
     );
