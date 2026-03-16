@@ -21,14 +21,15 @@
 - [x] Tests e2e workflow de signature — 22 tests supertest (CRUD + workflow + access control)
 - [x] PR Sprint 2 → main (PR #2 mergé ✅)
 
-## Sprint 3 — Module Projets
-- [ ] Entités Project + WeatherEntry + ProjectComment + Milestone (Prisma)
-- [ ] API projets (NestJS) + DTOs
-- [ ] Règles d'escalade météo automatique (cron ou event-driven)
-- [ ] Interface météo + commentaires (frontend)
-- [ ] Composant WeatherIcon avec 6 états
-- [ ] Tests unit projects service
-- [ ] PR Sprint 3 → main
+## Sprint 3 — Module Projets ✅
+- [x] Entités Project + WeatherEntry + ProjectComment + Milestone + ValidationRequest (Prisma)
+- [x] API projets (NestJS) + DTOs — CRUD, météo, commentaires, validations, jalons
+- [x] Escalade météo automatique (cron quotidien 08:00 — RAINY→STORM après 3 jours ouvrés)
+- [x] Interface météo + commentaires (frontend)
+- [x] Composant WeatherIcon avec 6 états
+- [x] MilestonesService + ValidationsService + CommentsService (TDD)
+- [x] Tests e2e workflow complet (22 scénarios supertest)
+- [x] PR Sprint 3 → main (PR #3 ouverte ✅)
 
 ## Sprint 4 — Documents & Signature
 - [ ] Upload S3 avec MinIO (backend)
