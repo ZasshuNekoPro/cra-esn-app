@@ -14,11 +14,18 @@ import {
 import { ProjectsService } from './projects.service';
 import { WeatherService } from './weather.service';
 import { CommentsService } from './comments.service';
+import { MilestonesService } from './milestones.service';
+import { ValidationsService } from './validations.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { CreateWeatherEntryDto } from './dto/weather-entry.dto';
 import { CreateCommentDto } from './dto/create-comment.dto';
 import { UpdateCommentDto } from './dto/update-comment.dto';
+import { CreateMilestoneDto } from './dto/create-milestone.dto';
+import { UpdateMilestoneDto } from './dto/update-milestone.dto';
+import { CompleteMilestoneDto } from './dto/complete-milestone.dto';
+import { CreateValidationDto } from './dto/create-validation.dto';
+import { DecideValidationDto } from './dto/decide-validation.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
@@ -30,6 +37,8 @@ export class ProjectsController {
     private readonly projectsService: ProjectsService,
     private readonly weatherService: WeatherService,
     private readonly commentsService: CommentsService,
+    private readonly milestonesService: MilestonesService,
+    private readonly validationsService: ValidationsService,
   ) {}
 
   /**
@@ -205,5 +214,110 @@ export class ProjectsController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.commentsService.resolveBlocker(commentId, user.sub);
+  }
+
+  // ── Milestones ───────────────────────────────────────────────────────────
+
+  /**
+   * GET /projects/:id/milestones
+   */
+  @Get(':id/milestones')
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
+  getMilestones(@Param('id') id: string) {
+    return this.milestonesService.getMilestones(id);
+  }
+
+  /**
+   * POST /projects/:id/milestones
+   */
+  @Post(':id/milestones')
+  @Roles(Role.EMPLOYEE)
+  @HttpCode(HttpStatus.CREATED)
+  createMilestone(
+    @Param('id') id: string,
+    @Body() dto: CreateMilestoneDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.milestonesService.createMilestone(id, user.sub, dto);
+  }
+
+  /**
+   * PATCH /projects/:id/milestones/:milestoneId
+   */
+  @Patch(':id/milestones/:milestoneId')
+  @Roles(Role.EMPLOYEE)
+  updateMilestone(
+    @Param('milestoneId') milestoneId: string,
+    @Body() dto: UpdateMilestoneDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.milestonesService.updateMilestone(milestoneId, user.sub, dto);
+  }
+
+  /**
+   * POST /projects/:id/milestones/:milestoneId/complete
+   */
+  @Post(':id/milestones/:milestoneId/complete')
+  @Roles(Role.EMPLOYEE)
+  @HttpCode(HttpStatus.OK)
+  completeMilestone(
+    @Param('milestoneId') milestoneId: string,
+    @Body() dto: CompleteMilestoneDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.milestonesService.completeMilestone(milestoneId, user.sub, dto);
+  }
+
+  // ── Validations ──────────────────────────────────────────────────────────
+
+  /**
+   * GET /projects/:id/validations
+   */
+  @Get(':id/validations')
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
+  getValidations(@Param('id') id: string) {
+    return this.validationsService.getValidations(id);
+  }
+
+  /**
+   * POST /projects/:id/validations
+   */
+  @Post(':id/validations')
+  @Roles(Role.EMPLOYEE)
+  @HttpCode(HttpStatus.CREATED)
+  createValidation(
+    @Param('id') id: string,
+    @Body() dto: CreateValidationDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.validationsService.createValidation(id, user.sub, dto);
+  }
+
+  /**
+   * POST /projects/:id/validations/:validationId/approve
+   */
+  @Post(':id/validations/:validationId/approve')
+  @Roles(Role.ESN_ADMIN, Role.CLIENT)
+  @HttpCode(HttpStatus.OK)
+  approveValidation(
+    @Param('validationId') validationId: string,
+    @Body() dto: DecideValidationDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.validationsService.approveValidation(validationId, user.sub, dto);
+  }
+
+  /**
+   * POST /projects/:id/validations/:validationId/reject
+   */
+  @Post(':id/validations/:validationId/reject')
+  @Roles(Role.ESN_ADMIN, Role.CLIENT)
+  @HttpCode(HttpStatus.OK)
+  rejectValidation(
+    @Param('validationId') validationId: string,
+    @Body() dto: DecideValidationDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.validationsService.rejectValidation(validationId, user.sub, dto);
   }
 }
