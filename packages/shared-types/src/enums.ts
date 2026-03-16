@@ -11,8 +11,28 @@ export enum CraStatus {
   DRAFT = 'DRAFT',
   SUBMITTED = 'SUBMITTED',
   SIGNED_EMPLOYEE = 'SIGNED_EMPLOYEE',
+  SIGNED_ESN = 'SIGNED_ESN',
   SIGNED_CLIENT = 'SIGNED_CLIENT',
   LOCKED = 'LOCKED',
+}
+
+export enum CraEntryType {
+  WORK_ONSITE = 'WORK_ONSITE',
+  WORK_REMOTE = 'WORK_REMOTE',
+  WORK_TRAVEL = 'WORK_TRAVEL',
+  LEAVE_CP = 'LEAVE_CP',
+  LEAVE_RTT = 'LEAVE_RTT',
+  SICK = 'SICK',
+  HOLIDAY = 'HOLIDAY',
+  TRAINING = 'TRAINING',
+  ASTREINTE = 'ASTREINTE',
+  OVERTIME = 'OVERTIME',
+}
+
+export enum PortionType {
+  FULL = 'FULL',
+  HALF_AM = 'HALF_AM',
+  HALF_PM = 'HALF_PM',
 }
 
 export enum WeatherStatus {
