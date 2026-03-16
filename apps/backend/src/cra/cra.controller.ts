@@ -38,6 +38,20 @@ export class CraController {
   }
 
   /**
+   * GET /cra/months/:id/summary
+   * Returns computed summary (totals, working days, leave balances, isOvertime).
+   * MUST be declared before months/:year/:month to avoid Express route ambiguity.
+   */
+  @Get('months/:id/summary')
+  @Roles(Role.EMPLOYEE)
+  async getMonthSummary(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<CraMonthSummary> {
+    return this.craService.getMonthSummary(id, user.sub);
+  }
+
+  /**
    * GET /cra/months/:year/:month
    * Get or create a DRAFT CraMonth for the given year/month.
    */
@@ -49,19 +63,6 @@ export class CraController {
     @CurrentUser() user: JwtPayload,
   ): Promise<object> {
     return this.craService.getOrCreateMonth(user.sub, parseInt(year, 10), parseInt(month, 10));
-  }
-
-  /**
-   * GET /cra/months/:id/summary
-   * Returns computed summary (totals, working days, leave balances, isOvertime).
-   */
-  @Get('months/:id/summary')
-  @Roles(Role.EMPLOYEE)
-  async getMonthSummary(
-    @Param('id') id: string,
-    @CurrentUser() user: JwtPayload,
-  ): Promise<CraMonthSummary> {
-    return this.craService.getMonthSummary(id, user.sub);
   }
 
   /**
