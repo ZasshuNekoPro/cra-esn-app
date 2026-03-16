@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Role, CraStatus, WeatherStatus, LeaveType, DocumentType, ConsentStatus, ValidationStatus } from '@prisma/client';
+import { Role, CraStatus, WeatherState, LeaveType, DocumentType, ConsentStatus, ValidationStatus } from '@prisma/client';
 
 /**
  * Schema enum validation tests — verifies that the generated Prisma client
@@ -24,11 +24,14 @@ describe('Prisma Schema — Enum values', () => {
     });
   });
 
-  describe('WeatherStatus', () => {
-    it('exports GREEN, ORANGE, RED', () => {
-      expect(WeatherStatus.GREEN).toBe('GREEN');
-      expect(WeatherStatus.ORANGE).toBe('ORANGE');
-      expect(WeatherStatus.RED).toBe('RED');
+  describe('WeatherState', () => {
+    it('exports SUNNY, CLOUDY, RAINY, STORM, VALIDATION_PENDING, VALIDATED', () => {
+      expect(WeatherState.SUNNY).toBe('SUNNY');
+      expect(WeatherState.CLOUDY).toBe('CLOUDY');
+      expect(WeatherState.RAINY).toBe('RAINY');
+      expect(WeatherState.STORM).toBe('STORM');
+      expect(WeatherState.VALIDATION_PENDING).toBe('VALIDATION_PENDING');
+      expect(WeatherState.VALIDATED).toBe('VALIDATED');
     });
   });
 
@@ -60,10 +63,11 @@ describe('Prisma Schema — Enum values', () => {
   });
 
   describe('ValidationStatus', () => {
-    it('exports PENDING, APPROVED, REJECTED', () => {
+    it('exports PENDING, APPROVED, REJECTED, ARCHIVED', () => {
       expect(ValidationStatus.PENDING).toBe('PENDING');
       expect(ValidationStatus.APPROVED).toBe('APPROVED');
       expect(ValidationStatus.REJECTED).toBe('REJECTED');
+      expect(ValidationStatus.ARCHIVED).toBe('ARCHIVED');
     });
   });
 });

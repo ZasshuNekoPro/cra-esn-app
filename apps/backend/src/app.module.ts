@@ -5,6 +5,7 @@ import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { PrismaModule } from './database/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CraModule } from './cra/cra.module';
+import { ProjectsModule } from './projects/projects.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -18,6 +19,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     AuthModule,
     NotificationsModule,
     CraModule,
+    ProjectsModule,
   ],
   providers: [
     // Global exception filter

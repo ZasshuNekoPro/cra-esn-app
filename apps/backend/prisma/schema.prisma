@@ -49,10 +49,33 @@ enum PortionType {
   HALF_PM
 }
 
-enum WeatherStatus {
-  GREEN
-  ORANGE
-  RED
+enum WeatherState {
+  SUNNY
+  CLOUDY
+  RAINY
+  STORM
+  VALIDATION_PENDING
+  VALIDATED
+}
+
+enum ProjectStatus {
+  ACTIVE
+  PAUSED
+  CLOSED
+}
+
+enum CommentVisibility {
+  EMPLOYEE_ESN
+  EMPLOYEE_CLIENT
+  ALL
+}
+
+enum MilestoneStatus {
+  PLANNED
+  IN_PROGRESS
+  DONE
+  LATE
+  ARCHIVED
 }
 
 enum LeaveType {
@@ -80,6 +103,7 @@ enum ValidationStatus {
   PENDING
   APPROVED
   REJECTED
+  ARCHIVED
 }
 
 enum NotificationChannel {
@@ -126,6 +150,11 @@ model User {
   milestones         Milestone[]        @relation("MilestoneCreator")
   documentShares     DocumentShare[]    @relation("SharedWithUser")
   notifications      Notification[]
+
+  // Relations — Sprint 3
+  projectValRequests    ProjectValidationRequest[] @relation("ProjectValRequester")
+  projectValResolutions ProjectValidationRequest[] @relation("ProjectValResolver")
+  resolvedBlockers      ProjectComment[]           @relation("BlockerResolver")
 
   @@map("users")
 }
@@ -242,22 +271,25 @@ model PublicHoliday {
 // ─── Project ──────────────────────────────────────────────────────────────────
 
 model Project {
-  id          String    @id @default(uuid())
-  name        String
-  description String?
-  startDate   DateTime  @map("start_date")
-  endDate     DateTime? @map("end_date")
-  isActive    Boolean   @default(true) @map("is_active")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id            String        @id @default(uuid())
+  name          String
+  description   String?
+  startDate     DateTime      @map("start_date")
+  endDate       DateTime?     @map("end_date")
+  estimatedDays Int?          @map("estimated_days")
+  status        ProjectStatus @default(ACTIVE)
+  closedAt      DateTime?     @map("closed_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
 
   missionId   String    @map("mission_id")
   mission     Mission   @relation(fields: [missionId], references: [id])
 
-  entries     ProjectEntry[]
-  weatherEntries WeatherEntry[]
-  comments    ProjectComment[]
-  milestones  Milestone[]
+  entries            ProjectEntry[]
+  weatherEntries     WeatherEntry[]
+  comments           ProjectComment[]
+  milestones         Milestone[]
+  validationRequests ProjectValidationRequest[]
 
   @@map("projects")
 }
@@ -285,19 +317,19 @@ model ProjectEntry {
 // ─── Weather ──────────────────────────────────────────────────────────────────
 
 model WeatherEntry {
-  id          String        @id @default(uuid())
-  date        DateTime      @db.Date
-  status      WeatherStatus
+  id          String       @id @default(uuid())
+  date        DateTime     @db.Date
+  state       WeatherState
   comment     String?
-  isEscalated Boolean       @default(false) @map("is_escalated")
-  escalatedAt DateTime?     @map("escalated_at")
-  createdAt   DateTime      @default(now()) @map("created_at")
+  isEscalated Boolean      @default(false) @map("is_escalated")
+  escalatedAt DateTime?    @map("escalated_at")
+  createdAt   DateTime     @default(now()) @map("created_at")
 
-  projectId   String        @map("project_id")
-  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId   String       @map("project_id")
+  project     Project      @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  reportedById String       @map("reported_by_id")
-  reportedBy   User         @relation(fields: [reportedById], references: [id])
+  reportedById String      @map("reported_by_id")
+  reportedBy   User        @relation(fields: [reportedById], references: [id])
 
   @@map("weather_entries")
 }
@@ -305,17 +337,22 @@ model WeatherEntry {
 // ─── Project Comments ─────────────────────────────────────────────────────────
 
 model ProjectComment {
-  id          String    @id @default(uuid())
-  content     String
-  isPrivate   Boolean   @default(false) @map("is_private") // true = ESN/salarié only, not visible to client
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  id           String            @id @default(uuid())
+  content      String
+  visibility   CommentVisibility @default(ALL)
+  isBlocker    Boolean           @default(false) @map("is_blocker")
+  resolvedAt   DateTime?         @map("resolved_at")
+  createdAt    DateTime          @default(now()) @map("created_at")
+  updatedAt    DateTime          @updatedAt @map("updated_at")
 
-  projectId   String    @map("project_id")
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId    String    @map("project_id")
+  project      Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
-  authorId    String    @map("author_id")
-  author      User      @relation(fields: [authorId], references: [id])
+  authorId     String    @map("author_id")
+  author       User      @relation(fields: [authorId], references: [id])
+
+  resolvedById String?   @map("resolved_by_id")
+  resolvedBy   User?     @relation("BlockerResolver", fields: [resolvedById], references: [id])
 
   @@map("project_comments")
 }
@@ -341,13 +378,15 @@ model ValidationRequest {
 // ─── Milestone ────────────────────────────────────────────────────────────────
 
 model Milestone {
-  id          String    @id @default(uuid())
+  id          String          @id @default(uuid())
   title       String
   description String?
-  dueDate     DateTime? @map("due_date")
-  completedAt DateTime? @map("completed_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
-  updatedAt   DateTime  @updatedAt @map("updated_at")
+  dueDate     DateTime?       @map("due_date")
+  status      MilestoneStatus @default(PLANNED)
+  completedAt DateTime?       @map("completed_at")
+  validatedAt DateTime?       @map("validated_at")
+  createdAt   DateTime        @default(now()) @map("created_at")
+  updatedAt   DateTime        @updatedAt @map("updated_at")
 
   projectId   String    @map("project_id")
   project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
@@ -356,6 +395,44 @@ model Milestone {
   createdBy   User      @relation("MilestoneCreator", fields: [createdById], references: [id])
 
   @@map("milestones")
+}
+
+// ─── Project Validations ──────────────────────────────────────────────────────
+
+model ProjectValidationRequest {
+  id              String           @id @default(uuid())
+  title           String
+  description     String
+  targetRole      Role             @map("target_role")
+  status          ValidationStatus @default(PENDING)
+  decisionComment String?          @map("decision_comment")
+  requestedAt     DateTime         @default(now()) @map("requested_at")
+  resolvedAt      DateTime?        @map("resolved_at")
+  createdAt       DateTime         @default(now()) @map("created_at")
+
+  projectId       String           @map("project_id")
+  project         Project          @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  requestedById   String           @map("requested_by_id")
+  requestedBy     User             @relation("ProjectValRequester", fields: [requestedById], references: [id])
+
+  resolverId      String?          @map("resolver_id")
+  resolver        User?            @relation("ProjectValResolver", fields: [resolverId], references: [id])
+
+  documents       ProjectValidationDocument[]
+
+  @@map("project_validation_requests")
+}
+
+model ProjectValidationDocument {
+  id           String   @id @default(uuid())
+  validationId String   @map("validation_id")
+  validation   ProjectValidationRequest @relation(fields: [validationId], references: [id], onDelete: Cascade)
+  documentId   String   @map("document_id")
+  document     Document @relation(fields: [documentId], references: [id])
+
+  @@unique([validationId, documentId])
+  @@map("project_validation_documents")
 }
 
 // ─── Documents ────────────────────────────────────────────────────────────────
@@ -376,10 +453,11 @@ model Document {
   missionId   String?      @map("mission_id")
   mission     Mission?     @relation(fields: [missionId], references: [id])
 
-  versions    DocumentVersion[]
-  shares      DocumentShare[]
-  validations ValidationDocument[]
-  embeddings  Embedding[]
+  versions           DocumentVersion[]
+  shares             DocumentShare[]
+  validations        ValidationDocument[]
+  embeddings         Embedding[]
+  projectValidations ProjectValidationDocument[]
 
   @@map("documents")
 }

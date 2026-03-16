@@ -4,12 +4,15 @@ import {
   CraStatus,
   CraEntryType,
   PortionType,
-  WeatherStatus,
+  WeatherState,
   LeaveType,
   DocumentType,
   ConsentStatus,
   ValidationStatus,
   NotificationChannel,
+  ProjectStatus,
+  CommentVisibility,
+  MilestoneStatus,
 } from './enums';
 
 // ── Base ──────────────────────────────────────────────────────────────────────
@@ -96,7 +99,9 @@ export interface Project extends BaseEntity {
   description?: string | null;
   startDate: Date;
   endDate?: Date | null;
-  isActive: boolean;
+  estimatedDays?: number | null;
+  status: ProjectStatus;
+  closedAt?: Date | null;
   missionId: string;
 }
 
@@ -126,7 +131,7 @@ export interface PublicHoliday {
 export interface WeatherEntry {
   id: string;
   date: Date;
-  status: WeatherStatus;
+  state: WeatherState;
   comment?: string | null;
   isEscalated: boolean;
   escalatedAt?: Date | null;
@@ -139,9 +144,35 @@ export interface WeatherEntry {
 
 export interface ProjectComment extends BaseEntity {
   content: string;
-  isPrivate: boolean;
+  visibility: CommentVisibility;
+  isBlocker: boolean;
+  resolvedAt?: Date | null;
+  resolvedById?: string | null;
   projectId: string;
   authorId: string;
+}
+
+// ── Project Validation ────────────────────────────────────────────────────────
+
+export interface ProjectValidationRequest {
+  id: string;
+  title: string;
+  description: string;
+  targetRole: Role;
+  status: ValidationStatus;
+  decisionComment?: string | null;
+  requestedAt: Date;
+  resolvedAt?: Date | null;
+  projectId: string;
+  requestedById: string;
+  resolverId?: string | null;
+  createdAt: Date;
+}
+
+export interface ProjectValidationDocument {
+  id: string;
+  validationId: string;
+  documentId: string;
 }
 
 // ── Validation ────────────────────────────────────────────────────────────────
@@ -162,7 +193,9 @@ export interface Milestone extends BaseEntity {
   title: string;
   description?: string | null;
   dueDate?: Date | null;
+  status: MilestoneStatus;
   completedAt?: Date | null;
+  validatedAt?: Date | null;
   projectId: string;
   createdById: string;
 }
