@@ -7,17 +7,19 @@
 - [x] Auth NestJS (JWT + RBAC guards + ConsentGuard)
 - [x] Auth Frontend (NextAuth v5 + middleware de route)
 - [x] Layout dashboard de base (sidebar role-aware, login page)
-- [x] PR Sprint 1 → main (PR #1 ouverte)
+- [x] PR Sprint 1 → main (PR #1 mergé ✅)
 
-## Sprint 2 — Module CRA
-- [ ] Entités CraEntry + CraMonth + LeaveBalance (Prisma)
-- [ ] API CRUD CRA (NestJS) + DTOs
-- [ ] Calcul automatique soldes CP/RTT
-- [ ] Interface saisie journalière (frontend)
-- [ ] Dashboard jours consommés / restants
-- [ ] Tests unit CRA service (TDD)
-- [ ] Tests e2e workflow de signature
-- [ ] PR Sprint 2 → main
+## Sprint 2 — Module CRA ✅
+- [x] Entités CraEntry + CraMonth + LeaveBalance (Prisma) — migration Sprint 2
+- [x] API CRUD CRA (NestJS) + DTOs — 7 endpoints REST
+- [x] Calcul automatique soldes CP/RTT — WorkingDaysUtil + jours fériés FR 2024-2027
+- [x] Workflow signature tripartite — machine à états DRAFT→LOCKED + AuditLog
+- [x] Génération PDF CRA — Puppeteer + upload MinIO + auto-lock
+- [x] Interface saisie journalière (frontend) — MonthGrid + DayCell + EntryModal
+- [x] Dashboard jours consommés / restants — LeaveBalanceSummary + WorkingDaysProgress
+- [x] Tests unit CRA service (TDD) — 142 tests backend, 45 frontend, 36 pdf-generator
+- [x] Tests e2e workflow de signature — 22 tests supertest (CRUD + workflow + access control)
+- [x] PR Sprint 2 → main (PR #2 mergé ✅)
 
 ## Sprint 3 — Module Projets
 - [ ] Entités Project + WeatherEntry + ProjectComment + Milestone (Prisma)
