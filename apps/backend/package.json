@@ -47,6 +47,7 @@
     "@swc/core": "^1.6.1",
     "@swc/helpers": "^0.5.19",
     "@types/bcryptjs": "^2.4.6",
+    "@types/express": "^5.0.6",
     "@types/node": "^20.12.12",
     "@types/nodemailer": "^6.4.15",
     "@types/passport-jwt": "^4.0.1",
