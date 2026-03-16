@@ -1,13 +1,13 @@
 # Backlog — Phase 1 (MVP)
 
-## Sprint 1 — Fondations
-- [ ] Init git + remote GitHub (Prompt 0)
-- [ ] Setup Turborepo + pnpm workspaces + package.json des apps
-- [ ] Schema Prisma complet (toutes entités)
-- [ ] Auth NestJS (JWT + RBAC guards + ConsentGuard)
-- [ ] Auth Frontend (NextAuth v5 + middleware de route)
-- [ ] Layout dashboard de base (shadcn/ui)
-- [ ] PR Sprint 1 → main
+## Sprint 1 — Fondations ✅
+- [x] Init git + remote GitHub
+- [x] Setup Turborepo + pnpm workspaces + package.json des apps
+- [x] Schema Prisma complet (18 modèles + migrations + seed)
+- [x] Auth NestJS (JWT + RBAC guards + ConsentGuard)
+- [x] Auth Frontend (NextAuth v5 + middleware de route)
+- [x] Layout dashboard de base (sidebar role-aware, login page)
+- [x] PR Sprint 1 → main (PR #1 ouverte)
 
 ## Sprint 2 — Module CRA
 - [ ] Entités CraEntry + CraMonth + LeaveBalance (Prisma)
