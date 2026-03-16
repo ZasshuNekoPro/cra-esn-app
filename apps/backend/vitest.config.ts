@@ -7,6 +7,7 @@ export default defineConfig({
     alias: {
       '@esn/shared-types': path.resolve(__dirname, '../../packages/shared-types/src'),
       '@esn/shared-utils': path.resolve(__dirname, '../../packages/shared-utils/src'),
+      '@esn/pdf-generator': path.resolve(__dirname, '../../packages/pdf-generator/src'),
     },
   },
   test: {

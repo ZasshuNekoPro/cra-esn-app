@@ -11,11 +11,14 @@
     "experimentalDecorators": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
+    "skipLibCheck": true,
     "paths": {
       "@esn/shared-types": ["../../packages/shared-types/src"],
       "@esn/shared-types/*": ["../../packages/shared-types/src/*"],
       "@esn/shared-utils": ["../../packages/shared-utils/src"],
-      "@esn/shared-utils/*": ["../../packages/shared-utils/src/*"]
+      "@esn/shared-utils/*": ["../../packages/shared-utils/src/*"],
+      "@esn/pdf-generator": ["../../packages/pdf-generator/src"],
+      "@esn/pdf-generator/*": ["../../packages/pdf-generator/src/*"]
     }
   },
   "include": ["src/**/*"],

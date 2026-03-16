@@ -115,19 +115,27 @@ const makeNotifications = () =>
     notify: vi.fn().mockResolvedValue(undefined),
   }) as unknown as NotificationsService;
 
+const makeCraPdfService = () =>
+  ({
+    generateAndUpload: vi.fn().mockResolvedValue(undefined),
+  });
+
 // ── Tests ─────────────────────────────────────────────────────────────────────
 
 describe('CraSignatureService', () => {
   let service: CraSignatureService;
   let prisma: ReturnType<typeof makePrisma>;
   let notifications: ReturnType<typeof makeNotifications>;
+  let craPdf: ReturnType<typeof makeCraPdfService>;
 
   beforeEach(() => {
     prisma = makePrisma();
     notifications = makeNotifications();
+    craPdf = makeCraPdfService();
     service = new CraSignatureService(
       prisma as unknown as PrismaService,
       notifications as unknown as NotificationsService,
+      craPdf as never,
     );
     vi.clearAllMocks();
   });

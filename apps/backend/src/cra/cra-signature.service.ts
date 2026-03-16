@@ -1,5 +1,6 @@
 import {
   Injectable,
+  Logger,
   NotFoundException,
   ForbiddenException,
   ConflictException,
@@ -11,6 +12,7 @@ import {
 } from '@prisma/client';
 import { PrismaService } from '../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { CraPdfService } from './cra-pdf.service';
 
 // ── Internal types ──────────────────────────────────────────────────────────
 
@@ -46,9 +48,12 @@ type CraMonthRow = {
 
 @Injectable()
 export class CraSignatureService {
+  private readonly logger = new Logger(CraSignatureService.name);
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly craPdf: CraPdfService,
   ) {}
 
   // ── submit ────────────────────────────────────────────────────────────────
@@ -240,7 +245,7 @@ export class CraSignatureService {
       `Votre CRA pour ${craMonth.year}/${String(craMonth.month).padStart(2, '0')} a été validé par l'ESN.`,
     );
 
-    // If mission has no client: auto-advance to SIGNED_CLIENT
+    // If mission has no client: auto-advance to SIGNED_CLIENT then trigger PDF generation
     if (craMonth.mission.clientId === null) {
       const finalUpdated = await this.prisma.craMonth.update({
         where: { id: craMonthId },
@@ -249,6 +254,12 @@ export class CraSignatureService {
           signedByClientAt: now,
         },
         include: { mission: true, entries: true },
+      });
+
+      // T5: Trigger PDF generation and auto-lock (SIGNED_CLIENT → LOCKED)
+      void this.craPdf.generateAndUpload(craMonthId).catch((err: unknown) => {
+        const message = err instanceof Error ? err.message : String(err);
+        this.logger.error(`generateAndUpload failed for ${craMonthId}: ${message}`);
       });
 
       return finalUpdated as unknown as CraMonthRow;
@@ -408,8 +419,13 @@ export class CraSignatureService {
       );
     }
 
-    // Note T2: PDF generation (→ LOCKED) will be triggered in T5.
-    // Status stays at SIGNED_CLIENT for now.
+    // T5: Trigger PDF generation and auto-lock (SIGNED_CLIENT → LOCKED)
+    // Fire-and-forget: do not block the response on PDF generation
+    void this.craPdf.generateAndUpload(craMonthId).catch((err: unknown) => {
+      // Log error but do not propagate — the CRA is already SIGNED_CLIENT
+      const message = err instanceof Error ? err.message : String(err);
+      this.logger.error(`generateAndUpload failed for ${craMonthId}: ${message}`);
+    });
 
     return updated as unknown as CraMonthRow;
   }
