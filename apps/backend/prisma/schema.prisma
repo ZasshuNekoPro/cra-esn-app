@@ -1,0 +1,461 @@
+// ─── Prisma Schema — ESN CRA App ──────────────────────────────────────────────
+// ORM: Prisma 5  |  DB: PostgreSQL 15 + pgvector
+// Convention: snake_case en DB, camelCase en TS (via @map / @@map)
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["postgresqlExtensions"]
+}
+
+datasource db {
+  provider   = "postgresql"
+  url        = env("DATABASE_URL")
+  extensions = [pgvector(map: "vector", schema: "public")]
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  EMPLOYEE
+  ESN_ADMIN
+  CLIENT
+}
+
+enum CraStatus {
+  DRAFT
+  SUBMITTED
+  SIGNED_EMPLOYEE
+  SIGNED_CLIENT
+  LOCKED
+}
+
+enum WeatherStatus {
+  GREEN
+  ORANGE
+  RED
+}
+
+enum LeaveType {
+  PAID_LEAVE      // Congés payés
+  RTT
+  SICK_LEAVE
+  OTHER
+}
+
+enum DocumentType {
+  CRA_PDF
+  CONTRACT
+  AMENDMENT
+  MISSION_ORDER
+  OTHER
+}
+
+enum ConsentStatus {
+  PENDING
+  GRANTED
+  REVOKED
+}
+
+enum ValidationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum NotificationChannel {
+  EMAIL
+  IN_APP
+}
+
+// ─── User ─────────────────────────────────────────────────────────────────────
+
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  password  String
+  firstName String    @map("first_name")
+  lastName  String    @map("last_name")
+  role      Role      @default(EMPLOYEE)
+  phone     String?
+  avatarUrl String?   @map("avatar_url")
+  deletedAt DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+
+  // Relations — Employee
+  missions           Mission[]          @relation("EmployeeMissions")
+  craMonths          CraMonth[]         @relation("EmployeeCraMonths")
+  leaveBalances      LeaveBalance[]
+  projectEntries     ProjectEntry[]     @relation("EmployeeProjectEntries")
+  ownedDocuments     Document[]         @relation("DocumentOwner")
+  employeeConsents   Consent[]          @relation("EmployeeConsents")
+  privateNotes       String?            @map("private_notes")
+
+  // Relations — ESN Admin
+  managedMissions    Mission[]          @relation("EsnAdminMissions")
+  requestedConsents  Consent[]          @relation("RequestedByConsents")
+  auditLogsInitiated AuditLog[]         @relation("InitiatorAuditLogs")
+
+  // Relations — Client
+  clientMissions     Mission[]          @relation("ClientMissions")
+  validationRequests ValidationRequest[] @relation("ValidatorRequests")
+
+  // Relations — shared
+  weatherEntries     WeatherEntry[]
+  projectComments    ProjectComment[]
+  milestones         Milestone[]        @relation("MilestoneCreator")
+  documentShares     DocumentShare[]    @relation("SharedWithUser")
+  notifications      Notification[]
+
+  @@map("users")
+}
+
+// ─── Mission ──────────────────────────────────────────────────────────────────
+
+model Mission {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  dailyRate   Decimal?  @map("daily_rate") @db.Decimal(10, 2)
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  // Actors
+  employeeId  String    @map("employee_id")
+  employee    User      @relation("EmployeeMissions", fields: [employeeId], references: [id])
+
+  esnAdminId  String?   @map("esn_admin_id")
+  esnAdmin    User?     @relation("EsnAdminMissions", fields: [esnAdminId], references: [id])
+
+  clientId    String?   @map("client_id")
+  client      User?     @relation("ClientMissions", fields: [clientId], references: [id])
+
+  // Relations
+  projects    Project[]
+  craMonths   CraMonth[]
+  documents   Document[]
+
+  @@map("missions")
+}
+
+// ─── CRA ──────────────────────────────────────────────────────────────────────
+
+model CraMonth {
+  id          String    @id @default(uuid())
+  year        Int
+  month       Int       // 1–12
+  status      CraStatus @default(DRAFT)
+  pdfUrl      String?   @map("pdf_url")
+  submittedAt DateTime? @map("submitted_at")
+  lockedAt    DateTime? @map("locked_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  employeeId  String    @map("employee_id")
+  employee    User      @relation("EmployeeCraMonths", fields: [employeeId], references: [id])
+
+  missionId   String    @map("mission_id")
+  mission     Mission   @relation(fields: [missionId], references: [id])
+
+  entries            CraEntry[]
+  validationRequests ValidationRequest[]
+  validationDocuments ValidationDocument[]
+
+  @@unique([employeeId, missionId, year, month])
+  @@map("cra_months")
+}
+
+model CraEntry {
+  id         String    @id @default(uuid())
+  date       DateTime  @db.Date
+  dayFraction Decimal  @default(1) @map("day_fraction") @db.Decimal(3, 2) // 0.5 or 1.0
+  leaveType  LeaveType? @map("leave_type")
+  comment    String?
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  craMonthId String    @map("cra_month_id")
+  craMonth   CraMonth  @relation(fields: [craMonthId], references: [id], onDelete: Cascade)
+
+  @@unique([craMonthId, date])
+  @@map("cra_entries")
+}
+
+// ─── Leave Balance ────────────────────────────────────────────────────────────
+
+model LeaveBalance {
+  id            String    @id @default(uuid())
+  year          Int
+  leaveType     LeaveType @map("leave_type")
+  totalDays     Decimal   @map("total_days") @db.Decimal(6, 2)
+  usedDays      Decimal   @default(0) @map("used_days") @db.Decimal(6, 2)
+  updatedAt     DateTime  @updatedAt @map("updated_at")
+
+  userId        String    @map("user_id")
+  user          User      @relation(fields: [userId], references: [id])
+
+  @@unique([userId, year, leaveType])
+  @@map("leave_balances")
+}
+
+// ─── Project ──────────────────────────────────────────────────────────────────
+
+model Project {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  startDate   DateTime  @map("start_date")
+  endDate     DateTime? @map("end_date")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  missionId   String    @map("mission_id")
+  mission     Mission   @relation(fields: [missionId], references: [id])
+
+  entries     ProjectEntry[]
+  weatherEntries WeatherEntry[]
+  comments    ProjectComment[]
+  milestones  Milestone[]
+
+  @@map("projects")
+}
+
+model ProjectEntry {
+  id          String    @id @default(uuid())
+  date        DateTime  @db.Date
+  hoursSpent  Decimal?  @map("hours_spent") @db.Decimal(5, 2)
+  description String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  employeeId  String    @map("employee_id")
+  employee    User      @relation("EmployeeProjectEntries", fields: [employeeId], references: [id])
+
+  @@map("project_entries")
+}
+
+// ─── Weather ──────────────────────────────────────────────────────────────────
+
+model WeatherEntry {
+  id          String        @id @default(uuid())
+  date        DateTime      @db.Date
+  status      WeatherStatus
+  comment     String?
+  isEscalated Boolean       @default(false) @map("is_escalated")
+  escalatedAt DateTime?     @map("escalated_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+
+  projectId   String        @map("project_id")
+  project     Project       @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  reportedById String       @map("reported_by_id")
+  reportedBy   User         @relation(fields: [reportedById], references: [id])
+
+  @@map("weather_entries")
+}
+
+// ─── Project Comments ─────────────────────────────────────────────────────────
+
+model ProjectComment {
+  id          String    @id @default(uuid())
+  content     String
+  isPrivate   Boolean   @default(false) @map("is_private") // true = ESN/salarié only, not visible to client
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  authorId    String    @map("author_id")
+  author      User      @relation(fields: [authorId], references: [id])
+
+  @@map("project_comments")
+}
+
+// ─── Validation ───────────────────────────────────────────────────────────────
+
+model ValidationRequest {
+  id          String           @id @default(uuid())
+  status      ValidationStatus @default(PENDING)
+  comment     String?
+  requestedAt DateTime         @default(now()) @map("requested_at")
+  resolvedAt  DateTime?        @map("resolved_at")
+
+  craMonthId  String           @map("cra_month_id")
+  craMonth    CraMonth         @relation(fields: [craMonthId], references: [id], onDelete: Cascade)
+
+  validatorId String           @map("validator_id")
+  validator   User             @relation("ValidatorRequests", fields: [validatorId], references: [id])
+
+  @@map("validation_requests")
+}
+
+// ─── Milestone ────────────────────────────────────────────────────────────────
+
+model Milestone {
+  id          String    @id @default(uuid())
+  title       String
+  description String?
+  dueDate     DateTime? @map("due_date")
+  completedAt DateTime? @map("completed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  projectId   String    @map("project_id")
+  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  createdById String    @map("created_by_id")
+  createdBy   User      @relation("MilestoneCreator", fields: [createdById], references: [id])
+
+  @@map("milestones")
+}
+
+// ─── Documents ────────────────────────────────────────────────────────────────
+
+model Document {
+  id          String       @id @default(uuid())
+  name        String
+  type        DocumentType
+  s3Key       String       @map("s3_key")
+  mimeType    String       @map("mime_type")
+  sizeBytes   Int          @map("size_bytes")
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  ownerId     String       @map("owner_id")
+  owner       User         @relation("DocumentOwner", fields: [ownerId], references: [id])
+
+  missionId   String?      @map("mission_id")
+  mission     Mission?     @relation(fields: [missionId], references: [id])
+
+  versions    DocumentVersion[]
+  shares      DocumentShare[]
+  validations ValidationDocument[]
+  embeddings  Embedding[]
+
+  @@map("documents")
+}
+
+model DocumentVersion {
+  id         String   @id @default(uuid())
+  version    Int      @default(1)
+  s3Key      String   @map("s3_key")
+  sizeBytes  Int      @map("size_bytes")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, version])
+  @@map("document_versions")
+}
+
+model DocumentShare {
+  id          String    @id @default(uuid())
+  shareToken  String?   @unique @map("share_token") // for link-based sharing
+  expiresAt   DateTime? @map("expires_at")
+  accessedAt  DateTime? @map("accessed_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  documentId  String    @map("document_id")
+  document    Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  sharedWithId String?  @map("shared_with_id")
+  sharedWith   User?    @relation("SharedWithUser", fields: [sharedWithId], references: [id])
+
+  @@map("document_shares")
+}
+
+model ValidationDocument {
+  id         String   @id @default(uuid())
+  signedAt   DateTime @default(now()) @map("signed_at")
+
+  documentId String   @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  craMonthId String   @map("cra_month_id")
+  craMonth   CraMonth @relation(fields: [craMonthId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, craMonthId])
+  @@map("validation_documents")
+}
+
+// ─── Consent ──────────────────────────────────────────────────────────────────
+
+model Consent {
+  id            String        @id @default(uuid())
+  status        ConsentStatus @default(PENDING)
+  scope         String[]      // e.g. ["cra", "projects", "documents"]
+  grantedAt     DateTime?     @map("granted_at")
+  revokedAt     DateTime?     @map("revoked_at")
+  expiresAt     DateTime?     @map("expires_at")
+  createdAt     DateTime      @default(now()) @map("created_at")
+
+  employeeId    String        @map("employee_id")
+  employee      User          @relation("EmployeeConsents", fields: [employeeId], references: [id])
+
+  requestedById String        @map("requested_by_id")
+  requestedBy   User          @relation("RequestedByConsents", fields: [requestedById], references: [id])
+
+  @@unique([employeeId, requestedById])
+  @@map("consents")
+}
+
+// ─── Audit Log ────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  action      String   // e.g. "CONSENT_ACCESS", "DOCUMENT_SHARED", "CRA_LOCKED"
+  resource    String   // e.g. "cra_month:uuid"
+  metadata    Json?    // additional context
+  ipAddress   String?  @map("ip_address")
+  userAgent   String?  @map("user_agent")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  initiatorId String   @map("initiator_id")
+  initiator   User     @relation("InitiatorAuditLogs", fields: [initiatorId], references: [id])
+
+  @@index([initiatorId, createdAt])
+  @@index([resource, createdAt])
+  @@map("audit_logs")
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String              @id @default(uuid())
+  channel   NotificationChannel
+  subject   String
+  body      String
+  isRead    Boolean             @default(false) @map("is_read")
+  sentAt    DateTime?           @map("sent_at")
+  readAt    DateTime?           @map("read_at")
+  createdAt DateTime            @default(now()) @map("created_at")
+
+  userId    String              @map("user_id")
+  user      User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@map("notifications")
+}
+
+// ─── RAG Embeddings ───────────────────────────────────────────────────────────
+
+model Embedding {
+  id         String                       @id @default(uuid())
+  content    String                       // chunk of text
+  vector     Unsupported("vector(1536)")
+  metadata   Json?
+  createdAt  DateTime                     @default(now()) @map("created_at")
+
+  documentId String?                      @map("document_id")
+  document   Document?                    @relation(fields: [documentId], references: [id], onDelete: SetNull)
+
+  @@map("embeddings")
+}
