@@ -3,6 +3,7 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Param,
   Body,
   Query,
@@ -12,9 +13,12 @@ import {
 } from '@nestjs/common';
 import { ProjectsService } from './projects.service';
 import { WeatherService } from './weather.service';
+import { CommentsService } from './comments.service';
 import { CreateProjectDto } from './dto/create-project.dto';
 import { UpdateProjectDto } from './dto/update-project.dto';
 import { CreateWeatherEntryDto } from './dto/weather-entry.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
+import { UpdateCommentDto } from './dto/update-comment.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
@@ -25,6 +29,7 @@ export class ProjectsController {
   constructor(
     private readonly projectsService: ProjectsService,
     private readonly weatherService: WeatherService,
+    private readonly commentsService: CommentsService,
   ) {}
 
   /**
@@ -145,5 +150,60 @@ export class ProjectsController {
     @Query('month', ParseIntPipe) month: number,
   ) {
     return this.weatherService.getMonthlySummary(id, year, month);
+  }
+
+  // ── Comments ─────────────────────────────────────────────────────────────
+
+  /**
+   * GET /projects/:id/comments
+   * List comments filtered by caller's visibility scope.
+   */
+  @Get(':id/comments')
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
+  getComments(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.commentsService.getComments(id, user.sub, user.role);
+  }
+
+  /**
+   * POST /projects/:id/comments
+   * Add a comment (all roles).
+   */
+  @Post(':id/comments')
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
+  @HttpCode(HttpStatus.CREATED)
+  createComment(
+    @Param('id') id: string,
+    @Body() dto: CreateCommentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.commentsService.createComment(id, user.sub, user.role, dto);
+  }
+
+  /**
+   * PATCH /projects/:id/comments/:commentId
+   * Update own comment (content / visibility).
+   */
+  @Patch(':id/comments/:commentId')
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
+  updateComment(
+    @Param('commentId') commentId: string,
+    @Body() dto: UpdateCommentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.commentsService.updateComment(commentId, user.sub, dto);
+  }
+
+  /**
+   * POST /projects/:id/comments/:commentId/resolve
+   * Resolve a blocker comment (ESN_ADMIN only).
+   */
+  @Post(':id/comments/:commentId/resolve')
+  @Roles(Role.ESN_ADMIN)
+  @HttpCode(HttpStatus.OK)
+  resolveBlocker(
+    @Param('commentId') commentId: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.commentsService.resolveBlocker(commentId, user.sub);
   }
 }
