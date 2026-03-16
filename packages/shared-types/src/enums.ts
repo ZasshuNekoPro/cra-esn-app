@@ -35,10 +35,40 @@ export enum PortionType {
   HALF_PM = 'HALF_PM',
 }
 
+/** @deprecated Use WeatherState instead */
 export enum WeatherStatus {
   GREEN = 'GREEN',
   ORANGE = 'ORANGE',
   RED = 'RED',
+}
+
+export enum WeatherState {
+  SUNNY = 'SUNNY',
+  CLOUDY = 'CLOUDY',
+  RAINY = 'RAINY',
+  STORM = 'STORM',
+  VALIDATION_PENDING = 'VALIDATION_PENDING',
+  VALIDATED = 'VALIDATED',
+}
+
+export enum ProjectStatus {
+  ACTIVE = 'ACTIVE',
+  PAUSED = 'PAUSED',
+  CLOSED = 'CLOSED',
+}
+
+export enum CommentVisibility {
+  EMPLOYEE_ESN = 'EMPLOYEE_ESN',
+  EMPLOYEE_CLIENT = 'EMPLOYEE_CLIENT',
+  ALL = 'ALL',
+}
+
+export enum MilestoneStatus {
+  PLANNED = 'PLANNED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  DONE = 'DONE',
+  LATE = 'LATE',
+  ARCHIVED = 'ARCHIVED',
 }
 
 export enum LeaveType {
@@ -66,6 +96,7 @@ export enum ValidationStatus {
   PENDING = 'PENDING',
   APPROVED = 'APPROVED',
   REJECTED = 'REJECTED',
+  ARCHIVED = 'ARCHIVED',
 }
 
 export enum NotificationChannel {
@@ -84,4 +115,11 @@ export enum AuditAction {
   CRA_LOCKED = 'CRA_LOCKED',
   USER_LOGIN = 'USER_LOGIN',
   USER_LOGOUT = 'USER_LOGOUT',
+  // Projects
+  PROJECT_CLOSED = 'PROJECT_CLOSED',
+  WEATHER_UPDATED = 'WEATHER_UPDATED',
+  COMMENT_CREATED = 'COMMENT_CREATED',
+  VALIDATION_REQUESTED = 'VALIDATION_REQUESTED',
+  VALIDATION_APPROVED = 'VALIDATION_APPROVED',
+  VALIDATION_REJECTED = 'VALIDATION_REJECTED',
 }

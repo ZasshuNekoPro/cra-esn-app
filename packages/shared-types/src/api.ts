@@ -1,7 +1,7 @@
 // ─── API Types — request/response contracts ───────────────────────────────────
 
-import { Role, CraStatus, CraEntryType, PortionType, WeatherStatus, LeaveType } from './enums';
-import { PublicUser, Mission, CraMonth, CraEntry, Project, WeatherEntry } from './entities';
+import { Role, CraStatus, CraEntryType, PortionType, WeatherState, LeaveType, ProjectStatus, CommentVisibility, MilestoneStatus, ValidationStatus } from './enums';
+import { PublicUser, Mission, CraMonth, CraEntry, Project, WeatherEntry, ProjectComment, Milestone, ProjectValidationRequest } from './entities';
 
 // ── Generic wrappers ──────────────────────────────────────────────────────────
 
@@ -147,24 +147,97 @@ export interface CraSummary {
 export interface CreateProjectRequest {
   name: string;
   description?: string;
-  startDate: string;
+  startDate: string; // ISO date
   endDate?: string;
+  estimatedDays?: number;
   missionId: string;
 }
 
-export interface ProjectWithWeather extends Project {
+export interface UpdateProjectRequest {
+  name?: string;
+  description?: string;
+  endDate?: string;
+  estimatedDays?: number;
+}
+
+export interface ProjectSummary extends Project {
   latestWeather?: WeatherEntry | null;
-  weatherHistory?: WeatherEntry[];
+  milestoneCount: number;
+  lateMilestoneCount: number;
+}
+
+export interface ProjectDetail extends Project {
+  weatherHistory: WeatherEntry[];
+  milestones: (Milestone & { isLate: boolean })[];
+  pendingValidations: ProjectValidationRequest[];
 }
 
 // ── Weather ───────────────────────────────────────────────────────────────────
 
 export interface CreateWeatherEntryRequest {
-  date: string;
-  status: WeatherStatus;
+  date: string; // ISO date
+  state: WeatherState;
   comment?: string;
-  projectId: string;
 }
+
+export interface WeatherMonthlySummary {
+  dominantState: WeatherState;
+  stormCount: number;
+  entryCounts: Partial<Record<WeatherState, number>>;
+}
+
+// ── Comments ──────────────────────────────────────────────────────────────────
+
+export interface CreateCommentRequest {
+  content: string;
+  visibility: CommentVisibility;
+  isBlocker?: boolean;
+}
+
+export interface UpdateCommentRequest {
+  content?: string;
+  visibility?: CommentVisibility;
+}
+
+// ── Project Validations ───────────────────────────────────────────────────────
+
+export interface CreateProjectValidationRequest {
+  title: string;
+  description: string;
+  targetRole: Role;
+}
+
+export interface DecideValidationRequest {
+  decisionComment?: string;
+}
+
+// ── Milestones ────────────────────────────────────────────────────────────────
+
+export interface CreateMilestoneRequest {
+  title: string;
+  description?: string;
+  dueDate?: string; // ISO date
+}
+
+export interface UpdateMilestoneRequest {
+  title?: string;
+  description?: string;
+  dueDate?: string;
+  status?: MilestoneStatus;
+}
+
+export interface CompleteMilestoneRequest {
+  validatedAt?: string; // ISO date, optional
+}
+
+// ── Project Filters ───────────────────────────────────────────────────────────
+
+export interface ProjectListQuery extends PaginationQuery {
+  status?: ProjectStatus;
+  missionId?: string;
+}
+
+export type { ProjectComment, ValidationStatus };
 
 // ── Documents ─────────────────────────────────────────────────────────────────
 
