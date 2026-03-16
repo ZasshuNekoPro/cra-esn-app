@@ -10,7 +10,8 @@ export default defineConfig({
     environmentMatchGlobs: [
       ['src/**/*.spec.tsx', 'jsdom'],
     ],
-    include: ['src/**/*.spec.ts', 'src/**/*.spec.tsx', 'test/**/*.spec.ts', 'test/**/*.spec.tsx'],
+    include: ['src/**/*.spec.ts', 'src/**/*.spec.tsx'],
+    exclude: ['test/e2e/**'],
     setupFiles: ['./src/test-setup.ts'],
   },
   resolve: {

@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, type Mock } from 'vitest';
 import { CraEntryType, LeaveType } from '@esn/shared-types';
 import type { CraPdfData } from './types';
 
@@ -54,8 +54,8 @@ const makeSampleData = (overrides: Partial<CraPdfData> = {}): CraPdfData => ({
 
 describe('CraPdfGenerator', () => {
   let generator: CraPdfGenerator;
-  let mockBrowser: ReturnType<typeof vi.fn>;
-  let mockPage: ReturnType<typeof vi.fn>;
+  let mockBrowser: { newPage: Mock; close: Mock };
+  let mockPage: { setContent: Mock; pdf: Mock };
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -71,6 +71,7 @@ describe('CraPdfGenerator', () => {
       close: vi.fn().mockResolvedValue(undefined),
     };
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     vi.mocked(puppeteer.launch).mockResolvedValue(mockBrowser as never);
   });
 
@@ -78,6 +79,7 @@ describe('CraPdfGenerator', () => {
     const data = makeSampleData();
     await generator.generate(data);
 
+    // eslint-disable-next-line @typescript-eslint/unbound-method
     expect(puppeteer.launch).toHaveBeenCalledWith({
       headless: true,
       args: ['--no-sandbox'],
@@ -97,8 +99,7 @@ describe('CraPdfGenerator', () => {
     const data = makeSampleData();
     await generator.generate(data);
 
-    const setContentCall = mockPage.setContent.mock.calls[0];
-    const html: string = setContentCall[0];
+    const [html] = mockPage.setContent.mock.calls[0] as [string];
     expect(html).toContain('Jean');
     expect(html).toContain('Dupont');
   });
@@ -107,7 +108,7 @@ describe('CraPdfGenerator', () => {
     const data = makeSampleData();
     await generator.generate(data);
 
-    const html: string = mockPage.setContent.mock.calls[0][0];
+    const [html] = mockPage.setContent.mock.calls[0] as [string];
     expect(html).toContain('Mission Alpha');
   });
 
@@ -115,7 +116,7 @@ describe('CraPdfGenerator', () => {
     const data = makeSampleData({ projectsSummary: [{ name: 'Projet X', daysSpent: 20 }] });
     await generator.generate(data);
 
-    const html: string = mockPage.setContent.mock.calls[0][0];
+    const [html] = mockPage.setContent.mock.calls[0] as [string];
     expect(html).toContain('Projet X');
     // Check project annex section is present
     expect(html).toContain('Annexe');
@@ -125,7 +126,7 @@ describe('CraPdfGenerator', () => {
     const data = makeSampleData({ projectsSummary: null });
     await generator.generate(data);
 
-    const html: string = mockPage.setContent.mock.calls[0][0];
+    const [html] = mockPage.setContent.mock.calls[0] as [string];
     expect(html).not.toContain('Annexe');
   });
 
@@ -133,7 +134,7 @@ describe('CraPdfGenerator', () => {
     const data = makeSampleData();
     await generator.generate(data);
 
-    const html: string = mockPage.setContent.mock.calls[0][0];
+    const [html] = mockPage.setContent.mock.calls[0] as [string];
     // Count signature zone occurrences
     const signatureZoneMatches = html.match(/signature-zone/g) ?? [];
     expect(signatureZoneMatches.length).toBeGreaterThanOrEqual(3);
@@ -149,7 +150,7 @@ describe('CraPdfGenerator', () => {
     });
     await generator.generate(data);
 
-    const html: string = mockPage.setContent.mock.calls[0][0];
+    const [html] = mockPage.setContent.mock.calls[0] as [string];
     // 31/03/2026 should appear
     expect(html).toContain('31/03/2026');
   });
@@ -164,7 +165,7 @@ describe('CraPdfGenerator', () => {
     });
     await generator.generate(data);
 
-    const html: string = mockPage.setContent.mock.calls[0][0];
+    const [html] = mockPage.setContent.mock.calls[0] as [string];
     expect(html).toContain('En attente');
   });
 
