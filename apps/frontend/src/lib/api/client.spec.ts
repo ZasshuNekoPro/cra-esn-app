@@ -35,6 +35,7 @@ describe('apiFetch', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       expect.stringContaining('/api/test'),
       expect.objectContaining({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         headers: expect.objectContaining({ 'Content-Type': 'application/json' }),
       }),
     );
@@ -54,6 +55,7 @@ describe('apiFetch', () => {
     expect(mockFetch).toHaveBeenCalledWith(
       expect.any(String),
       expect.objectContaining({
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         headers: expect.objectContaining({ Authorization: 'Bearer test-token' }),
       }),
     );
