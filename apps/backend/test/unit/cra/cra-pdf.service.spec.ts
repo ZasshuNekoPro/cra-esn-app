@@ -119,6 +119,12 @@ const mockPrisma = {
   leaveBalance: {
     findMany: vi.fn(),
   },
+  document: {
+    create: vi.fn(),
+  },
+  validationDocument: {
+    create: vi.fn(),
+  },
   auditLog: {
     create: vi.fn(),
   },
@@ -145,6 +151,8 @@ describe('CraPdfService', () => {
       pdfUrl: 'http://minio:9000/cra/cra-test.pdf',
     } as never);
     vi.mocked(mockStorage.uploadFile).mockResolvedValue('cra/employee-uuid-1/2026/03/cra-cra-month-uuid-1.pdf');
+    vi.mocked(mockPrisma.document.create).mockResolvedValue({ id: 'doc-uuid-cra' } as never);
+    vi.mocked(mockPrisma.validationDocument.create).mockResolvedValue({ id: 'vd-uuid-1' } as never);
     vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
   });
 
@@ -227,5 +235,33 @@ describe('CraPdfService', () => {
     vi.mocked(mockPrisma.craMonth.findFirst).mockResolvedValue(null);
 
     await expect(service.generateAndUpload(craMonthId)).rejects.toThrow();
+  });
+
+  it('should create a Document record of type CRA_PDF', async () => {
+    await service.generateAndUpload(craMonthId);
+
+    expect(mockPrisma.document.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'CRA_PDF',
+          mimeType: 'application/pdf',
+          ownerId: employeeId,
+          missionId,
+        }),
+      }),
+    );
+  });
+
+  it('should create a ValidationDocument linking Document to CraMonth', async () => {
+    await service.generateAndUpload(craMonthId);
+
+    expect(mockPrisma.validationDocument.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          documentId: 'doc-uuid-cra',
+          craMonthId,
+        }),
+      }),
+    );
   });
 });

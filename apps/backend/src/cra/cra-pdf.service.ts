@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { CraStatus } from '@prisma/client';
+import { CraStatus, DocumentType } from '@prisma/client';
 import { CraEntryType, PortionType, LeaveType } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { StorageService } from '../storage/storage.service';
@@ -217,7 +217,36 @@ export class CraPdfService {
 
     const now = new Date();
 
-    // 8. Update CraMonth: pdfUrl, status → LOCKED, lockedAt
+    // 8. Create Document record (type CRA_PDF) and link to CraMonth via ValidationDocument
+    const document = await this.prisma.document.create({
+      data: {
+        name: `CRA-${craMonth.year}-${String(craMonth.month).padStart(2, '0')}`,
+        type: DocumentType.CRA_PDF,
+        s3Key: pdfUrl,
+        mimeType: 'application/pdf',
+        sizeBytes: pdfBuffer.length,
+        ownerId: craMonth.employeeId,
+        missionId: craMonth.missionId,
+        versions: {
+          create: {
+            s3Key: pdfUrl,
+            sizeBytes: pdfBuffer.length,
+            version: 1,
+            uploadedById: craMonth.employeeId,
+          },
+        },
+      },
+    });
+
+    await this.prisma.validationDocument.create({
+      data: {
+        documentId: document.id,
+        craMonthId,
+        signedAt: now,
+      },
+    });
+
+    // 9. Update CraMonth: pdfUrl, status → LOCKED, lockedAt
     await this.prisma.craMonth.update({
       where: { id: craMonthId },
       data: {
@@ -227,7 +256,7 @@ export class CraPdfService {
       },
     });
 
-    // 9. Write AuditLog
+    // 10. Write AuditLog
     await this.prisma.auditLog.create({
       data: {
         action: 'CRA_LOCKED',
