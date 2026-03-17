@@ -23,6 +23,7 @@ const EMPLOYEE_NAV: NavItem[] = [
   { href: '/cra', label: 'Mes CRA' },
   { href: '/projects', label: 'Mes projets' },
   { href: '/documents', label: 'Documents' },
+  { href: '/assistant', label: 'Assistant IA' },
   { href: '/reports', label: 'Rapports' },
   { href: '/settings', label: 'Paramètres' },
 ];
