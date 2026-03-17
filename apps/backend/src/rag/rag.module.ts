@@ -5,6 +5,7 @@ import { PrismaModule } from '../database/prisma.module';
 import { RagIndexerService } from './rag-indexer.service';
 import { RagEventListenerService } from './rag-event-listener.service';
 import { RagQueryService } from './rag-query.service';
+import { RagSchedulerService } from './rag-scheduler.service';
 import { RagController } from './rag.controller';
 import { EmbedderService } from '@esn/rag-engine';
 
@@ -30,6 +31,7 @@ import { EmbedderService } from '@esn/rag-engine';
     RagIndexerService,
     RagEventListenerService,
     RagQueryService,
+    RagSchedulerService,
   ],
   exports: [RagIndexerService, RagQueryService],
 })
