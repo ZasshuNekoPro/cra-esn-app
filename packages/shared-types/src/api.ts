@@ -288,3 +288,50 @@ export interface DocumentListQuery extends PaginationQuery {
   type?: string;
   missionId?: string;
 }
+
+// ── RAG ───────────────────────────────────────────────────────────────────────
+
+export type RagSourceType =
+  | 'cra_entry'
+  | 'cra_month'
+  | 'project_comment'
+  | 'weather_entry'
+  | 'milestone'
+  | 'document';
+
+export interface ConversationTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+export interface RagFilters {
+  sourceType?: RagSourceType[];
+  projectId?: string;
+  year?: number;
+  month?: number;
+}
+
+export interface RagSource {
+  sourceType: RagSourceType;
+  sourceId: string;
+  date?: string;
+  excerpt: string;
+}
+
+export interface RagQueryRequest {
+  question: string;
+  messages?: ConversationTurn[];
+  filters?: RagFilters;
+}
+
+export interface RagQueryResponse {
+  answer: string;
+  sources: RagSource[];
+}
+
+/** Internal event payload emitted by backend modules after mutations */
+export interface RagIndexEvent {
+  employeeId: string;
+  sourceType: RagSourceType;
+  sourceId: string;
+}

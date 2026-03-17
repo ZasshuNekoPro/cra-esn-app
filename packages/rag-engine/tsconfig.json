@@ -3,8 +3,8 @@
   "compilerOptions": {
     "module": "commonjs",
     "outDir": "./dist",
-    "rootDir": "./src",
     "declaration": true,
+    "skipLibCheck": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false
   },

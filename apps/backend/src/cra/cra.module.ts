@@ -6,9 +6,10 @@ import { CraController } from './cra.controller';
 import { PrismaModule } from '../database/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { StorageModule } from '../storage/storage.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule, StorageModule],
+  imports: [PrismaModule, NotificationsModule, StorageModule, EventEmitterModule],
   controllers: [CraController],
   providers: [CraService, CraSignatureService, CraPdfService],
   exports: [CraService, CraSignatureService, CraPdfService],

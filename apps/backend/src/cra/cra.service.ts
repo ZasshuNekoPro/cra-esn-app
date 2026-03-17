@@ -11,9 +11,10 @@ import {
   PortionType as PrismaPortionType,
 } from '@prisma/client';
 import { CraStatus as SharedCraStatus, CraEntryType, LeaveType } from '@esn/shared-types';
-import type { CraMonthSummary, LeaveBalanceSummary, CreateCraEntryRequest, UpdateCraEntryRequest } from '@esn/shared-types';
+import type { CraMonthSummary, LeaveBalanceSummary, CreateCraEntryRequest, UpdateCraEntryRequest, RagIndexEvent } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { countWorkingDays } from './utils/working-days.util';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 /** Types returned by Prisma includes */
 type CraMonthWithMissionAndEntries = {
@@ -101,7 +102,10 @@ const OVERTIME_COUNTED_TYPES = new Set<CraEntryType>([
 
 @Injectable()
 export class CraService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   // ── listMonths ─────────────────────────────────────────────────────────────
 
@@ -221,6 +225,9 @@ export class CraService {
     // Calculate isOvertime
     const isOvertime = await this.calculateIsOvertime(craMonth);
 
+    const payload: RagIndexEvent = { employeeId, sourceType: 'cra_entry', sourceId: entry.id };
+    this.eventEmitter.emit('rag.index.cra_entry', payload);
+
     return {
       entry: normalizeEntry(entry as unknown as CraEntryRow),
       isOvertime,
@@ -307,6 +314,9 @@ export class CraService {
     });
 
     const isOvertime = await this.calculateIsOvertime(craMonth);
+
+    const payload: RagIndexEvent = { employeeId, sourceType: 'cra_entry', sourceId: entryId };
+    this.eventEmitter.emit('rag.index.cra_entry', payload);
 
     return {
       entry: normalizeEntry(updated as unknown as CraEntryRow),

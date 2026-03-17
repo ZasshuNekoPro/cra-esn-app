@@ -51,12 +51,14 @@ const mockPrisma = {
   },
 } satisfies Partial<PrismaService> as unknown as PrismaService;
 
+const mockEvents = { emit: vi.fn() } as never;
+
 describe('WeatherService', () => {
   let service: WeatherService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new WeatherService(mockPrisma);
+    service = new WeatherService(mockPrisma, mockEvents);
   });
 
   describe('createEntry', () => {

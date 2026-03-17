@@ -18,7 +18,9 @@
       "@esn/shared-utils": ["../../packages/shared-utils/src"],
       "@esn/shared-utils/*": ["../../packages/shared-utils/src/*"],
       "@esn/pdf-generator": ["../../packages/pdf-generator/src"],
-      "@esn/pdf-generator/*": ["../../packages/pdf-generator/src/*"]
+      "@esn/pdf-generator/*": ["../../packages/pdf-generator/src/*"],
+      "@esn/rag-engine": ["../../packages/rag-engine/src"],
+      "@esn/rag-engine/*": ["../../packages/rag-engine/src/*"]
     }
   },
   "include": ["src/**/*"],

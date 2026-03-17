@@ -104,13 +104,15 @@ const makePrisma = () =>
     },
   }) as unknown as PrismaService;
 
+const mockEvents = { emit: vi.fn() } as never;
+
 describe('CraService', () => {
   let service: CraService;
   let prisma: ReturnType<typeof makePrisma>;
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new CraService(prisma as unknown as PrismaService);
+    service = new CraService(prisma as unknown as PrismaService, mockEvents);
     vi.clearAllMocks();
   });
 

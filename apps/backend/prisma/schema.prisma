@@ -162,6 +162,9 @@ model User {
   // Relations — Sprint 5
   dashboardShares       DashboardShare[]
 
+  // Relations — Sprint 6
+  embeddings            Embedding[]                @relation("EmployeeEmbeddings")
+
   @@map("users")
 }
 
@@ -598,10 +601,17 @@ model Embedding {
   content    String                       // chunk of text
   vector     Unsupported("vector(1536)")
   metadata   Json?
+  sourceType String                       @map("source_type") // 'cra_entry' | 'cra_month' | 'project_comment' | 'weather_entry' | 'milestone' | 'document'
+  sourceId   String                       @map("source_id")   // UUID of the source entity
   createdAt  DateTime                     @default(now()) @map("created_at")
+
+  employeeId String                       @map("employee_id")
+  employee   User                         @relation("EmployeeEmbeddings", fields: [employeeId], references: [id], onDelete: Cascade)
 
   documentId String?                      @map("document_id")
   document   Document?                    @relation(fields: [documentId], references: [id], onDelete: SetNull)
 
+  @@unique([employeeId, sourceType, sourceId])
+  @@index([employeeId])
   @@map("embeddings")
 }

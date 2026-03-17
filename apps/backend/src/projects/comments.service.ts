@@ -4,8 +4,9 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { CommentVisibility, Role, AuditAction } from '@esn/shared-types';
-import type { CreateCommentRequest, UpdateCommentRequest } from '@esn/shared-types';
+import type { CreateCommentRequest, UpdateCommentRequest, RagIndexEvent } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const VISIBILITY_BY_ROLE: Record<Role, CommentVisibility[]> = {
   [Role.EMPLOYEE]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN, CommentVisibility.EMPLOYEE_CLIENT],
@@ -15,7 +16,10 @@ const VISIBILITY_BY_ROLE: Record<Role, CommentVisibility[]> = {
 
 @Injectable()
 export class CommentsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventEmitter2,
+  ) {}
 
   async createComment(
     projectId: string,
@@ -50,6 +54,15 @@ export class CommentsService {
         initiatorId: callerId,
       },
     });
+
+    // Only index comments from employees (RAG corpus is per-employee)
+    if (callerRole === Role.EMPLOYEE) {
+      this.events.emit('rag.index.project_comment', {
+        employeeId: callerId,
+        sourceType: 'project_comment',
+        sourceId: comment.id,
+      } satisfies RagIndexEvent);
+    }
 
     return comment;
   }

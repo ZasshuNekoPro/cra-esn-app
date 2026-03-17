@@ -8,9 +8,10 @@ import { ProjectSchedulerService } from './scheduler.service';
 import { ProjectsController } from './projects.controller';
 import { PrismaModule } from '../database/prisma.module';
 import { NotificationsModule } from '../notifications/notifications.module';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 
 @Module({
-  imports: [PrismaModule, NotificationsModule],
+  imports: [PrismaModule, NotificationsModule, EventEmitterModule],
   controllers: [ProjectsController],
   providers: [ProjectsService, WeatherService, CommentsService, MilestonesService, ValidationsService, ProjectSchedulerService],
   exports: [ProjectsService, WeatherService, CommentsService, MilestonesService, ValidationsService],

@@ -3,6 +3,7 @@ import { APP_GUARD, APP_FILTER } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './database/prisma.module';
 import { AuthModule } from './auth/auth.module';
 import { CraModule } from './cra/cra.module';
@@ -12,6 +13,7 @@ import { StorageModule } from './storage/storage.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ConsentModule } from './consent/consent.module';
 import { ReportsModule } from './reports/reports.module';
+import { RagModule } from './rag/rag.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -21,6 +23,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    EventEmitterModule.forRoot(),
     PrismaModule,
     AuthModule,
     NotificationsModule,
@@ -30,6 +33,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     DocumentsModule,
     ConsentModule,
     ReportsModule,
+    RagModule,
   ],
   providers: [
     // Global exception filter

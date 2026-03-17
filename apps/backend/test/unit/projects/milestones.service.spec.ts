@@ -37,12 +37,14 @@ const mockPrisma = {
   },
 } satisfies Partial<PrismaService> as unknown as PrismaService;
 
+const mockEvents = { emit: vi.fn() } as never;
+
 describe('MilestonesService', () => {
   let service: MilestonesService;
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new MilestonesService(mockPrisma);
+    service = new MilestonesService(mockPrisma, mockEvents);
   });
 
   describe('createMilestone', () => {
