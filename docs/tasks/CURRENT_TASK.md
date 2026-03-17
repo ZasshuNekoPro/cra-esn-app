@@ -2,7 +2,7 @@
 
 **Branche de départ :** `main` (après merge PR #4 Sprint 4)
 **Date de création :** 2026-03-17
-**Statut :** ✅ IMPLÉMENTÉ — T1 à T6 terminés, T7 (PR) à créer
+**Statut :** ✅ TERMINÉ — T1 à T7 terminés, PR #5 ouverte vers main
 
 ---
 
@@ -328,8 +328,8 @@ Ajouter relation `User.dashboardShares DashboardShare[]` dans le schéma.
 - [x] `pnpm typecheck` → zéro erreur TypeScript strict
 - [x] `pnpm lint` → zéro erreur ESLint (warnings pré-existants hors périmètre)
 - [x] Migration Prisma `20260317000000_sprint5_dashboard_share` créée
-- [ ] `/review-security` sur les nouvelles routes (notamment `GET /reports/shared/:token`)
-- [ ] `gh pr create` vers `main`
+- [x] `/review-security` sur les nouvelles routes (notamment `GET /reports/shared/:token`)
+- [x] `gh pr create` vers `main` → PR #5
 
 ---
 
