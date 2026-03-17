@@ -18,6 +18,9 @@
     "db:studio": "prisma studio --schema=prisma/schema.prisma"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1010.0",
+    "@aws-sdk/lib-storage": "^3.1010.0",
+    "@aws-sdk/s3-request-presigner": "^3.1010.0",
     "@esn/pdf-generator": "workspace:^",
     "@esn/shared-types": "workspace:^",
     "@esn/shared-utils": "workspace:^",
@@ -35,7 +38,9 @@
     "bull": "^4.12.9",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
+    "file-type": "^21.3.3",
     "ioredis": "^5.3.2",
+    "multer": "^2.1.1",
     "nodemailer": "^6.9.13",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
@@ -50,6 +55,7 @@
     "@swc/helpers": "^0.5.19",
     "@types/bcryptjs": "^2.4.6",
     "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
     "@types/node": "^20.12.12",
     "@types/nodemailer": "^6.4.15",
     "@types/passport-jwt": "^4.0.1",

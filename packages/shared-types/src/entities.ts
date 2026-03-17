@@ -218,6 +218,7 @@ export interface DocumentVersion {
   s3Key: string;
   sizeBytes: number;
   documentId: string;
+  uploadedById?: string | null;
   createdAt: Date;
 }
 
@@ -226,6 +227,7 @@ export interface DocumentShare {
   shareToken?: string | null;
   expiresAt?: Date | null;
   accessedAt?: Date | null;
+  revokedAt?: Date | null;
   documentId: string;
   sharedWithId?: string | null;
   createdAt: Date;

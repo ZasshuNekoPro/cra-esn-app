@@ -119,13 +119,19 @@ const mockPrisma = {
   leaveBalance: {
     findMany: vi.fn(),
   },
+  document: {
+    create: vi.fn(),
+  },
+  validationDocument: {
+    create: vi.fn(),
+  },
   auditLog: {
     create: vi.fn(),
   },
 } as unknown as PrismaService;
 
 const mockStorage = {
-  upload: vi.fn(),
+  uploadFile: vi.fn(),
 } as unknown as StorageService;
 
 // ── Tests ─────────────────────────────────────────────────────────────────────
@@ -144,7 +150,9 @@ describe('CraPdfService', () => {
       status: CraStatus.LOCKED,
       pdfUrl: 'http://minio:9000/cra/cra-test.pdf',
     } as never);
-    vi.mocked(mockStorage.upload).mockResolvedValue('http://minio:9000/cra/cra-test.pdf');
+    vi.mocked(mockStorage.uploadFile).mockResolvedValue('cra/employee-uuid-1/2026/03/cra-cra-month-uuid-1.pdf');
+    vi.mocked(mockPrisma.document.create).mockResolvedValue({ id: 'doc-uuid-cra' } as never);
+    vi.mocked(mockPrisma.validationDocument.create).mockResolvedValue({ id: 'vd-uuid-1' } as never);
     vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
   });
 
@@ -162,26 +170,27 @@ describe('CraPdfService', () => {
     // We can't directly spy on the internal generator without DI,
     // but we can verify the pipeline ran by checking storage was called
     await service.generateAndUpload(craMonthId);
-    expect(mockStorage.upload).toHaveBeenCalled();
+    expect(mockStorage.uploadFile).toHaveBeenCalled();
   });
 
   it('should upload resulting Buffer to storage with correct S3 key', async () => {
     await service.generateAndUpload(craMonthId);
 
-    const uploadCall = vi.mocked(mockStorage.upload).mock.calls[0];
-    const key: string = uploadCall[0];
+    const uploadCall = vi.mocked(mockStorage.uploadFile).mock.calls[0];
+    // uploadFile(buffer, key, mimeType, sizeBytes)
+    const key = uploadCall[1];
     // key = `cra/{employeeId}/{year}/{month:02d}/cra-{craMonthId}.pdf`
     expect(key).toBe(`cra/${employeeId}/2026/03/cra-${craMonthId}.pdf`);
     expect(uploadCall[2]).toBe('application/pdf');
   });
 
-  it('should update CraMonth.pdfUrl with the returned URL', async () => {
+  it('should update CraMonth.pdfUrl with the s3Key', async () => {
     await service.generateAndUpload(craMonthId);
 
     expect(mockPrisma.craMonth.update).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
-          pdfUrl: 'http://minio:9000/cra/cra-test.pdf',
+          pdfUrl: `cra/${employeeId}/2026/03/cra-${craMonthId}.pdf`,
         }),
       }),
     );
@@ -226,5 +235,33 @@ describe('CraPdfService', () => {
     vi.mocked(mockPrisma.craMonth.findFirst).mockResolvedValue(null);
 
     await expect(service.generateAndUpload(craMonthId)).rejects.toThrow();
+  });
+
+  it('should create a Document record of type CRA_PDF', async () => {
+    await service.generateAndUpload(craMonthId);
+
+    expect(mockPrisma.document.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          type: 'CRA_PDF',
+          mimeType: 'application/pdf',
+          ownerId: employeeId,
+          missionId,
+        }),
+      }),
+    );
+  });
+
+  it('should create a ValidationDocument linking Document to CraMonth', async () => {
+    await service.generateAndUpload(craMonthId);
+
+    expect(mockPrisma.validationDocument.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          documentId: 'doc-uuid-cra',
+          craMonthId,
+        }),
+      }),
+    );
   });
 });

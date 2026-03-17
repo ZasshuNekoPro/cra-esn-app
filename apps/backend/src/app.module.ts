@@ -8,6 +8,9 @@ import { AuthModule } from './auth/auth.module';
 import { CraModule } from './cra/cra.module';
 import { ProjectsModule } from './projects/projects.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { StorageModule } from './storage/storage.module';
+import { DocumentsModule } from './documents/documents.module';
+import { ConsentModule } from './consent/consent.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -22,6 +25,9 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     NotificationsModule,
     CraModule,
     ProjectsModule,
+    StorageModule,
+    DocumentsModule,
+    ConsentModule,
   ],
   providers: [
     // Global exception filter
