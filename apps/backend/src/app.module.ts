@@ -11,6 +11,7 @@ import { NotificationsModule } from './notifications/notifications.module';
 import { StorageModule } from './storage/storage.module';
 import { DocumentsModule } from './documents/documents.module';
 import { ConsentModule } from './consent/consent.module';
+import { ReportsModule } from './reports/reports.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -28,6 +29,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     StorageModule,
     DocumentsModule,
     ConsentModule,
+    ReportsModule,
   ],
   providers: [
     // Global exception filter
