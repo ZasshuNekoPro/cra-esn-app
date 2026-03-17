@@ -5,14 +5,18 @@ import {
   BadRequestException,
 } from '@nestjs/common';
 import { WeatherState, ProjectStatus, AuditAction } from '@esn/shared-types';
-import type { CreateWeatherEntryRequest, WeatherMonthlySummary } from '@esn/shared-types';
+import type { CreateWeatherEntryRequest, WeatherMonthlySummary, RagIndexEvent } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const COMMENT_REQUIRED_STATES: WeatherState[] = [WeatherState.RAINY, WeatherState.STORM];
 
 @Injectable()
 export class WeatherService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly events: EventEmitter2,
+  ) {}
 
   async createEntry(
     projectId: string,
@@ -57,6 +61,12 @@ export class WeatherService {
         initiatorId: callerId,
       },
     });
+
+    this.events.emit('rag.index.weather_entry', {
+      employeeId: callerId,
+      sourceType: 'weather_entry',
+      sourceId: entry.id,
+    } satisfies RagIndexEvent);
 
     return entry;
   }
