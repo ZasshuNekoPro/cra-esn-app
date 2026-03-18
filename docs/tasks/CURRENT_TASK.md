@@ -1,68 +1,42 @@
-# P13 — Audit Sécurité
+# P14 — Intégration finale et release v1.0
 
-**Branche :** `main` (après merge PR #5 Sprint 5 + PR #6 Sprint 6)
-**Date de création :** 2026-03-17
+**Branche :** `main` (après merge PR sécurité)
+**Date de création :** 2026-03-18
 **Statut :** À DÉMARRER
 
 ---
 
 ## Contexte
 
-Sprint 5 (Reports, Dashboard, Notifications, Share Tokens) et Sprint 6 (RAG — indexation pgvector,
-query streaming SSE, chat frontend, suggestions proactives) sont mergés sur `main`.
+L'audit de sécurité v1.0 est terminé (rapport dans `docs/architecture/security-audit.md`).
+Le problème critique C1 (isolation données weather) a été corrigé et mergé.
+Les 7 avertissements non bloquants ont été documentés pour le suivi post-release.
 
-La prochaine étape est l'audit de sécurité de l'ensemble du MVP avant une éventuelle mise en production.
+## Objectif
 
-## Périmètre de l'audit
+Préparer la release v1.0 du MVP ESN CRA App :
+- Tests e2e complets (parcours salarié, ESN admin, client)
+- Build de production frontend + backend
+- Documentation de déploiement
+- Validation finale des variables d'environnement
+- Tag de release `v1.0.0`
 
-Utiliser la commande `/review-security` pour déclencher l'audit complet.
+## Tâches
 
-### Axes prioritaires
+1. **Tests e2e** : lancer `pnpm test:e2e` et corriger les éventuels échecs
+2. **Build prod** : `pnpm build` — vérifier absence d'erreurs
+3. **Checklist déploiement** : `.env.example` complet, migrations Prisma à jour
+4. **Tag** : `git tag v1.0.0` + release GitHub
+5. **Avertissements audit** : ouvrir des issues GitHub pour W2-W7 (suivi post-release)
 
-1. **Authentification & RBAC**
-   - Vérification que `JwtAuthGuard` + `RolesGuard` couvrent toutes les routes
-   - Contrôle que `ConsentGuard` est appliqué sur chaque route ESN accédant aux données salarié
-   - Validation des tokens JWT (expiration, rotation, stockage côté client)
+## Historique des tâches terminées
 
-2. **Isolation des données (multi-tenant)**
-   - Chaque query Prisma filtre sur `employeeId` ou `userId` — pas de fuite cross-salarié
-   - Vérifier le module RAG : `searchSimilar(employeeId, ...)` strictement isolé
-   - Tokens de partage dashboard : expiration, scope limité, révocabilité
-
-3. **Injection & validation des entrées**
-   - DTOs NestJS avec `class-validator` + `ValidationPipe` global
-   - Pas d'injection SQL (Prisma paramétré) ni de XSS côté frontend
-   - Sanitisation des noms de fichiers S3
-
-4. **Audit trail**
-   - Mutations sensibles enregistrées dans `AuditLog`
-   - Accès RAG logué (`RAG_QUERY` dans `AuditAction`)
-
-5. **Secrets & configuration**
-   - `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `JWT_SECRET` uniquement en variables d'env
-   - Pas de secrets dans le code source ni dans les logs
-
-6. **Rate limiting**
-   - `ThrottlerGuard` global actif
-   - Endpoint `/rag/query` (coûteux) — vérifier throttle spécifique si besoin
-
-## Commande
-
-```bash
-/review-security
-```
-
-## Résultat attendu
-
-Un rapport des vulnérabilités trouvées avec corrections appliquées directement dans le code.
-
-## Historique des sprints mergés
-
-| PR | Sprint | Contenu |
-|----|--------|---------|
-| #1 | Sprint 1 | Auth, Prisma, scaffolding |
-| #2 | Sprint 2 | Module CRA |
-| #3 | Sprint 3 | Module Projets |
-| #4 | Sprint 4 | Documents, Consentement, CRA-PDF |
-| #5 | Sprint 5 | Reports, Dashboard partageable, Notifications |
-| #6 | Sprint 6 | RAG — indexation, streaming, chat, suggestions |
+| Tâche | Statut | PR |
+|-------|--------|-----|
+| P1 Auth + Scaffolding | ✅ | #1 |
+| P2 Module CRA | ✅ | #2 |
+| P3 Module Projets | ✅ | #3 |
+| P4 Documents, Consentement, CRA-PDF | ✅ | #4 |
+| P5 Reports, Dashboard, Notifications | ✅ | #5 |
+| P6 RAG — indexation, streaming, chat | ✅ | #6 |
+| P13 Audit sécurité v1.0 | ✅ | #7 (en cours) |
