@@ -90,6 +90,7 @@ const makePrisma = () =>
     },
     leaveBalance: {
       findUnique: vi.fn(),
+      findMany: vi.fn(),
       update: vi.fn(),
     },
     publicHoliday: {
@@ -499,7 +500,7 @@ describe('CraService', () => {
         entries,
       } as never);
       vi.mocked(prisma.publicHoliday.findMany).mockResolvedValue([] as never);
-      vi.mocked(prisma.leaveBalance.findUnique).mockResolvedValue(mockLeaveBalance as never);
+      vi.mocked(prisma.leaveBalance.findMany).mockResolvedValue([mockLeaveBalance] as never);
 
       const result = await service.getMonthSummary(craMonthId, employeeId);
 
@@ -514,7 +515,7 @@ describe('CraService', () => {
         entries: [],
       } as never);
       vi.mocked(prisma.publicHoliday.findMany).mockResolvedValue([] as never);
-      vi.mocked(prisma.leaveBalance.findUnique).mockResolvedValue(mockLeaveBalance as never);
+      vi.mocked(prisma.leaveBalance.findMany).mockResolvedValue([mockLeaveBalance] as never);
 
       const result = await service.getMonthSummary(craMonthId, employeeId);
 
@@ -528,7 +529,7 @@ describe('CraService', () => {
         entries: [],
       } as never);
       vi.mocked(prisma.publicHoliday.findMany).mockResolvedValue([] as never);
-      vi.mocked(prisma.leaveBalance.findUnique).mockResolvedValue(mockLeaveBalance as never);
+      vi.mocked(prisma.leaveBalance.findMany).mockResolvedValue([mockLeaveBalance] as never);
 
       const result = await service.getMonthSummary(craMonthId, employeeId);
 
@@ -551,7 +552,7 @@ describe('CraService', () => {
         entries,
       } as never);
       vi.mocked(prisma.publicHoliday.findMany).mockResolvedValue([] as never);
-      vi.mocked(prisma.leaveBalance.findUnique).mockResolvedValue(mockLeaveBalance as never);
+      vi.mocked(prisma.leaveBalance.findMany).mockResolvedValue([mockLeaveBalance] as never);
 
       const result = await service.getMonthSummary(craMonthId, employeeId);
       expect(result.isOvertime).toBe(true);
@@ -569,7 +570,7 @@ describe('CraService', () => {
         entries,
       } as never);
       vi.mocked(prisma.publicHoliday.findMany).mockResolvedValue([] as never);
-      vi.mocked(prisma.leaveBalance.findUnique).mockResolvedValue(mockLeaveBalance as never);
+      vi.mocked(prisma.leaveBalance.findMany).mockResolvedValue([mockLeaveBalance] as never);
 
       const result = await service.getMonthSummary(craMonthId, employeeId);
       expect(result.totalWorkDays).toBe(3); // WORK_ONSITE + WORK_REMOTE + WORK_TRAVEL

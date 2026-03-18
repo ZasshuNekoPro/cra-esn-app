@@ -11,12 +11,13 @@ const STATUS_CONFIG: Record<ConsentStatus, { label: string; class: string }> = {
 
 interface ConsentCardProps {
   consent: ConsentWithUser;
+  loading?: boolean;
   /** Shown in employee view: grant/revoke actions */
   onGrant?: (id: string) => void;
   onRevoke?: (id: string) => void;
 }
 
-export function ConsentCard({ consent, onGrant, onRevoke }: ConsentCardProps) {
+export function ConsentCard({ consent, loading = false, onGrant, onRevoke }: ConsentCardProps) {
   const cfg = STATUS_CONFIG[consent.status];
   const requester = consent.requestedBy;
   const employee = consent.employee;
@@ -54,17 +55,19 @@ export function ConsentCard({ consent, onGrant, onRevoke }: ConsentCardProps) {
         {onGrant && consent.status === ConsentStatus.PENDING && (
           <button
             onClick={() => onGrant(consent.id)}
-            className="px-3 py-1.5 text-xs font-medium text-green-700 border border-green-300 rounded hover:bg-green-50 transition-colors"
+            disabled={loading}
+            className="px-3 py-1.5 text-xs font-medium text-green-700 border border-green-300 rounded hover:bg-green-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Accorder
+            {loading ? '…' : 'Accorder'}
           </button>
         )}
         {onRevoke && consent.status === ConsentStatus.GRANTED && (
           <button
             onClick={() => onRevoke(consent.id)}
-            className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors"
+            disabled={loading}
+            className="px-3 py-1.5 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Révoquer
+            {loading ? '…' : 'Révoquer'}
           </button>
         )}
       </div>

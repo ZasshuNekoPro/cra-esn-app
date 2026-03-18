@@ -18,6 +18,11 @@ export default defineConfig({
     testTimeout: 30000,
     pool: 'forks',
     poolOptions: { forks: { singleFork: true } },
+    server: {
+      deps: {
+        external: ['express', 'multer', 'supertest', 'fastify'],
+      },
+    },
   },
   plugins: [
     swc.vite({

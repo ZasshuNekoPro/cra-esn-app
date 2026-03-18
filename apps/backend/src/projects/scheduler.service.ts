@@ -30,14 +30,25 @@ export class ProjectSchedulerService {
       select: { id: true, mission: { select: { employeeId: true, esnAdminId: true } } },
     });
 
+    if (activeProjects.length === 0) return;
+
     const today = new Date();
 
+    // Fetch latest weather entry per project in a single query to avoid N+1
+    const projectIds = activeProjects.map((p) => p.id);
+    const latestEntries = await this.prisma.$queryRaw<
+      { projectId: string; state: string; date: Date }[]
+    >`
+      SELECT DISTINCT ON ("projectId") "projectId", state, date
+      FROM "WeatherEntry"
+      WHERE "projectId" = ANY(${projectIds}::text[])
+      ORDER BY "projectId", date DESC
+    `;
+
+    const latestByProject = new Map(latestEntries.map((e) => [e.projectId, e]));
+
     for (const project of activeProjects) {
-      const lastEntry = await this.prisma.weatherEntry.findFirst({
-        where: { projectId: project.id },
-        orderBy: { date: 'desc' },
-        select: { state: true, date: true },
-      });
+      const lastEntry = latestByProject.get(project.id);
 
       if (!lastEntry) continue;
       if ((lastEntry.state as unknown as WeatherState) !== WeatherState.RAINY) continue;

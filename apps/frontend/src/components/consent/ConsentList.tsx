@@ -14,23 +14,30 @@ interface ConsentListProps {
 export function ConsentList({ initialConsents, editable = false }: ConsentListProps) {
   const [consents, setConsents] = useState(initialConsents);
   const [error, setError] = useState<string | null>(null);
+  const [loadingId, setLoadingId] = useState<string | null>(null);
 
   async function handleGrant(id: string) {
+    setLoadingId(id);
     try {
       const updated = await consentApi.grant(id);
       setConsents((prev) => prev.map((c) => (c.id === id ? { ...c, ...updated } : c)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setLoadingId(null);
     }
   }
 
   async function handleRevoke(id: string) {
     if (!confirm('Révoquer cet accès ?')) return;
+    setLoadingId(id);
     try {
       const updated = await consentApi.revoke(id);
       setConsents((prev) => prev.map((c) => (c.id === id ? { ...c, ...updated } : c)));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur');
+    } finally {
+      setLoadingId(null);
     }
   }
 
@@ -45,6 +52,7 @@ export function ConsentList({ initialConsents, editable = false }: ConsentListPr
         <ConsentCard
           key={consent.id}
           consent={consent}
+          loading={loadingId === consent.id}
           onGrant={editable ? (id) => void handleGrant(id) : undefined}
           onRevoke={editable ? (id) => void handleRevoke(id) : undefined}
         />
