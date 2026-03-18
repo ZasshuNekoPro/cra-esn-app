@@ -5,7 +5,6 @@ import {
   Get,
   Body,
   Param,
-  UseGuards,
   Request,
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';

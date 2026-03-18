@@ -14,7 +14,6 @@ const mockPrisma = {
     findMany: vi.fn(),
   },
   weatherEntry: {
-    findFirst: vi.fn(),
     create: vi.fn(),
   },
   milestone: {
@@ -24,6 +23,7 @@ const mockPrisma = {
   auditLog: {
     create: vi.fn(),
   },
+  $queryRaw: vi.fn(),
 } satisfies Partial<PrismaService> as unknown as PrismaService;
 
 const mockNotifications = {
@@ -49,10 +49,9 @@ describe('ProjectSchedulerService', () => {
           mission: { employeeId, esnAdminId },
         },
       ] as never);
-      vi.mocked(mockPrisma.weatherEntry.findFirst).mockResolvedValue({
-        state: WeatherState.RAINY,
-        date: staleDate,
-      } as never);
+      vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([
+        { projectId, state: WeatherState.RAINY, date: staleDate },
+      ] as never);
       vi.mocked(mockPrisma.weatherEntry.create).mockResolvedValue({} as never);
       vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
 
@@ -76,10 +75,9 @@ describe('ProjectSchedulerService', () => {
       vi.mocked(mockPrisma.project.findMany).mockResolvedValue([
         { id: projectId, mission: { employeeId, esnAdminId } },
       ] as never);
-      vi.mocked(mockPrisma.weatherEntry.findFirst).mockResolvedValue({
-        state: WeatherState.RAINY,
-        date: recentDate,
-      } as never);
+      vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([
+        { projectId, state: WeatherState.RAINY, date: recentDate },
+      ] as never);
 
       await service.escalateStaleRainy();
 
@@ -93,10 +91,9 @@ describe('ProjectSchedulerService', () => {
       vi.mocked(mockPrisma.project.findMany).mockResolvedValue([
         { id: projectId, mission: { employeeId, esnAdminId } },
       ] as never);
-      vi.mocked(mockPrisma.weatherEntry.findFirst).mockResolvedValue({
-        state: WeatherState.SUNNY,
-        date: staleDate,
-      } as never);
+      vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([
+        { projectId, state: WeatherState.SUNNY, date: staleDate },
+      ] as never);
 
       await service.escalateStaleRainy();
 
@@ -107,7 +104,7 @@ describe('ProjectSchedulerService', () => {
       vi.mocked(mockPrisma.project.findMany).mockResolvedValue([
         { id: projectId, mission: { employeeId, esnAdminId } },
       ] as never);
-      vi.mocked(mockPrisma.weatherEntry.findFirst).mockResolvedValue(null);
+      vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([] as never);
 
       await service.escalateStaleRainy();
 
