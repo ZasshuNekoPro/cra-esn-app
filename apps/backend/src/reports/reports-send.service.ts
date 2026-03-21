@@ -90,7 +90,6 @@ export class ReportsSendService {
   async sendMonthlyReport(
     dto: SendReportDto,
     employeeId: string,
-    missionId: string,
   ): Promise<SendReportResponse> {
     const { year, month, reportType, recipients } = dto;
 
@@ -98,15 +97,15 @@ export class ReportsSendService {
     const employee = await this.prisma.user.findUnique({ where: { id: employeeId } }) as UserRow | null;
     if (!employee) throw new NotFoundException(`Employee ${employeeId} not found`);
 
-    // ── 2. Resolve mission ───────────────────────────────────────────────
+    // ── 2. Resolve active mission ────────────────────────────────────────
     const mission = await this.prisma.mission.findFirst({
-      where: { id: missionId, employeeId, isActive: true },
+      where: { employeeId, isActive: true },
       include: {
         esnAdmin: { select: { id: true, firstName: true, lastName: true, email: true } },
         client: { select: { id: true, firstName: true, lastName: true, email: true } },
       },
     }) as MissionRow | null;
-    if (!mission) throw new NotFoundException(`Mission ${missionId} not found`);
+    if (!mission) throw new NotFoundException(`No active mission for employee ${employeeId}`);
 
     // ── 3. Resolve recipients (skip if actor null) ───────────────────────
     const recipientMap: Record<ReportRecipient, string | null> = {

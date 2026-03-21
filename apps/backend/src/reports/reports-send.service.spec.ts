@@ -127,7 +127,6 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     const result = await service.sendMonthlyReport(
       makeDto({ recipients: ['ESN'] }),
       EMPLOYEE_ID,
-      MISSION_ID,
     );
 
     expect(result.success).toBe(true);
@@ -151,7 +150,6 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     const result = await service.sendMonthlyReport(
       makeDto({ reportType: 'CRA_WITH_WEATHER', recipients: ['ESN', 'CLIENT'] }),
       EMPLOYEE_ID,
-      MISSION_ID,
     );
 
     expect(result.success).toBe(true);
@@ -170,7 +168,6 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     const result = await service.sendMonthlyReport(
       makeDto({ recipients: ['ESN', 'CLIENT'] }),
       EMPLOYEE_ID,
-      MISSION_ID,
     );
 
     expect(result.success).toBe(true);
@@ -195,7 +192,6 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
       service.sendMonthlyReport(
         makeDto({ recipients: ['ESN', 'CLIENT'] }),
         EMPLOYEE_ID,
-        MISSION_ID,
       ),
     ).rejects.toThrow(BadRequestException);
 
@@ -209,7 +205,7 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     mockPdfGenerator.generate.mockRejectedValue(new Error('puppeteer crash'));
 
     await expect(
-      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID, MISSION_ID),
+      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID),
     ).rejects.toThrow('puppeteer crash');
 
     expect(mockPrisma.auditLog.create).not.toHaveBeenCalled();
@@ -221,7 +217,7 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     mockStorage.uploadFile.mockRejectedValue(new Error('S3 unreachable'));
 
     await expect(
-      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID, MISSION_ID),
+      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID),
     ).rejects.toThrow('S3 unreachable');
 
     expect(mockNotifications.notifyEmail).not.toHaveBeenCalled();
@@ -235,7 +231,7 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     mockStorage.uploadFile.mockResolvedValue(s3Key);
     mockPrisma.auditLog.create.mockResolvedValue({ id: 'audit-42' });
 
-    const result = await service.sendMonthlyReport(makeDto(), EMPLOYEE_ID, MISSION_ID);
+    const result = await service.sendMonthlyReport(makeDto(), EMPLOYEE_ID);
 
     expect(result.pdfS3Key).toBe(s3Key);
     expect(result.auditLogId).toBe('audit-42');
@@ -244,7 +240,7 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
   // ── AuditLog uses REPORT_SENT action ──────────────────────────────────────
 
   it('creates AuditLog with REPORT_SENT action', async () => {
-    await service.sendMonthlyReport(makeDto(), EMPLOYEE_ID, MISSION_ID);
+    await service.sendMonthlyReport(makeDto(), EMPLOYEE_ID);
 
     expect(mockPrisma.auditLog.create).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -259,7 +255,7 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     mockPrisma.user.findUnique.mockResolvedValue(null);
 
     await expect(
-      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID, MISSION_ID),
+      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID),
     ).rejects.toThrow(NotFoundException);
   });
 
@@ -269,7 +265,7 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     mockPrisma.mission.findFirst.mockResolvedValue(null);
 
     await expect(
-      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID, MISSION_ID),
+      service.sendMonthlyReport(makeDto(), EMPLOYEE_ID),
     ).rejects.toThrow(NotFoundException);
   });
 });

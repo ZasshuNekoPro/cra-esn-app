@@ -2,6 +2,7 @@ import {
   IsInt,
   IsIn,
   IsArray,
+  IsOptional,
   ArrayMinSize,
   ArrayMaxSize,
   Min,
@@ -10,11 +11,13 @@ import {
 import type { ReportType, ReportRecipient } from '@esn/shared-types';
 
 export class SendReportDto {
+  @IsOptional()
   @IsInt()
   @Min(2020)
   @Max(2100)
   year!: number;
 
+  @IsOptional()
   @IsInt()
   @Min(1)
   @Max(12)
