@@ -5,6 +5,8 @@ import type {
   CreateDashboardShareRequest,
   DashboardShareResponse,
   PublicDashboard,
+  SendReportRequest,
+  SendReportResponse,
 } from '@esn/shared-types';
 
 export const reportsApi = {
@@ -31,6 +33,13 @@ export const reportsApi = {
 
   getPublicDashboard: (token: string): Promise<PublicDashboard> =>
     apiClient.get<PublicDashboard>(`/reports/shared/${token}`),
+
+  sendMonthlyReport: (
+    year: number,
+    month: number,
+    payload: SendReportRequest,
+  ): Promise<SendReportResponse> =>
+    apiClient.post<SendReportResponse>(`/reports/monthly/${year}/${month}/send`, payload),
 
   listNotifications: (unreadOnly?: boolean): Promise<Notification[]> => {
     const qs = unreadOnly ? '?unreadOnly=true' : '';
