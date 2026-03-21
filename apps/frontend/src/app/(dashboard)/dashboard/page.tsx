@@ -1,6 +1,5 @@
 import { auth } from '../../../auth';
 import { craApi } from '../../../lib/api/cra';
-import { ApiClientError } from '../../../lib/api/client';
 import { WorkingDaysProgress } from '../../../components/cra/WorkingDaysProgress';
 import { LeaveBalanceSummary } from '../../../components/cra/LeaveBalanceSummary';
 import { MonthStatusTimeline } from '../../../components/cra/MonthStatusTimeline';
@@ -17,12 +16,8 @@ async function getCurrentMonthCraData(): Promise<{
     const craMonth = await craApi.getOrCreateMonth(year, month);
     const summary = await craApi.getSummary(craMonth.id);
     return { month: craMonth, summary };
-  } catch (err) {
-    if (err instanceof ApiClientError) {
-      // Not critical — dashboard can render without CRA data
-      return null;
-    }
-    throw err;
+  } catch {
+    return null;
   }
 }
 

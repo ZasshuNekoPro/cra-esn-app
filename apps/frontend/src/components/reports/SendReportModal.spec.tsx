@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { SendReportResponse } from '@esn/shared-types';
 
@@ -105,7 +105,7 @@ describe('SendReportModal', () => {
       year: 2026,
       month: 3,
       reportType: 'CRA_WITH_WEATHER',
-      recipients: expect.arrayContaining(['ESN']),
+      recipients: expect.arrayContaining(['ESN']) as string[],
     });
   });
 

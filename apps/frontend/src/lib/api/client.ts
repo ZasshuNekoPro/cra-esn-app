@@ -1,7 +1,7 @@
 import { auth } from '../../auth';
 import type { ApiError } from '@esn/shared-types';
 
-const BACKEND_URL = process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3001';
+const BACKEND_URL = process.env['BACKEND_URL'] ?? 'http://localhost:3101';
 
 export class ApiClientError extends Error {
   constructor(

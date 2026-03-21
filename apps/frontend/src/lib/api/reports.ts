@@ -7,6 +7,7 @@ import type {
   PublicDashboard,
   SendReportRequest,
   SendReportResponse,
+  SentReportHistoryItem,
 } from '@esn/shared-types';
 
 export const reportsApi = {
@@ -40,6 +41,9 @@ export const reportsApi = {
     payload: SendReportRequest,
   ): Promise<SendReportResponse> =>
     apiClient.post<SendReportResponse>(`/reports/monthly/${year}/${month}/send`, payload),
+
+  getSentHistory: (): Promise<SentReportHistoryItem[]> =>
+    apiClient.get<SentReportHistoryItem[]>('/reports/sent-history'),
 
   listNotifications: (unreadOnly?: boolean): Promise<Notification[]> => {
     const qs = unreadOnly ? '?unreadOnly=true' : '';

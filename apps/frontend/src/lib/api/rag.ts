@@ -59,6 +59,6 @@ export async function* streamRagQuery(
       }
     }
   } finally {
-    reader.cancel();
+    void reader.cancel();
   }
 }

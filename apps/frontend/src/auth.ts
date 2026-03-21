@@ -37,7 +37,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        const backendUrl = process.env['BACKEND_URL'] ?? 'http://localhost:3001';
+        const backendUrl = process.env['BACKEND_URL'] ?? 'http://localhost:3101';
 
         const res = await fetch(`${backendUrl}/api/auth/login`, {
           method: 'POST',

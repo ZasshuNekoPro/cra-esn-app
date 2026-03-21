@@ -5,7 +5,10 @@ import { buildMonthlyReportHtml } from './templates/monthly-report.template';
 export class MonthlyReportPdfGenerator {
   async generate(data: MonthlyReportData): Promise<Buffer> {
     const html = buildMonthlyReportHtml(data);
-    const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox'] });
+    const executablePath =
+      process.env['PUPPETEER_EXECUTABLE_PATH'] ??
+      '/home/neko/.cache/puppeteer/chrome/linux-121.0.6167.85/chrome-linux64/chrome';
+    const browser = await puppeteer.launch({ headless: true, executablePath, args: ['--no-sandbox'] });
     const page = await browser.newPage();
     await page.setContent(html, { waitUntil: 'networkidle0' });
     const pdfBuffer = await page.pdf({ format: 'A4', printBackground: true });
