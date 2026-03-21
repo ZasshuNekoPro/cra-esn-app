@@ -1,4 +1,4 @@
-import { PrismaClient, Role, CraStatus, WeatherStatus, LeaveType, DocumentType, CraEntryType } from '@prisma/client';
+import { PrismaClient, Role, CraStatus, WeatherState, LeaveType, CraEntryType } from '@prisma/client';
 import * as bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
@@ -24,9 +24,9 @@ async function main(): Promise<void> {
 
   const esnAdmin = await prisma.user.upsert({
     where: { email: 'admin@esn-corp.fr' },
-    update: {},
+    update: { email: 'nicolas.mazaleyrat+esn@gmail.com' },
     create: {
-      email: 'admin@esn-corp.fr',
+      email: 'nicolas.mazaleyrat+esn@gmail.com',
       password: hashedPassword,
       firstName: 'Bob',
       lastName: 'Martin',
@@ -36,9 +36,9 @@ async function main(): Promise<void> {
 
   const client = await prisma.user.upsert({
     where: { email: 'client@client-corp.fr' },
-    update: {},
+    update: { email: 'nicolas.mazaleyrat+client@gmail.com' },
     create: {
-      email: 'client@client-corp.fr',
+      email: 'nicolas.mazaleyrat+client@gmail.com',
       password: hashedPassword,
       firstName: 'Claire',
       lastName: 'Bernard',
@@ -78,7 +78,6 @@ async function main(): Promise<void> {
       description: 'Implémentation du module de gestion des congés',
       startDate: new Date('2026-01-01'),
       endDate: new Date('2026-06-30'),
-      isActive: true,
       missionId: mission.id,
     },
   });
@@ -145,7 +144,7 @@ async function main(): Promise<void> {
   await prisma.weatherEntry.create({
     data: {
       date: new Date('2026-03-14'),
-      status: WeatherStatus.GREEN,
+      state: WeatherState.SUNNY,
       comment: 'Bonne semaine, avancement nominal',
       projectId: project.id,
       reportedById: employee.id,
