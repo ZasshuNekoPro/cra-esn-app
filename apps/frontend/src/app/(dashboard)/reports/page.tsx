@@ -8,6 +8,7 @@ import { UpcomingMilestonesCard } from '../../../components/reports/UpcomingMile
 import { LeaveBalanceCard } from '../../../components/reports/LeaveBalanceCard';
 import { NotificationBell } from '../../../components/reports/NotificationBell';
 import { ShareDashboardButton } from '../../../components/reports/ShareDashboardButton';
+import { SendReportButton } from '../../../components/reports/SendReportButton';
 import type { MonthlyReport } from '@esn/shared-types';
 
 async function getReport(year: number, month: number): Promise<MonthlyReport | null> {
@@ -44,6 +45,7 @@ export default async function ReportsPage(): Promise<JSX.Element> {
         </div>
         <div className="flex items-center gap-3">
           <NotificationBell />
+          <SendReportButton year={year} month={month} />
           <ShareDashboardButton />
         </div>
       </div>
