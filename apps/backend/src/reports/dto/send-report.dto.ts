@@ -8,7 +8,7 @@ import {
   Min,
   Max,
 } from 'class-validator';
-import type { ReportType, ReportRecipient } from '@esn/shared-types';
+import type { ReportType, ReportRecipient, SendReportTtlHours } from '@esn/shared-types';
 
 export class SendReportDto {
   @IsOptional()
@@ -31,4 +31,9 @@ export class SendReportDto {
   @ArrayMaxSize(2)
   @IsIn(['ESN', 'CLIENT'], { each: true })
   recipients!: ReportRecipient[];
+
+  @IsOptional()
+  @IsInt()
+  @IsIn([24, 48, 72, 168])
+  validationTtlHours?: SendReportTtlHours;
 }

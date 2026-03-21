@@ -14,6 +14,10 @@ const mockPrisma = {
   projectEntry: { findMany: vi.fn() },
   weatherEntry: { findMany: vi.fn() },
   auditLog: { create: vi.fn() },
+  reportValidationRequest: {
+    updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+    create: vi.fn().mockResolvedValue({ id: 'rvr-1', token: 'test-token-uuid' }),
+  },
 };
 
 // ── Storage mock ─────────────────────────────────────────────────────────────
@@ -32,6 +36,12 @@ const mockNotifications = {
 
 const mockPdfGenerator = {
   generate: vi.fn(),
+};
+
+// ── ConfigService mock ───────────────────────────────────────────────────────
+
+const mockConfig = {
+  get: vi.fn().mockReturnValue('http://localhost:3100'),
 };
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -118,6 +128,7 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
       mockStorage as never,
       mockNotifications as never,
       mockPdfGenerator as never,
+      mockConfig as never,
     );
   });
 
