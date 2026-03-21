@@ -1,5 +1,30 @@
 // ─── Reports & Dashboard — shared types ───────────────────────────────────────
 
+// ── Send Report ───────────────────────────────────────────────────────────────
+
+/** Type of PDF report to generate and send. */
+export type ReportType = 'CRA_ONLY' | 'CRA_WITH_WEATHER';
+
+/** Recipient party for a sent report. */
+export type ReportRecipient = 'ESN' | 'CLIENT';
+
+export interface SendReportRequest {
+  year: number;
+  month: number; // 1–12
+  reportType: ReportType;
+  recipients: ReportRecipient[]; // min 1 — enforced by DTO (ArrayMinSize)
+}
+
+export interface SendReportResponse {
+  success: boolean;
+  sentTo: ReportRecipient[];        // recipients that were effectively notified
+  pdfS3Key: string;                 // S3 object key for later download
+  auditLogId: string;               // ID of the AuditLog row created
+  skippedRecipients: ReportRecipient[]; // recipients ignored (null on Mission)
+}
+
+
+
 import type { CraStatus, WeatherState, MilestoneStatus } from './enums';
 import type { LeaveBalanceSummary } from './api';
 
