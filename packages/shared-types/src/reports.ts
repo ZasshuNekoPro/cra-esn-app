@@ -23,6 +23,16 @@ export interface SendReportResponse {
   skippedRecipients: ReportRecipient[]; // recipients ignored (null on Mission)
 }
 
+export interface SentReportHistoryItem {
+  id: string;
+  sentAt: string;            // ISO 8601
+  year: number;
+  month: number;
+  reportType: ReportType;
+  sentTo: ReportRecipient[];
+  skippedRecipients: ReportRecipient[];
+}
+
 
 
 import type { CraStatus, WeatherState, MilestoneStatus } from './enums';

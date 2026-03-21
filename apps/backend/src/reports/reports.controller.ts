@@ -60,6 +60,14 @@ export class ReportsController {
     return this.reportsSendService.sendMonthlyReport(dto, user.sub);
   }
 
+  // ── Sent history ───────────────────────────────────────────────────────────
+
+  @Get('sent-history')
+  @Roles(Role.EMPLOYEE)
+  getSentReportHistory(@CurrentUser() user: JwtPayload) {
+    return this.reportsService.getSentReportHistory(user.sub);
+  }
+
   // ── Project presentation ───────────────────────────────────────────────────
 
   @Get('projects/:projectId')

@@ -13,6 +13,7 @@ import type {
   ReportProjectSummary,
   WeatherDataPoint,
   DaysByMonth,
+  SentReportHistoryItem,
 } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { countWorkingDays } from '../cra/utils/working-days.util';
@@ -355,6 +356,40 @@ export class ReportsService {
       })),
       expiresAt: share.expiresAt.toISOString(),
     };
+  }
+
+  // ── getSentReportHistory ──────────────────────────────────────────────────
+
+  async getSentReportHistory(employeeId: string): Promise<SentReportHistoryItem[]> {
+    const logs = await this.prisma.auditLog.findMany({
+      where: { initiatorId: employeeId, action: AuditAction.REPORT_SENT },
+      orderBy: { createdAt: 'desc' },
+      take: 50,
+    });
+
+    return logs.map((log) => {
+      const meta = log.metadata as {
+        reportType?: string;
+        sentTo?: string[];
+        skippedRecipients?: string[];
+        pdfS3Key?: string;
+      } | null ?? {};
+
+      // resource format: "report:<employeeId>:<year>:<month>"
+      const parts = (log.resource ?? '').split(':');
+      const year = parseInt(parts[2] ?? '0', 10);
+      const month = parseInt(parts[3] ?? '0', 10);
+
+      return {
+        id: log.id,
+        sentAt: log.createdAt.toISOString(),
+        year,
+        month,
+        reportType: (meta.reportType ?? 'CRA_ONLY') as import('@esn/shared-types').ReportType,
+        sentTo: (meta.sentTo ?? []) as import('@esn/shared-types').ReportRecipient[],
+        skippedRecipients: (meta.skippedRecipients ?? []) as import('@esn/shared-types').ReportRecipient[],
+      };
+    });
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
