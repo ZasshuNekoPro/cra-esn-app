@@ -23,6 +23,61 @@ export interface SendReportResponse {
   skippedRecipients: ReportRecipient[]; // recipients ignored (null on Mission)
 }
 
+// ── Report Validation Pipeline ────────────────────────────────────────────────
+
+/** Status of a report validation request. */
+export type ReportValidationStatus = 'PENDING' | 'VALIDATED' | 'REFUSED' | 'ARCHIVED';
+
+/** One validation request (per recipient) attached to a sent report. */
+export interface ReportValidationItem {
+  id: string;
+  token: string;
+  recipient: ReportRecipient;
+  status: ReportValidationStatus;
+  comment: string | null;
+  resolvedBy: string | null;
+  resolvedAt: string | null;  // ISO 8601
+  expiresAt: string;           // ISO 8601
+  createdAt: string;           // ISO 8601
+}
+
+/** Public context returned by GET /reports/validate/:token (no auth required). */
+export interface ValidateReportPublicInfo {
+  token: string;
+  employeeName: string;
+  year: number;
+  month: number;
+  reportType: ReportType;
+  recipient: ReportRecipient;
+  status: ReportValidationStatus;
+  expiresAt: string;            // ISO 8601
+  resolvedBy: string | null;
+  resolvedAt: string | null;
+  comment: string | null;
+}
+
+/** Body for POST /reports/validate/:token. */
+export interface ValidateReportRequest {
+  action: 'VALIDATE' | 'REFUSE';
+  validatorName: string;
+  comment?: string;             // required when action === 'REFUSE'
+}
+
+/** Response body for POST /reports/validate/:token. */
+export interface ValidateReportResponse {
+  success: boolean;
+  status: ReportValidationStatus;
+  allValidated: boolean;        // true when every sentTo recipient is VALIDATED
+}
+
+/** Available TTL options for validation links (hours). */
+export type SendReportTtlHours = 24 | 48 | 72 | 168;
+
+/** Presigned download URL returned by GET /reports/sent-history/:id/download. */
+export interface ReportDownloadResponse {
+  url: string;                  // presigned S3 URL (TTL: 300s)
+}
+
 export interface SentReportHistoryItem {
   id: string;
   sentAt: string;            // ISO 8601
@@ -31,6 +86,7 @@ export interface SentReportHistoryItem {
   reportType: ReportType;
   sentTo: ReportRecipient[];
   skippedRecipients: ReportRecipient[];
+  validations: ReportValidationItem[];
 }
 
 
