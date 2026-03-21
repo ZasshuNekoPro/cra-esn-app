@@ -388,6 +388,7 @@ export class ReportsService {
         reportType: (meta.reportType ?? 'CRA_ONLY') as import('@esn/shared-types').ReportType,
         sentTo: (meta.sentTo ?? []) as import('@esn/shared-types').ReportRecipient[],
         skippedRecipients: (meta.skippedRecipients ?? []) as import('@esn/shared-types').ReportRecipient[],
+        validations: [], // enriched in T7
       };
     });
   }

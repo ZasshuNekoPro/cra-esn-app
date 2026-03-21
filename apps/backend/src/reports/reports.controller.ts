@@ -17,8 +17,10 @@ import { RolesGuard } from '../common/guards/roles.guard';
 import { Role } from '@esn/shared-types';
 import { ReportsService } from './reports.service';
 import { ReportsSendService } from './reports-send.service';
+import { ReportsValidateService } from './reports-validate.service';
 import { CreateDashboardShareDto } from './dto/create-dashboard-share.dto';
 import { SendReportDto } from './dto/send-report.dto';
+import { ValidateReportDto } from './dto/validate-report.dto';
 import type { JwtPayload } from '@esn/shared-types';
 
 @Controller('reports')
@@ -27,6 +29,7 @@ export class ReportsController {
   constructor(
     private readonly reportsService: ReportsService,
     private readonly reportsSendService: ReportsSendService,
+    private readonly reportsValidateService: ReportsValidateService,
   ) {}
 
   // ── Monthly report ─────────────────────────────────────────────────────────
@@ -107,5 +110,22 @@ export class ReportsController {
   @Public()
   getPublicDashboard(@Param('token') token: string) {
     return this.reportsService.getPublicDashboard(token);
+  }
+
+  // ── Validation pipeline (public — no auth) ─────────────────────────────────
+
+  @Get('validate/:token')
+  @Public()
+  getValidationInfo(@Param('token') token: string) {
+    return this.reportsValidateService.getValidationInfo(token);
+  }
+
+  @Post('validate/:token')
+  @Public()
+  submitValidation(
+    @Param('token') token: string,
+    @Body() dto: ValidateReportDto,
+  ) {
+    return this.reportsValidateService.submitValidation(token, dto);
   }
 }

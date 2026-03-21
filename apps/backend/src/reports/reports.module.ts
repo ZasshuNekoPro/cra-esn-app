@@ -5,12 +5,13 @@ import { StorageModule } from '../storage/storage.module';
 import { NotificationsModule } from '../notifications/notifications.module';
 import { ReportsService } from './reports.service';
 import { ReportsSendService } from './reports-send.service';
+import { ReportsValidateService } from './reports-validate.service';
 import { ReportsController } from './reports.controller';
 
 @Module({
   imports: [PrismaModule, StorageModule, NotificationsModule],
-  providers: [ReportsService, ReportsSendService, MonthlyReportPdfGenerator],
+  providers: [ReportsService, ReportsSendService, ReportsValidateService, MonthlyReportPdfGenerator],
   controllers: [ReportsController],
-  exports: [ReportsService, ReportsSendService],
+  exports: [ReportsService, ReportsSendService, ReportsValidateService],
 })
 export class ReportsModule {}
