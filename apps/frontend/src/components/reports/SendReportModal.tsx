@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import type { ReportType, ReportRecipient } from '@esn/shared-types';
+import type { ReportType, ReportRecipient, SendReportTtlHours } from '@esn/shared-types';
 import { useSendReport } from '../../hooks/useSendReport';
 
 interface Props {
@@ -10,10 +10,18 @@ interface Props {
   onClose: () => void;
 }
 
+const TTL_OPTIONS: Array<{ value: SendReportTtlHours; label: string }> = [
+  { value: 24, label: '24 heures' },
+  { value: 48, label: '48 heures (défaut)' },
+  { value: 72, label: '3 jours' },
+  { value: 168, label: '7 jours' },
+];
+
 export function SendReportModal({ year, month, onClose }: Props): JSX.Element {
   const [step, setStep] = useState<1 | 2>(1);
   const [reportType, setReportType] = useState<ReportType>('CRA_ONLY');
   const [recipients, setRecipients] = useState<ReportRecipient[]>(['ESN']);
+  const [validationTtlHours, setValidationTtlHours] = useState<SendReportTtlHours>(48);
 
   const { mutate, isPending, isSuccess, isError, data, error } = useSendReport(year, month);
 
@@ -24,7 +32,7 @@ export function SendReportModal({ year, month, onClose }: Props): JSX.Element {
   };
 
   const handleSubmit = (): void => {
-    mutate({ year, month, reportType, recipients });
+    mutate({ year, month, reportType, recipients, validationTtlHours });
   };
 
   return (
@@ -95,6 +103,22 @@ export function SendReportModal({ year, month, onClose }: Props): JSX.Element {
                     />
                     <span className="text-sm font-medium text-gray-800">CRA + météo projet</span>
                   </label>
+                </div>
+
+                <div className="space-y-1">
+                  <label htmlFor="ttl-select" className="text-xs font-medium text-gray-500">
+                    Durée de validité du lien
+                  </label>
+                  <select
+                    id="ttl-select"
+                    value={validationTtlHours}
+                    onChange={(e) => setValidationTtlHours(Number(e.target.value) as SendReportTtlHours)}
+                    className="w-full rounded-md border border-gray-200 px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    {TTL_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="flex justify-end gap-2">
