@@ -279,4 +279,30 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
       service.sendMonthlyReport(makeDto(), EMPLOYEE_ID),
     ).rejects.toThrow(NotFoundException);
   });
+
+  // ── validation link included in email ─────────────────────────────────────
+
+  it('includes validation link in email body for each effective recipient', async () => {
+    await service.sendMonthlyReport(makeDto({ recipients: ['ESN'] }), EMPLOYEE_ID);
+
+    expect(mockPrisma.reportValidationRequest.create).toHaveBeenCalledTimes(1);
+    const emailBody: string = (mockNotifications.notifyEmail.mock.calls[0] as [string, string, string])[2];
+    expect(emailBody).toMatch(/validate-report/);
+    expect(emailBody).toMatch(/test-token-uuid/);
+  });
+
+  // ── previous PENDING requests archived on resend ───────────────────────────
+
+  it('archives previous PENDING requests for same (employeeId, year, month, recipient) on resend', async () => {
+    await service.sendMonthlyReport(makeDto({ recipients: ['ESN'] }), EMPLOYEE_ID);
+
+    expect(mockPrisma.reportValidationRequest.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          status: 'PENDING',
+        }),
+        data: { status: 'ARCHIVED' },
+      }),
+    );
+  });
 });
