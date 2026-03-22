@@ -23,10 +23,10 @@ async function main(): Promise<void> {
   });
 
   const esnAdmin = await prisma.user.upsert({
-    where: { email: 'admin@esn-corp.fr' },
-    update: { email: 'nicolas.mazaleyrat+esn@gmail.com' },
+    where: { email: 'admin@esn-corp.local' },
+    update: {},
     create: {
-      email: 'nicolas.mazaleyrat+esn@gmail.com',
+      email: 'admin@esn-corp.local',
       password: hashedPassword,
       firstName: 'Bob',
       lastName: 'Martin',
@@ -35,10 +35,10 @@ async function main(): Promise<void> {
   });
 
   const client = await prisma.user.upsert({
-    where: { email: 'client@client-corp.fr' },
-    update: { email: 'nicolas.mazaleyrat+client@gmail.com' },
+    where: { email: 'contact@client-corp.local' },
+    update: {},
     create: {
-      email: 'nicolas.mazaleyrat+client@gmail.com',
+      email: 'contact@client-corp.local',
       password: hashedPassword,
       firstName: 'Claire',
       lastName: 'Bernard',
@@ -233,8 +233,8 @@ async function main(): Promise<void> {
   console.log('\n✅ Seeding complete!');
   console.log('\nTest credentials (password: password123):');
   console.log('  Employee : alice@example.com');
-  console.log('  ESN Admin: admin@esn-corp.fr');
-  console.log('  Client   : client@client-corp.fr');
+  console.log('  ESN Admin: admin@esn-corp.local');
+  console.log('  Client   : contact@client-corp.local');
 }
 
 main()
