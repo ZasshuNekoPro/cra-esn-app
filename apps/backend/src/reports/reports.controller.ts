@@ -71,6 +71,15 @@ export class ReportsController {
     return this.reportsService.getSentReportHistory(user.sub);
   }
 
+  @Get('sent-history/:id/download')
+  @Roles(Role.EMPLOYEE)
+  getSentReportDownloadUrl(
+    @CurrentUser() user: JwtPayload,
+    @Param('id') id: string,
+  ) {
+    return this.reportsService.getSentReportDownloadUrl(id, user.sub);
+  }
+
   // ── Project presentation ───────────────────────────────────────────────────
 
   @Get('projects/:projectId')

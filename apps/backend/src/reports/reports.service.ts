@@ -14,7 +14,10 @@ import type {
   WeatherDataPoint,
   DaysByMonth,
   SentReportHistoryItem,
+  ReportValidationItem,
+  ReportDownloadResponse,
 } from '@esn/shared-types';
+import { StorageService } from '../storage/storage.service';
 import { PrismaService } from '../database/prisma.service';
 import { countWorkingDays } from '../cra/utils/working-days.util';
 
@@ -49,7 +52,10 @@ const DEFAULT_TTL_HOURS = 48;
 
 @Injectable()
 export class ReportsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly storage: StorageService,
+  ) {}
 
   // ── getMonthlyReport ───────────────────────────────────────────────────────
 
@@ -367,6 +373,25 @@ export class ReportsService {
       take: 50,
     });
 
+    // Fetch all validation requests for this employee at once
+    const validationRows = await this.prisma.reportValidationRequest.findMany({
+      where: { employeeId },
+      orderBy: { createdAt: 'asc' },
+    }) as Array<{
+      id: string;
+      token: string;
+      year: number;
+      month: number;
+      reportType: string;
+      recipient: string;
+      status: string;
+      comment: string | null;
+      resolvedBy: string | null;
+      resolvedAt: Date | null;
+      expiresAt: Date;
+      createdAt: Date;
+    }>;
+
     return logs.map((log) => {
       const meta = log.metadata as {
         reportType?: string;
@@ -379,18 +404,55 @@ export class ReportsService {
       const parts = (log.resource ?? '').split(':');
       const year = parseInt(parts[2] ?? '0', 10);
       const month = parseInt(parts[3] ?? '0', 10);
+      const reportType = meta.reportType ?? 'CRA_ONLY';
+
+      const validations: ReportValidationItem[] = validationRows
+        .filter(
+          (v) => v.year === year && v.month === month && v.reportType === reportType,
+        )
+        .map((v) => ({
+          id: v.id,
+          token: v.token,
+          recipient: v.recipient as ReportValidationItem['recipient'],
+          status: v.status as ReportValidationItem['status'],
+          comment: v.comment,
+          resolvedBy: v.resolvedBy,
+          resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
+          expiresAt: v.expiresAt.toISOString(),
+          createdAt: v.createdAt.toISOString(),
+        }));
 
       return {
         id: log.id,
         sentAt: log.createdAt.toISOString(),
         year,
         month,
-        reportType: (meta.reportType ?? 'CRA_ONLY') as import('@esn/shared-types').ReportType,
+        reportType: reportType as import('@esn/shared-types').ReportType,
         sentTo: (meta.sentTo ?? []) as import('@esn/shared-types').ReportRecipient[],
         skippedRecipients: (meta.skippedRecipients ?? []) as import('@esn/shared-types').ReportRecipient[],
-        validations: [], // enriched in T7
+        validations,
       };
     });
+  }
+
+  // ── getDownloadUrl ────────────────────────────────────────────────────────
+
+  async getSentReportDownloadUrl(
+    auditLogId: string,
+    employeeId: string,
+  ): Promise<ReportDownloadResponse> {
+    const log = await this.prisma.auditLog.findUnique({
+      where: { id: auditLogId },
+    }) as { id: string; initiatorId: string; metadata: unknown } | null;
+
+    if (!log) throw new NotFoundException(`AuditLog ${auditLogId} not found`);
+    if (log.initiatorId !== employeeId) throw new NotFoundException(`AuditLog ${auditLogId} not found`);
+
+    const meta = log.metadata as { pdfS3Key?: string } | null ?? {};
+    if (!meta.pdfS3Key) throw new NotFoundException('No PDF associated with this report entry');
+
+    const url = await this.storage.getDownloadUrl(meta.pdfS3Key, 300);
+    return { url };
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
