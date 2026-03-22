@@ -1,8 +1,9 @@
 'use client';
 
 import { useState } from 'react';
-import type { SentReportHistoryItem, ReportValidationItem, ReportValidationStatus } from '@esn/shared-types';
-import { reportsApi } from '../../lib/api/reports';
+import type { SentReportHistoryItem, ReportValidationItem, ReportValidationStatus, ReportDownloadResponse } from '@esn/shared-types';
+import { clientApiFetch } from '../../lib/api/clientFetch';
+
 
 const MONTH_NAMES = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -49,8 +50,26 @@ function DownloadButton({ id }: { id: string }): JSX.Element {
   const handleDownload = async (): Promise<void> => {
     setLoading(true);
     try {
-      const { url } = await reportsApi.downloadSentReport(id);
-      window.open(url, '_blank', 'noopener,noreferrer');
+      const { url } = await clientApiFetch<ReportDownloadResponse>(`/reports/sent-history/${id}/download`);
+
+      // Always fetch as an authenticated blob: sending a Bearer token to
+      // presigned S3/MinIO URLs is harmless (extra header is ignored).
+      const { getSession } = await import('next-auth/react');
+      const session = await getSession();
+      const token = (session as { accessToken?: string } | null)?.accessToken ?? '';
+      const res = await fetch(url, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = blobUrl;
+      a.download = `rapport-${id}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(blobUrl);
     } finally {
       setLoading(false);
     }

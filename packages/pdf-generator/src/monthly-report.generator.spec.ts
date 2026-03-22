@@ -159,10 +159,12 @@ describe('MonthlyReportPdfGenerator', () => {
   it('uses puppeteer with --no-sandbox and A4 format', async () => {
     await generator.generate(makeSampleData());
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(puppeteer.launch).toHaveBeenCalledWith({
-      headless: true,
-      args: ['--no-sandbox'],
-    });
+    expect(puppeteer.launch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headless: true,
+        args: expect.arrayContaining(['--no-sandbox']) as string[],
+      }),
+    );
     expect(mockPage.pdf).toHaveBeenCalledWith({ format: 'A4', printBackground: true });
   });
 

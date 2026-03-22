@@ -12,7 +12,7 @@ export class LocalStorageService implements IStorageService {
 
   constructor(private readonly config: ConfigService) {
     this.basePath = config.get<string>('LOCAL_STORAGE_PATH', './uploads');
-    this.backendUrl = config.get<string>('BACKEND_URL', 'http://localhost:3001');
+    this.backendUrl = config.get<string>('BACKEND_URL', 'http://localhost:3101');
   }
 
   async uploadFile(
@@ -39,7 +39,7 @@ export class LocalStorageService implements IStorageService {
     void expiresInSeconds;
     // Return the NestJS storage endpoint URL; access is controlled by JwtAuthGuard
     const encodedKey = encodeURIComponent(key);
-    return `${this.backendUrl}/storage/${encodedKey}`;
+    return `${this.backendUrl}/api/storage/${encodedKey}`;
   }
 
   async deleteObject(key: string): Promise<void> {
