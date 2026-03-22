@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { CraStatus, Role } from '@esn/shared-types';
-import { craApi } from '../../lib/api/cra';
+import { clientCraApi } from '../../lib/api/clientCra';
 
 interface SignatureActionsProps {
   craMonthId: string;
@@ -40,8 +40,8 @@ export function SignatureActions({
     if (!rejectComment.trim()) return;
     setIsLoading(true);
     const doReject = rejectAction === 'esn'
-      ? craApi.rejectEsn(craMonthId, rejectComment.trim())
-      : craApi.rejectClient(craMonthId, rejectComment.trim());
+      ? clientCraApi.rejectEsn(craMonthId, rejectComment.trim())
+      : clientCraApi.rejectClient(craMonthId, rejectComment.trim());
 
     doReject
       .then((updated) => {
@@ -85,7 +85,7 @@ export function SignatureActions({
         <button
           type="button"
           disabled={isLoading}
-          onClick={() => runAction(() => craApi.submit(craMonthId))}
+          onClick={() => runAction(() => clientCraApi.submit(craMonthId))}
           className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
         >
           {isLoading ? 'Traitement\u2026' : 'Soumettre'}
@@ -98,7 +98,7 @@ export function SignatureActions({
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => runAction(() => craApi.signEmployee(craMonthId))}
+            onClick={() => runAction(() => clientCraApi.signEmployee(craMonthId))}
             className="px-4 py-2 bg-indigo-600 text-white text-sm font-medium rounded-md hover:bg-indigo-700 disabled:opacity-50 transition-colors"
           >
             {isLoading ? 'Traitement\u2026' : 'Signer'}
@@ -106,7 +106,7 @@ export function SignatureActions({
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => runAction(() => craApi.retract(craMonthId))}
+            onClick={() => runAction(() => clientCraApi.retract(craMonthId))}
             className="px-4 py-2 bg-white text-gray-700 text-sm font-medium rounded-md border border-gray-300 hover:bg-gray-50 disabled:opacity-50 transition-colors"
           >
             Retirer la soumission
@@ -120,7 +120,7 @@ export function SignatureActions({
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => runAction(() => craApi.signEsn(craMonthId))}
+            onClick={() => runAction(() => clientCraApi.signEsn(craMonthId))}
             className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-md hover:bg-purple-700 disabled:opacity-50 transition-colors"
           >
             {isLoading ? 'Traitement\u2026' : 'Valider'}
@@ -142,7 +142,7 @@ export function SignatureActions({
           <button
             type="button"
             disabled={isLoading}
-            onClick={() => runAction(() => craApi.signClient(craMonthId))}
+            onClick={() => runAction(() => clientCraApi.signClient(craMonthId))}
             className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-md hover:bg-green-700 disabled:opacity-50 transition-colors"
           >
             {isLoading ? 'Traitement\u2026' : 'Valider'}

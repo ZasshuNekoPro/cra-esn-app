@@ -36,6 +36,15 @@ export async function clientApiFetch<T>(path: string, options: FetchOptions = {}
 }
 
 export const clientApiClient = {
+  get: <T>(path: string): Promise<T> =>
+    clientApiFetch<T>(path, { method: 'GET' }),
+
   post: <T>(path: string, body?: unknown): Promise<T> =>
     clientApiFetch<T>(path, { method: 'POST', body }),
+
+  patch: <T>(path: string, body?: unknown): Promise<T> =>
+    clientApiFetch<T>(path, { method: 'PATCH', body }),
+
+  delete: <T>(path: string): Promise<T> =>
+    clientApiFetch<T>(path, { method: 'DELETE' }),
 };
