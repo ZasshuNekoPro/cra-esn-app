@@ -57,7 +57,7 @@ describe('LocalStorageService', () => {
   it('should return a local backend URL for an existing file', async () => {
     const url = await service.getDownloadUrl('owner/mission/doc.pdf');
 
-    expect(url).toContain('http://localhost:3001/storage/');
+    expect(url).toContain('http://localhost:3001/api/storage/');
     expect(url).toContain('owner');
   });
 
