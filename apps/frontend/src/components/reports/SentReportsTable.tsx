@@ -1,4 +1,8 @@
-import type { SentReportHistoryItem } from '@esn/shared-types';
+'use client';
+
+import { useState } from 'react';
+import type { SentReportHistoryItem, ReportValidationItem, ReportValidationStatus } from '@esn/shared-types';
+import { reportsApi } from '../../lib/api/reports';
 
 const MONTH_NAMES = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -14,6 +18,56 @@ const RECIPIENT_LABELS: Record<string, string> = {
   ESN: 'ESN',
   CLIENT: 'Client',
 };
+
+const STATUS_CONFIG: Record<ReportValidationStatus, { label: string; className: string }> = {
+  PENDING:   { label: 'En attente', className: 'bg-yellow-50 text-yellow-700' },
+  VALIDATED: { label: 'Validé',     className: 'bg-green-50 text-green-700' },
+  REFUSED:   { label: 'Refusé',     className: 'bg-red-50 text-red-700' },
+  ARCHIVED:  { label: 'Archivé',    className: 'bg-gray-50 text-gray-500' },
+};
+
+function ValidationBadge({ v }: { v: ReportValidationItem }): JSX.Element {
+  const cfg = STATUS_CONFIG[v.status] ?? STATUS_CONFIG.PENDING;
+  const recipientLabel = RECIPIENT_LABELS[v.recipient] ?? v.recipient;
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${cfg.className}`}
+      title={v.status === 'REFUSED' && v.comment ? `Motif : ${v.comment}` : undefined}
+    >
+      {recipientLabel} — {cfg.label}
+      {v.status === 'REFUSED' && v.comment && (
+        <span className="ml-1 cursor-help underline decoration-dotted">(?)</span>
+      )}
+    </span>
+  );
+}
+
+function DownloadButton({ id }: { id: string }): JSX.Element {
+  const [loading, setLoading] = useState(false);
+
+  const handleDownload = async (): Promise<void> => {
+    setLoading(true);
+    try {
+      const { url } = await reportsApi.downloadSentReport(id);
+      window.open(url, '_blank', 'noopener,noreferrer');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <button
+      type="button"
+      onClick={() => { void handleDownload(); }}
+      disabled={loading}
+      className="rounded-md bg-gray-100 px-3 py-1 text-xs font-medium text-gray-700 hover:bg-gray-200 disabled:opacity-60"
+      aria-label="Télécharger le PDF"
+    >
+      {loading ? '…' : 'PDF'}
+    </button>
+  );
+}
 
 interface Props {
   items: SentReportHistoryItem[];
@@ -34,7 +88,9 @@ export function SentReportsTable({ items }: Props): JSX.Element {
             <th className="pb-3 pr-6">Date d'envoi</th>
             <th className="pb-3 pr-6">Période</th>
             <th className="pb-3 pr-6">Type de rapport</th>
-            <th className="pb-3">Destinataires</th>
+            <th className="pb-3 pr-6">Destinataires</th>
+            <th className="pb-3 pr-6">Statut validation</th>
+            <th className="pb-3">PDF</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-100">
@@ -58,10 +114,24 @@ export function SentReportsTable({ items }: Props): JSX.Element {
                 <td className="py-3 pr-6 tabular-nums">{dateLabel}</td>
                 <td className="py-3 pr-6 capitalize">{periodLabel}</td>
                 <td className="py-3 pr-6">{typeLabel}</td>
-                <td className="py-3">
+                <td className="py-3 pr-6">
                   <span className="inline-flex items-center rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
                     {recipientsLabel}
                   </span>
+                </td>
+                <td className="py-3 pr-6">
+                  <div className="flex flex-wrap gap-1">
+                    {item.validations.length === 0 ? (
+                      <span className="text-xs text-gray-400">—</span>
+                    ) : (
+                      item.validations.map((v) => (
+                        <ValidationBadge key={v.id} v={v} />
+                      ))
+                    )}
+                  </div>
+                </td>
+                <td className="py-3">
+                  <DownloadButton id={item.id} />
                 </td>
               </tr>
             );

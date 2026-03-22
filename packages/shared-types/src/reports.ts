@@ -13,6 +13,7 @@ export interface SendReportRequest {
   month: number; // 1–12
   reportType: ReportType;
   recipients: ReportRecipient[]; // min 1 — enforced by DTO (ArrayMinSize)
+  validationTtlHours?: number;   // 24 | 48 | 72 | 168 — defaults to 48 on backend
 }
 
 export interface SendReportResponse {
