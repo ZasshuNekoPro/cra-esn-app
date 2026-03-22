@@ -69,7 +69,11 @@ export function SendReportModal({ year, month, onClose }: Props): JSX.Element {
           <>
             {/* Error */}
             {isError && error && (
-              <p className="mb-3 text-sm text-red-600">{error.message}</p>
+              <p className="mb-3 text-sm text-red-600">
+                {error instanceof TypeError
+                  ? 'Serveur injoignable — veuillez réessayer dans quelques instants.'
+                  : error.message}
+              </p>
             )}
 
             {/* Step 1 — Report type */}
