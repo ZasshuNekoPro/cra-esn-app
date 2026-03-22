@@ -32,6 +32,7 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/dashboard', label: 'Tableau de bord' },
   { href: '/esn/employees', label: 'Salariés' },
   { href: '/esn/missions', label: 'Missions' },
+  { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
 ];
 
 interface Props {

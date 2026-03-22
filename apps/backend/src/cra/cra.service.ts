@@ -11,7 +11,7 @@ import {
   PortionType as PrismaPortionType,
 } from '@prisma/client';
 import { CraStatus as SharedCraStatus, CraEntryType, LeaveType } from '@esn/shared-types';
-import type { CraMonthSummary, LeaveBalanceSummary, CreateCraEntryRequest, UpdateCraEntryRequest, RagIndexEvent } from '@esn/shared-types';
+import type { CraMonthSummary, LeaveBalanceSummary, CreateCraEntryRequest, UpdateCraEntryRequest, RagIndexEvent, PendingCraItem, PendingCraListResponse } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { countWorkingDays } from './utils/working-days.util';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -587,6 +587,38 @@ export class CraService {
         remainingDays: totalDays - usedDays,
       };
     });
+  }
+
+  /**
+   * GET /cra/pending-esn — List CRA months in SIGNED_EMPLOYEE status
+   * for missions managed by the given ESN admin.
+   */
+  async listPendingEsnValidation(esnAdminId: string): Promise<PendingCraListResponse> {
+    const months = await this.prisma.craMonth.findMany({
+      where: {
+        status: 'SIGNED_EMPLOYEE',
+        mission: { esnAdminId },
+      },
+      include: {
+        mission: {
+          include: {
+            employee: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+      },
+      orderBy: [{ year: 'asc' }, { month: 'asc' }],
+    });
+
+    const items: PendingCraItem[] = months.map((m) => ({
+      craMonthId: m.id,
+      year: m.year,
+      month: m.month,
+      employeeId: m.mission.employee.id,
+      employeeName: `${m.mission.employee.firstName} ${m.mission.employee.lastName}`,
+      submittedAt: m.updatedAt.toISOString(),
+    }));
+
+    return { count: items.length, items };
   }
 }
 

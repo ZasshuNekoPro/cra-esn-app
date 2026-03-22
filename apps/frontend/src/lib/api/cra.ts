@@ -4,6 +4,7 @@ import type {
   CraMonthSummary,
   CreateCraEntryRequest,
   UpdateCraEntryRequest,
+  PendingCraListResponse,
 } from '@esn/shared-types';
 
 export const craApi = {
@@ -45,4 +46,7 @@ export const craApi = {
 
   rejectClient: (id: string, comment: string): Promise<CraMonth> =>
     apiClient.post(`/cra/months/${id}/reject-client`, { comment }),
+
+  getPendingEsn: (): Promise<PendingCraListResponse> =>
+    apiClient.get<PendingCraListResponse>('/cra/pending-esn'),
 };

@@ -18,7 +18,7 @@ import { SignCraMonthDto } from './dto/sign-cra-month.dto';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
-import type { CraMonthSummary, JwtPayload } from '@esn/shared-types';
+import type { CraMonthSummary, JwtPayload, PendingCraListResponse } from '@esn/shared-types';
 
 @Controller('cra')
 export class CraController {
@@ -214,5 +214,17 @@ export class CraController {
     @CurrentUser() user: JwtPayload,
   ): Promise<object> {
     return this.craSignatureService.rejectClient(id, user.sub, dto.comment);
+  }
+
+  /**
+   * GET /cra/pending-esn
+   * Returns CRA months in SIGNED_EMPLOYEE status for the ESN admin's missions.
+   */
+  @Get('pending-esn')
+  @Roles(Role.ESN_ADMIN)
+  async getPendingEsnValidation(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<PendingCraListResponse> {
+    return this.craService.listPendingEsnValidation(user.sub);
   }
 }

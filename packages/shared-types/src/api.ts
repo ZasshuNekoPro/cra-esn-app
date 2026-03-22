@@ -131,6 +131,21 @@ export interface SubmitCraRequest {
   craMonthId: string;
 }
 
+/** CRA month pending ESN validation — returned by GET /cra/pending-esn */
+export interface PendingCraItem {
+  craMonthId: string;
+  year: number;
+  month: number;
+  employeeId: string;
+  employeeName: string;
+  submittedAt: string;   // ISO 8601 — date of SIGNED_EMPLOYEE transition
+}
+
+export interface PendingCraListResponse {
+  count: number;
+  items: PendingCraItem[];
+}
+
 export interface CraSummary {
   year: number;
   month: number;
