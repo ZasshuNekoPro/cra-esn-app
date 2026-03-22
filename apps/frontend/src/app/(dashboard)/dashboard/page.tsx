@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { auth } from '../../../auth';
 import { craApi } from '../../../lib/api/cra';
 import { WorkingDaysProgress } from '../../../components/cra/WorkingDaysProgress';
@@ -92,8 +93,14 @@ export default async function DashboardPage(): Promise<JSX.Element> {
       ) : (
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">
-            Aucune donnée CRA disponible pour ce mois. Commencez par créer votre CRA.
+            Aucune donnée CRA disponible pour ce mois.
           </p>
+          <Link
+            href="/cra"
+            className="mt-3 inline-block rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            Créer mon CRA
+          </Link>
         </div>
       )}
     </div>

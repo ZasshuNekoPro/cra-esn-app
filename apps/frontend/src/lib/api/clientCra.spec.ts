@@ -13,10 +13,10 @@ const { mockClientApiFetch } = vi.hoisted(() => ({
 vi.mock('./clientFetch', () => ({
   clientApiFetch: mockClientApiFetch,
   clientApiClient: {
-    get: (path: string) => mockClientApiFetch(path, { method: 'GET' }),
-    post: (path: string, body?: unknown) => mockClientApiFetch(path, { method: 'POST', body }),
-    patch: (path: string, body?: unknown) => mockClientApiFetch(path, { method: 'PATCH', body }),
-    delete: (path: string) => mockClientApiFetch(path, { method: 'DELETE' }),
+    get: <T>(path: string): Promise<T> => mockClientApiFetch(path, { method: 'GET' }) as Promise<T>,
+    post: <T>(path: string, body?: unknown): Promise<T> => mockClientApiFetch(path, { method: 'POST', body }) as Promise<T>,
+    patch: <T>(path: string, body?: unknown): Promise<T> => mockClientApiFetch(path, { method: 'PATCH', body }) as Promise<T>,
+    delete: <T>(path: string): Promise<T> => mockClientApiFetch(path, { method: 'DELETE' }) as Promise<T>,
   },
 }));
 
