@@ -2,10 +2,12 @@
 
 import { useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 
 export default function LoginPage(): JSX.Element {
   const router = useRouter();
+  const params = useSearchParams();
+  const callbackUrl = params.get('callbackUrl') ?? '/dashboard';
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -25,10 +27,14 @@ export default function LoginPage(): JSX.Element {
         redirect: false,
       });
 
-      if (result?.error) {
-        setError('Identifiants incorrects. Veuillez réessayer.');
+      if (!result?.ok) {
+        const msg =
+          result?.error === 'CredentialsSignin'
+            ? 'Identifiants incorrects. Veuillez réessayer.'
+            : (result?.error ?? 'Connexion impossible. Veuillez réessayer.');
+        setError(msg);
       } else {
-        router.push('/dashboard');
+        router.push(callbackUrl);
       }
     } catch {
       setError('Une erreur est survenue. Veuillez réessayer.');

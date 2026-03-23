@@ -22,8 +22,13 @@ vi.mock('next-auth/react', () => ({
 }));
 
 // Mock next/navigation
+const { mockSearchParamsGet } = vi.hoisted(() => ({
+  mockSearchParamsGet: vi.fn(),
+}));
+
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: mockRouterPush }),
+  useSearchParams: () => ({ get: mockSearchParamsGet }),
 }));
 
 // S'assurer que l'ancien import server-side n'est PAS utilisé
@@ -38,6 +43,7 @@ import LoginPage from './page';
 describe('LoginPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockSearchParamsGet.mockReturnValue(null); // no callbackUrl by default
   });
 
   it('renders email and password fields', () => {
@@ -48,7 +54,7 @@ describe('LoginPage', () => {
   });
 
   it('calls next-auth/react signIn with credentials on submit', async () => {
-    mockSignIn.mockResolvedValue({ error: undefined });
+    mockSignIn.mockResolvedValue({ ok: true, error: undefined });
 
     render(<LoginPage />);
 
@@ -70,7 +76,7 @@ describe('LoginPage', () => {
   });
 
   it('redirects to /dashboard on successful login', async () => {
-    mockSignIn.mockResolvedValue({ error: undefined });
+    mockSignIn.mockResolvedValue({ ok: true, error: undefined });
 
     render(<LoginPage />);
 
@@ -84,7 +90,7 @@ describe('LoginPage', () => {
   });
 
   it('displays error message on wrong credentials', async () => {
-    mockSignIn.mockResolvedValue({ error: 'CredentialsSignin' });
+    mockSignIn.mockResolvedValue({ ok: false, error: 'CredentialsSignin' });
 
     render(<LoginPage />);
 
@@ -97,8 +103,69 @@ describe('LoginPage', () => {
     });
   });
 
+  // ── T1 nouveaux cas ────────────────────────────────────────────────────────
+
+  it('shows error when signIn returns { ok: false, error: undefined }', async () => {
+    // Cas clé T1 : NextAuth v5 peut retourner ok=false sans error string
+    mockSignIn.mockResolvedValue({ ok: false, error: undefined });
+
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText(/adresse email/i), { target: { value: 'a@b.com' } });
+    fireEvent.change(screen.getByLabelText(/mot de passe/i), { target: { value: 'pw' } });
+    fireEvent.submit(screen.getByRole('button', { name: /se connecter/i }).closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(mockRouterPush).not.toHaveBeenCalled();
+    });
+  });
+
+  it('shows error when signIn returns null', async () => {
+    mockSignIn.mockResolvedValue(null);
+
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText(/adresse email/i), { target: { value: 'a@b.com' } });
+    fireEvent.change(screen.getByLabelText(/mot de passe/i), { target: { value: 'pw' } });
+    fireEvent.submit(screen.getByRole('button', { name: /se connecter/i }).closest('form')!);
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+      expect(mockRouterPush).not.toHaveBeenCalled();
+    });
+  });
+
+  it('redirects to callbackUrl when provided in search params', async () => {
+    mockSignIn.mockResolvedValue({ ok: true, error: undefined });
+    mockSearchParamsGet.mockImplementation((key: string) =>
+      key === 'callbackUrl' ? '/cra/2026/3' : null,
+    );
+
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText(/adresse email/i), { target: { value: 'a@b.com' } });
+    fireEvent.change(screen.getByLabelText(/mot de passe/i), { target: { value: 'pw' } });
+    fireEvent.submit(screen.getByRole('button', { name: /se connecter/i }).closest('form')!);
+
+    await waitFor(() => {
+      expect(mockRouterPush).toHaveBeenCalledWith('/cra/2026/3');
+    });
+  });
+
+  it('redirects to /dashboard when no callbackUrl', async () => {
+    mockSignIn.mockResolvedValue({ ok: true, error: undefined });
+    mockSearchParamsGet.mockReturnValue(null);
+
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText(/adresse email/i), { target: { value: 'a@b.com' } });
+    fireEvent.change(screen.getByLabelText(/mot de passe/i), { target: { value: 'pw' } });
+    fireEvent.submit(screen.getByRole('button', { name: /se connecter/i }).closest('form')!);
+
+    await waitFor(() => {
+      expect(mockRouterPush).toHaveBeenCalledWith('/dashboard');
+    });
+  });
+
   it('does NOT call server-side signIn from ../../../auth', async () => {
-    mockSignIn.mockResolvedValue({ error: undefined });
+    mockSignIn.mockResolvedValue({ ok: true, error: undefined });
 
     const { signIn: serverSignIn } = await import('../../../auth');
 
