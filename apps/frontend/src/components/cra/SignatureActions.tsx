@@ -80,16 +80,17 @@ export function SignatureActions({
 
   return (
     <div className="space-y-3">
-      {/* EMPLOYEE + DRAFT → Soumettre */}
+      {/* EMPLOYEE + DRAFT → Guidance vers l'envoi de rapport */}
       {userRole === Role.EMPLOYEE && status === CraStatus.DRAFT && (
-        <button
-          type="button"
-          disabled={isLoading}
-          onClick={() => runAction(() => clientCraApi.submit(craMonthId))}
-          className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {isLoading ? 'Traitement\u2026' : 'Soumettre'}
-        </button>
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+          <p className="text-sm text-blue-800">
+            Votre CRA est en cours de saisie.{' '}
+            <a href="/reports" className="font-medium underline">
+              Envoyez un rapport mensuel
+            </a>{' '}
+            pour le soumettre automatiquement.
+          </p>
+        </div>
       )}
 
       {/* EMPLOYEE + SUBMITTED → Signer ou Retirer */}
