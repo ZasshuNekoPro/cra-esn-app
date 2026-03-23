@@ -1,35 +1,203 @@
-# Bugfixes + Dashboard Widget CRA
+# Fix + Feature : AXE 1 Auth · AXE 2 CRA Coloring · AXE 3 Auto-Submit
 
-**Date :** 2026-03-22
-**Branche principale :** `fix-and-feat/dashboard-login-cra`
-**Statut :** TERMINÉ — T1, T2, T3, T3b, T4, T6 implémentés et commités
+**Date :** 2026-03-23
+**Branche :** `fix-and-feat/cra-visual-submit-logic`
+**Statut :** PLANIFIÉ — en attente de validation
 
 ---
 
 ## Contexte
 
-Session de diagnostic complet. 3 bugs bloquants identifiés, 2 tests backend échoués,
-1 amélioration dashboard déjà partiellement présente, 1 fix seed.
+Session de diagnostic et planification sur 3 axes indépendants. Aucun code n'a été écrit.
+Ce document est le plan validable. Implémentation uniquement après accord explicite.
 
 ---
 
-## GROUPE A — Corrections (priorité haute)
+## AXE 1 — Bug : redirection vers /dashboard sans authentification
 
-### T1 — Fix login : import `signIn` client-side + seed credentials
-- **Type :** BUG
-- **Branche :** `fix/auth/login-client-signin`
-- **Cause racine :**
-  - `login/page.tsx` importe `signIn` depuis `'../../../auth'` (server-side NextAuth export)
-    au lieu de `'next-auth/react'` (client-side). En client component, cela peut déclencher
-    une redirection serveur ignorant `redirect: false`.
-  - `seed.ts` : emails ESN_ADMIN et CLIENT pointent vers vraies adresses dev
-    (`nicolas.mazaleyrat+esn@gmail.com`) alors que les credentials imprimés disent
-    `admin@esn-corp.fr`. Résultat : impossible de se connecter avec les credentials affichés.
-- **Fichiers :**
-  - `apps/frontend/src/app/(auth)/login/page.tsx`
-  - `apps/backend/prisma/seed.ts`
-- **Tests avant le code :** lint/typecheck sur l'import + cohérence emails seed
-- **Commit :** `fix(auth): use client-side signIn in LoginPage + fix seed credentials`
+### Diagnostic
+
+**Fichiers analysés :** `middleware.ts`, `login/page.tsx`, `auth.ts`, `app/page.tsx`
+
+**Root page.tsx** (`/`) fait un `redirect('/dashboard')` inconditionnel côté serveur —
+mais le middleware s'exécute AVANT le composant serveur, donc les utilisateurs non
+authentifiés sont bien redirigés vers `/login`. Ce n'est pas la cause.
+
+**Cause racine identifiée — `login/page.tsx` ligne 28 :**
+
+```tsx
+const result = await signIn('credentials', { ..., redirect: false });
+if (result?.error) {
+  setError('Identifiants incorrects...');
+} else {
+  router.push('/dashboard');  // ← exécuté si result?.error est falsy
+}
+```
+
+La vérification `result?.error` est trop faible. `SignInResponse` expose `ok: boolean` ET
+`error?: string`. Dans certains cas (backend mort → `authorize()` throws → NextAuth v5
+récupère l'exception mais peut retourner `{ ok: false, error: undefined }`), `result?.error`
+est `undefined` (falsy) → la branche `else` s'exécute → `router.push('/dashboard')` → le
+middleware bloque et redirige vers `/login` → l'utilisateur voit une redirection confuse
+(flash) sans jamais voir le message d'erreur.
+
+**Scénario reproductible :** backend mort au moment du clic "Se connecter".
+
+**Vérification secondaire :** le check `isAuthenticated = !!session` dans le middleware
+est correct (NextAuth v5 retourne `null` si token invalide/expiré). La logique de
+déconnexion via `signOutAction` est en place. Pas de bug dans le middleware lui-même.
+
+---
+
+## AXE 2 — Feature/Bug : absence de retour visuel coloré sur les cellules du calendrier CRA
+
+### Diagnostic
+
+**Fichiers analysés :** `DayCell.tsx`, `MonthGrid.tsx`, `CraMonthClient.tsx`, `EntryModal.tsx`
+
+**État actuel :** Les couleurs par type d'entrée EXISTENT déjà dans `DayCell.tsx` :
+```tsx
+const ENTRY_TYPE_COLORS: Record<CraEntryType, string> = {
+  [CraEntryType.WORK_ONSITE]: 'bg-blue-100',
+  [CraEntryType.WORK_REMOTE]: 'bg-cyan-100',
+  ...
+};
+```
+
+La logique d'application est aussi présente (lignes 59–65 de `DayCell.tsx`).
+
+**Bug réel trouvé — hover efface la couleur (ligne 83 `DayCell.tsx`) :**
+```tsx
+className={`... hover:bg-gray-50 ${bgColor} ...`}
+```
+En CSS Tailwind, `hover:bg-gray-50` s'applique au survol avec une spécificité plus élevée
+que `bg-blue-100` → la couleur de l'entrée disparaît au survol pour les cellules cliquables.
+L'utilisateur survole une cellule colorée → elle devient blanche/grise → illusion que la
+couleur n'est pas là.
+
+**Problème UX secondaire :** aucune légende n'explique ce que chaque couleur signifie.
+
+**Réponses aux questions :**
+
+- **Q1 — Légende nécessaire ?** OUI. L'utilisateur ne peut pas deviner que bg-blue-100 = présentiel
+  sans légende. À ajouter sous la grille dans `CraMonthClient.tsx`.
+
+- **Q2 — Hover à corriger ?** OUI. Remplacer `hover:bg-gray-50` par `hover:brightness-95`
+  (effet assombri subtil qui préserve la teinte de l'entrée).
+
+- **Q3 — Couleur visible en read-only ?** OUI, déjà implémenté dans la branche `div`
+  de `DayCell.tsx` (lignes 100–127) — les couleurs s'affichent sans hover. Pas de
+  correction nécessaire pour le mode lecture.
+
+**Mise à jour d'état OK :** `CraMonthClient.tsx` met à jour `entries` state immédiatement
+après save/delete → `MonthGrid` reçoit les nouvelles entrées → `DayCell` recalcule
+`bgColor`. La réactivité est correcte.
+
+---
+
+## AXE 3 — Changement structurel : déclencher SUBMITTED via l'envoi de rapport
+
+### Diagnostic
+
+**Fichiers analysés :** `cra-signature.service.ts`, `reports-send.service.ts`,
+`SignatureActions.tsx`, `MonthStatusTimeline.tsx`, `cra.controller.ts`
+**Grep SUBMITTED :** 22 occurrences dans backend (service, tests unit, e2e) +
+6 occurrences dans frontend (SignatureActions, MonthStatusTimeline, e2e Playwright)
+
+### Machine d'états actuelle
+```
+DRAFT ──[Soumettre]──→ SUBMITTED ──[Signer]──→ SIGNED_EMPLOYEE
+                              ↑                        │
+                         [Retirer]◄──────────────────────
+SUBMITTED ──[reject-esn]──→ DRAFT
+SIGNED_EMPLOYEE ──[sign-esn]──→ SIGNED_ESN ──[sign-client]──→ SIGNED_CLIENT ──→ LOCKED
+```
+
+### Proposition : déclencher SUBMITTED lors de l'envoi du rapport
+
+**Nouveau flow :**
+```
+DRAFT ──[Envoi rapport]──→ SUBMITTED (auto) ──[Signer]──→ SIGNED_EMPLOYEE
+                                ↑
+                           [Retirer]◄─── toujours disponible
+```
+
+Le bouton "Soumettre" dans `SignatureActions` est supprimé pour l'état DRAFT.
+Le `POST /cra/months/:id/submit` reste fonctionnel (utile pour les tests et potentiellement
+d'autres intégrations futures, mais n'est plus exposé dans l'UI).
+
+### Réponses aux questions (ultrathink)
+
+**Q4 — Fusionner SUBMITTED dans SIGNED_EMPLOYEE (sauter l'état intermédiaire) ?**
+→ **NON recommandé.** SUBMITTED est une étape de préparation distincte de la signature
+formelle. Le retrait (SUBMITTED → DRAFT) est précieux : l'employé peut annuler avant de
+signer officiellement. Supprimer cet état forcerait à gérer la rétractation au niveau
+SIGNED_EMPLOYEE, ce qui est plus complexe et plus coûteux à tester.
+
+**Q5 — Que devient "Retirer la soumission" ?**
+→ **Inchangé.** Le bouton "Retirer la soumission" reste disponible en état SUBMITTED.
+Si l'employé retire, le CRA repasse en DRAFT. Le prochain envoi de rapport re-déclenche
+automatiquement la transition DRAFT → SUBMITTED. Cycle logique et cohérent.
+
+**Q6 — Appel atomique de `submit()` dans `sendMonthlyReport()` ?**
+→ **Injection directe Prisma, pas via CraSignatureService.** Raisons :
+  1. Évite une dépendance circulaire potentielle entre `ReportsSendService` et
+     `CraSignatureService` (CraSignatureService utilise `CraPdfService` — pas de risque
+     direct aujourd'hui, mais c'est fragile).
+  2. La logique d'auto-submit dans le contexte du rapport est plus légère : pas besoin
+     de l'audit log CRA_SUBMITTED ni de la notification ESN "Nouveau CRA à valider"
+     (le rapport envoyé joue ce rôle).
+  3. Garde-fou : auto-submit uniquement si `entries.length > 0` (CRA non vide).
+     Un rapport peut être envoyé avec un CRA vide — dans ce cas, le statut reste DRAFT.
+
+**Q7 — Migration des CRA months existants ?**
+→ **Aucune migration Prisma requise.** L'auto-submit ne concerne que la transition
+DRAFT → SUBMITTED déclenchée lors d'un envoi. Les CRA en SUBMITTED, SIGNED_*, LOCKED
+ne sont pas touchés. Les CRA en DRAFT restent en DRAFT jusqu'au prochain envoi de rapport.
+
+### Impact sur les tests
+
+| Fichier | Impact |
+|---------|--------|
+| `reports-send.service.spec.ts` | Ajouter un cas : CRA en DRAFT avec entrées → auto-submit attendu |
+| `cra-workflow.e2e.spec.ts` | Le endpoint `submit` reste testé directement — inchangé |
+| `scenario-02-signature-workflow.spec.ts` | Le workflow SUBMITTED → bouton Signer → inchangé |
+| `SignatureActions.tsx` tests | Supprimer le test du bouton "Soumettre" en état DRAFT |
+
+### Impact sur les fichiers
+
+**Backend :**
+- `apps/backend/src/reports/reports-send.service.ts` — ajouter lookup CraMonth + auto-submit
+- `apps/backend/src/reports/reports-send.service.spec.ts` — ajouter cas DRAFT + auto-submit
+
+**Frontend :**
+- `apps/frontend/src/components/cra/SignatureActions.tsx` — remplacer le bloc DRAFT+EMPLOYEE
+  (bouton "Soumettre") par un message informatif avec lien vers `/reports`
+
+**Shared types / Prisma :** aucun changement.
+
+---
+
+## GROUPE T — Tâches
+
+### T1 — Fix login : résistance aux réponses ambiguës de signIn()
+- **Type :** BUG (AXE 1)
+- **Fichier :** `apps/frontend/src/components/cra/` → **NON** — `apps/frontend/src/app/(auth)/login/page.tsx`
+- **Changement :** Remplacer `if (result?.error)` par `if (!result?.ok)`
+  ```tsx
+  // Avant
+  if (result?.error) { setError(...); } else { router.push('/dashboard'); }
+
+  // Après
+  if (!result?.ok) { setError(...); } else { router.push('/dashboard'); }
+  ```
+- **Bonus (même commit) :** utiliser `callbackUrl` depuis `useSearchParams()` si présent
+  ```tsx
+  const params = useSearchParams();
+  const callbackUrl = params.get('callbackUrl') ?? '/dashboard';
+  router.push(callbackUrl);
+  ```
+- **Tests :** typecheck + `pnpm test` (frontend)
 - **Dépend de :** rien
 - [x] Implémenté
 - [x] Tests passent
@@ -37,18 +205,13 @@ Session de diagnostic complet. 3 bugs bloquants identifiés, 2 tests backend éc
 
 ---
 
-### T2 — Fix settings 404 : créer la page Paramètres
-- **Type :** BUG
-- **Branche :** `fix/settings/create-settings-page`
-- **Cause racine :** `(dashboard)/settings/` ne contient que `.gitkeep`. Aucun `page.tsx`.
-  Le sidebar pointe `/settings` → 404.
-- **Fichiers :**
-  - `apps/frontend/src/app/(dashboard)/settings/page.tsx` (à créer)
-- **Contenu minimal :** affichage profil (firstName, lastName, email, phone) en lecture.
-  Boutons de modification en stub (les endpoints `PATCH /users/profile` et
-  `POST /users/change-password` existent backend).
-- **Tests avant le code :** typecheck + accès `/settings` retourne 200
-- **Commit :** `fix(settings): create employee settings page (was 404)`
+### T2 — Fix DayCell hover : préserver la couleur de l'entrée au survol
+- **Type :** BUG UX (AXE 2)
+- **Fichier :** `apps/frontend/src/components/cra/DayCell.tsx`
+- **Changement :** Dans la branche `isClickable` (bouton), remplacer
+  `hover:bg-gray-50` par `hover:brightness-95` dans la className du bouton
+  (Tailwind `brightness` utilities — disponible depuis Tailwind v3.0)
+- **Tests :** DayCell.spec.tsx — vérifier que la classe correcte est présente
 - **Dépend de :** rien
 - [x] Implémenté
 - [x] Tests passent
@@ -56,109 +219,97 @@ Session de diagnostic complet. 3 bugs bloquants identifiés, 2 tests backend éc
 
 ---
 
-### T3 — Fix CRA Runtime Error : apiClient → clientApiClient dans composants client
-- **Type :** BUG
-- **Branche :** `fix/cra/client-side-api`
-- **Cause racine :**
-  - `CraMonthClient.tsx` (`'use client'`) et `SignatureActions.tsx` (`'use client'`)
-    importent `craApi` → `apiClient` → `auth()` → `headers()` (server-only).
-  - Erreur exacte : `Error: \`headers\` was called outside a request scope`
-    (même pattern que `SentReportsTable` corrigé en session précédente).
-  - `clientApiClient` dans `clientFetch.ts` n'expose que `post` — manque `get`, `patch`, `delete`.
+### T3 — Feature : légende des couleurs sous la grille CRA
+- **Type :** FEATURE UX (AXE 2)
 - **Fichiers :**
-  - `apps/frontend/src/lib/api/clientFetch.ts` (ajouter méthodes `get`, `patch`, `delete`)
-  - `apps/frontend/src/lib/api/clientCra.ts` (nouveau — mutations CRA via clientApiFetch)
-  - `apps/frontend/src/components/cra/CraMonthClient.tsx` (→ clientCraApi)
-  - `apps/frontend/src/components/cra/SignatureActions.tsx` (→ clientCraApi)
-- **Tests avant le code :**
-  - `CraMonthClient` n'importe pas `apiClient` ou `auth` directement
-  - `SignatureActions` idem
-- **Commit :** `fix(cra): use client-safe API in CraMonthClient and SignatureActions`
-- **Dépend de :** rien
+  - `apps/frontend/src/components/cra/CraMonthClient.tsx` — ajouter `<EntryTypeLegend />`
+  - `apps/frontend/src/components/cra/EntryTypeLegend.tsx` (nouveau composant)
+- **Contenu de la légende :** grille compacte de pastilles colorées + labels courts
+  uniquement pour les types "travail" et "congé" courants (pas HOLIDAY, OVERTIME, ASTREINTE
+  sauf si présents dans les entrées du mois — option simplifiée : afficher tous les types
+  courants statiquement)
+- **Dépend de :** T2 (cohérence des couleurs)
 - [x] Implémenté
 - [x] Tests passent
 - [x] Commité
 
 ---
 
-### T3b — Fix tests backend échoués (dans branche T3 ou séparée)
-- **Type :** BUG (régression de corrections précédentes)
-- **Tests échoués :**
-  1. `test/unit/storage/local.storage.spec.ts` — attend `/storage/` mais reçoit `/api/storage/`
-     (ma correction d'ajout du préfixe `/api` était juste, le test est obsolète)
-  2. `test/unit/notifications/notifications.service.spec.ts` — `NotificationsService`
-     a maintenant 2 deps (`PrismaService` + `MailerService`) mais le mock de test n'injecte
-     pas `MailerService` → `this.prisma` undefined au runtime du test
+### T4 — Feature backend : auto-submit DRAFT → SUBMITTED lors de l'envoi de rapport
+- **Type :** FEATURE structurelle (AXE 3)
 - **Fichiers :**
-  - `apps/backend/test/unit/storage/local.storage.spec.ts`
-  - `apps/backend/test/unit/notifications/notifications.service.spec.ts`
-- **Commit :** `fix(tests): update local.storage URL assertion + mock MailerService`
+  - `apps/backend/src/reports/reports-send.service.ts`
+  - `apps/backend/src/reports/reports-send.service.spec.ts`
+- **Logique à ajouter dans `sendMonthlyReport()` — avant l'étape 4 (buildMonthlyReportData) :**
+  ```typescript
+  // Auto-submit si CRA en DRAFT avec des entrées
+  const craMonthRaw = await this.prisma.craMonth.findFirst({
+    where: { employeeId, year, month },
+    include: { entries: { select: { id: true } } },
+  });
+  if (craMonthRaw?.status === 'DRAFT' && craMonthRaw.entries.length > 0) {
+    await this.prisma.craMonth.update({
+      where: { id: craMonthRaw.id },
+      data: { status: 'SUBMITTED', submittedAt: new Date() },
+    });
+    await this.prisma.auditLog.create({
+      data: {
+        action: 'CRA_SUBMITTED',
+        resource: `cra_month:${craMonthRaw.id}`,
+        initiatorId: employeeId,
+      },
+    });
+  }
+  ```
+- **Tests à ajouter :** cas CRA DRAFT + entrées → status SUBMITTED après send ;
+  cas CRA DRAFT sans entrées → status reste DRAFT ; cas CRA déjà SUBMITTED → pas de double transition
+- **Dépend de :** rien (pas de dépendance sur T5)
 - [x] Implémenté
 - [x] Tests passent
 - [x] Commité
 
 ---
 
-## GROUPE B — Améliorations
-
-### T4 — Dashboard : CTA "Créer mon CRA" + amélioration MonthStatusTimeline
-- **Type :** FEATURE
-- **Branche :** `feat/dashboard/cra-widget-refinement`
-- **Contexte :** Le widget dashboard (WorkingDaysProgress + LeaveBalanceSummary +
-  MonthStatusTimeline) existe déjà. Ce qui manque :
-  - Quand `craData === null` : message statique sans CTA → ajouter lien vers `/cra`
-  - `MonthStatusTimeline` en statut `DRAFT` n'indique pas "CRA non encore soumis"
-- **Fichiers :**
-  - `apps/frontend/src/app/(dashboard)/dashboard/page.tsx`
-  - `apps/frontend/src/components/cra/MonthStatusTimeline.tsx`
-- **Commit :** `feat(dashboard): add CTA and improve DRAFT state in CRA status widget`
-- **Dépend de :** T3
+### T5 — Feature frontend : remplacer bouton "Soumettre" par guidance dans SignatureActions
+- **Type :** FEATURE UX (AXE 3)
+- **Fichier :** `apps/frontend/src/components/cra/SignatureActions.tsx`
+- **Changement :** Dans le bloc `EMPLOYEE + DRAFT`, remplacer le bouton "Soumettre" par :
+  ```tsx
+  {userRole === Role.EMPLOYEE && status === CraStatus.DRAFT && (
+    <div className="rounded-md border border-blue-200 bg-blue-50 px-4 py-3">
+      <p className="text-sm text-blue-800">
+        Votre CRA est en cours de saisie.{' '}
+        <a href="/reports" className="font-medium underline">
+          Envoyez un rapport mensuel
+        </a>{' '}
+        pour le soumettre automatiquement.
+      </p>
+    </div>
+  )}
+  ```
+- **Dépend de :** T4 (le backend doit auto-soumettre avant de modifier l'UI)
 - [x] Implémenté
 - [x] Tests passent
 - [x] Commité
 
 ---
 
-### T5 — (Couvert par T1) Seed : credentials ESN_ADMIN et CLIENT cohérents
-Inclus dans T1 — le fix seed corrige à la fois le bug login et les credentials de test.
+## Risques et points d'attention
+
+| Risque | Mitigation |
+|--------|-----------|
+| T4 : `status: 'DRAFT'` en string raw (pas l'enum Prisma) | Utiliser `PrismaCraStatus.DRAFT` depuis `@prisma/client` |
+| T4 : double auto-submit si report envoyé deux fois pour le même mois | Guard `status === DRAFT` — idempotent, deuxième envoi ne touche pas le status |
+| T5 : l'utilisateur ne sait plus comment soumettre son CRA si il n'envoie jamais de rapport | Wording du message guidant vers /reports doit être très clair |
+| T2 : `hover:brightness-95` nécessite Tailwind v3 — vérifier que `brightness` est dans la safelist si nécessaire | Non nécessaire en JIT (détecté automatiquement dans le template) |
+| T3 : légende = nouveau fichier — vérifier qu'il n'existe pas déjà une abstraction similaire | Grep effectué — aucun composant `Legend` existant dans le codebase |
 
 ---
 
-### T6 — Fix UX : message d'erreur réseau dans SendReportModal
-- **Type :** BUG UX (message brut navigateur affiché à l'utilisateur)
-- **Cause racine :**
-  - Le backend (NestJS) était mort au moment du clic sur "Envoyer"
-    (tué par SIGTERM exit code 143 lors du cycle de relance Turborepo `pnpm dev`).
-  - `fetch()` lève un `TypeError` (ECONNREFUSED) qui remontait tel quel dans la modal :
-    `"NetworkError when attempting to fetch resource"` — illisible pour l'utilisateur.
-  - **L'endpoint `/api/reports/monthly/:year/:month/send` fonctionne correctement**
-    (HTTP 201, CORS OK, Puppeteer OK) quand le backend est vivant.
-- **Fix :** dans `SendReportModal.tsx`, distinguer `error instanceof TypeError`
-  (erreur réseau) de `ApiClientError` (erreur HTTP backend) et afficher
-  `"Serveur injoignable — veuillez réessayer dans quelques instants."`.
-- **Fichier :** `apps/frontend/src/components/reports/SendReportModal.tsx`
-- **Process management :** redémarrer le backend avec `node --enable-source-maps dist/main &`
-  depuis `apps/backend/` si le backend est mort après un crash Turborepo.
-- [x] Implémenté
-- [x] Commité
+## Ordre d'exécution recommandé
 
----
+T1 (indépendant) → T2 (indépendant) → T3 (après T2) → T4 (indépendant) → T5 (après T4)
 
-## Questions résolues
-
-| Q | Question | Recommandation |
-|---|---|---|
-| Q1 | Widget mois en cours uniquement ou 3 derniers ? | Mois en cours uniquement (déjà implémenté, bon choix) |
-| Q2 | Rejection comment affiché ? | Oui, déjà géré dans MonthStatusTimeline |
-| Q3 | Endpoint dédié /cra/dashboard-summary ? | Non nécessaire, endpoints existants suffisent |
-| Q4 | Seed persistant ou endpoint dev-seed éphémère ? | Seed persistant (pnpm db:seed) — déjà en place |
-| Q5 | Emails réels ou fictifs dans le seed ? | Fictifs (@esn.local / @client.local) — évite dépendance SMTP |
-
----
-
-## Risques identifiés
-
-- **T1 seed** : après fix, re-seeder obligatoire (`pnpm db:seed`) pour mettre à jour la DB
-- **T3** : `clientCraApi` doit rester en sync avec `craApi` — risque de dérive de types
-  → mitiger en réutilisant exactement les mêmes types `@esn/shared-types`
-- **Aucune migration Prisma** nécessaire pour T1-T5
+T1 et T2 peuvent être commités dans la même branche feature/fix séparée ou dans
+`fix-and-feat/cra-visual-submit-logic`. T4 et T5 constituent le changement structurel
+principal de la branche.
