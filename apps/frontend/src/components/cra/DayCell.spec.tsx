@@ -87,6 +87,24 @@ describe('DayCell', () => {
     expect(div.className).toContain('bg-yellow-100');
   });
 
+  it('should use hover:brightness-95 (not hover:bg-gray-50) to preserve entry color on hover', () => {
+    const date = new Date(2026, 2, 10);
+    const entry = mockEntry({ entryType: CraEntryType.WORK_ONSITE });
+    const { container } = render(
+      <DayCell
+        date={date}
+        entry={entry}
+        isWeekend={false}
+        isHoliday={false}
+        isDisabled={false}
+        onClick={vi.fn()}
+      />,
+    );
+    const button = container.firstChild as HTMLElement;
+    expect(button.className).not.toContain('hover:bg-gray-50');
+    expect(button.className).toContain('hover:brightness-95');
+  });
+
   it('should render half-day indicator when dayFraction=0.5', () => {
     const date = new Date(2026, 2, 10);
     const entry = mockEntry({ dayFraction: 0.5, entryType: CraEntryType.WORK_REMOTE });
