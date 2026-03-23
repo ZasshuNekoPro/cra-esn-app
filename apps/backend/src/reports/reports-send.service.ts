@@ -3,6 +3,7 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CraStatus as PrismaCraStatus } from '@prisma/client';
 import { AuditAction } from '@esn/shared-types';
 import type { ReportRecipient, SendReportResponse } from '@esn/shared-types';
 import { ConfigService } from '@nestjs/config';
@@ -130,6 +131,26 @@ export class ReportsSendService {
       throw new BadRequestException(
         'Tous les destinataires ont été ignorés car la mission n\'a ni ESN admin ni client associé.',
       );
+    }
+
+    // ── 3b. Auto-submit CRA if DRAFT with entries ────────────────────────
+    const craMonthRaw = await this.prisma.craMonth.findFirst({
+      where: { employeeId, year, month },
+      include: { entries: { select: { id: true } } },
+    }) as { id: string; status: string; entries: { id: string }[] } | null;
+
+    if (craMonthRaw?.status === PrismaCraStatus.DRAFT && craMonthRaw.entries.length > 0) {
+      await this.prisma.craMonth.update({
+        where: { id: craMonthRaw.id },
+        data: { status: PrismaCraStatus.SUBMITTED, submittedAt: new Date() },
+      });
+      await this.prisma.auditLog.create({
+        data: {
+          action: AuditAction.CRA_SUBMITTED,
+          resource: `cra_month:${craMonthRaw.id}`,
+          initiatorId: employeeId,
+        },
+      });
     }
 
     // ── 4. Build MonthlyReportData ───────────────────────────────────────

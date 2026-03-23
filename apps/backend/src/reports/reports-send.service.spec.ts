@@ -9,7 +9,7 @@ import { ReportsSendService } from './reports-send.service';
 const mockPrisma = {
   user: { findUnique: vi.fn() },
   mission: { findFirst: vi.fn() },
-  craMonth: { findFirst: vi.fn() },
+  craMonth: { findFirst: vi.fn(), update: vi.fn() },
   project: { findMany: vi.fn() },
   projectEntry: { findMany: vi.fn() },
   weatherEntry: { findMany: vi.fn() },
@@ -304,5 +304,59 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
         data: { status: 'ARCHIVED' },
       }),
     );
+  });
+
+  // ── T4 — auto-submit CRA when DRAFT + entries ─────────────────────────────
+
+  it('T4: CRA in DRAFT with entries → craMonth.update called with status SUBMITTED', async () => {
+    const draftMonth = {
+      id: 'cra-draft-1',
+      year: 2026,
+      month: 3,
+      status: 'DRAFT',
+      entries: [
+        {
+          id: 'e1',
+          date: new Date('2026-03-02'),
+          entryType: 'WORK_ONSITE',
+          dayFraction: { toNumber: () => 1 },
+          comment: null,
+          projectEntries: [],
+        },
+      ],
+    };
+    mockPrisma.craMonth.findFirst.mockResolvedValue(draftMonth);
+    mockPrisma.craMonth.update.mockResolvedValue({ ...draftMonth, status: 'SUBMITTED' });
+
+    await service.sendMonthlyReport(makeDto({ recipients: ['ESN'] }), EMPLOYEE_ID);
+
+    expect(mockPrisma.craMonth.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'cra-draft-1' },
+        data: expect.objectContaining({ status: 'SUBMITTED' }),
+      }),
+    );
+  });
+
+  it('T4: CRA in DRAFT with no entries → craMonth.update NOT called', async () => {
+    const draftEmptyMonth = {
+      id: 'cra-empty-1',
+      year: 2026,
+      month: 3,
+      status: 'DRAFT',
+      entries: [],
+    };
+    mockPrisma.craMonth.findFirst.mockResolvedValue(draftEmptyMonth);
+
+    await service.sendMonthlyReport(makeDto({ recipients: ['ESN'] }), EMPLOYEE_ID);
+
+    expect(mockPrisma.craMonth.update).not.toHaveBeenCalled();
+  });
+
+  it('T4: CRA already in SUBMITTED → craMonth.update NOT called (no double transition)', async () => {
+    // makeCraMonth() returns status: 'SUBMITTED' — default setup
+    await service.sendMonthlyReport(makeDto({ recipients: ['ESN'] }), EMPLOYEE_ID);
+
+    expect(mockPrisma.craMonth.update).not.toHaveBeenCalled();
   });
 });
