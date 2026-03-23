@@ -52,6 +52,20 @@ export class CraController {
   }
 
   /**
+   * GET /cra/months/:id
+   * Returns a CraMonth with its entries by ID.
+   * MUST be declared before months/:year/:month to avoid Express ambiguity.
+   */
+  @Get('months/:id')
+  @Roles(Role.EMPLOYEE)
+  async getMonth(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ): Promise<object> {
+    return this.craService.getMonth(id, user.sub);
+  }
+
+  /**
    * GET /cra/months/:year/:month
    * Get or create a DRAFT CraMonth for the given year/month.
    */

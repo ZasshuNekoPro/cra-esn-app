@@ -159,6 +159,12 @@ export class CraService {
     return created as unknown as CraMonthWithMissionAndEntries;
   }
 
+  // ── getMonth ───────────────────────────────────────────────────────────────
+
+  async getMonth(craMonthId: string, employeeId: string): Promise<CraMonthWithMissionAndEntries> {
+    return this.findCraMonthForEmployee(craMonthId, employeeId);
+  }
+
   // ── createEntry ────────────────────────────────────────────────────────────
 
   async createEntry(
