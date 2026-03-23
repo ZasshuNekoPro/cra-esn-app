@@ -9,6 +9,7 @@ import { MonthGrid } from './MonthGrid';
 import { EntryModal } from './EntryModal';
 import { SignatureActions } from './SignatureActions';
 import { CraStatusBadge } from './CraStatusBadge';
+import { EntryTypeLegend } from './EntryTypeLegend';
 import { clientCraApi } from '../../lib/api/clientCra';
 
 interface CraMonthClientProps {
@@ -118,6 +119,9 @@ export function CraMonthClient({
         isReadOnly={isReadOnly}
         onDayClick={handleDayClick}
       />
+
+      {/* Color legend */}
+      <EntryTypeLegend />
 
       {/* Entry modal */}
       <EntryModal
