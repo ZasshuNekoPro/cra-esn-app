@@ -14,6 +14,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { ConsentModule } from './consent/consent.module';
 import { ReportsModule } from './reports/reports.module';
 import { RagModule } from './rag/rag.module';
+import { HealthModule } from './health/health.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -34,6 +35,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     ConsentModule,
     ReportsModule,
     RagModule,
+    HealthModule,
   ],
   providers: [
     // Global exception filter
