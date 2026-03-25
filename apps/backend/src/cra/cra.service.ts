@@ -569,26 +569,24 @@ export class CraService {
     employeeId: string,
     year: number,
   ): Promise<LeaveBalanceSummary[]> {
-    const result: LeaveBalanceSummary[] = [];
+    const balances = await this.prisma.leaveBalance.findMany({
+      where: {
+        userId: employeeId,
+        year,
+        leaveType: { in: [LeaveType.PAID_LEAVE, LeaveType.RTT] },
+      },
+    });
 
-    for (const leaveType of [LeaveType.PAID_LEAVE, LeaveType.RTT]) {
-      const balance = await this.prisma.leaveBalance.findUnique({
-        where: { userId_year_leaveType: { userId: employeeId, year, leaveType } },
-      });
-
-      if (balance !== null) {
-        const totalDays = toNumber(balance.totalDays);
-        const usedDays = toNumber(balance.usedDays);
-        result.push({
-          leaveType,
-          totalDays,
-          usedDays,
-          remainingDays: totalDays - usedDays,
-        });
-      }
-    }
-
-    return result;
+    return balances.map((balance) => {
+      const totalDays = toNumber(balance.totalDays);
+      const usedDays = toNumber(balance.usedDays);
+      return {
+        leaveType: balance.leaveType as LeaveType,
+        totalDays,
+        usedDays,
+        remainingDays: totalDays - usedDays,
+      };
+    });
   }
 }
 

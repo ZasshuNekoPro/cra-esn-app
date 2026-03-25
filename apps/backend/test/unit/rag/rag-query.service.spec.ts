@@ -5,7 +5,7 @@ import type { PrismaService } from '../../../src/database/prisma.service';
 const employeeId = 'emp-uuid-1';
 
 const mockEmbedder = {
-  embedText: vi.fn().mockResolvedValue(Array(1536).fill(0.1)),
+  embedText: vi.fn().mockResolvedValue(Array<number>(1536).fill(0.1)),
 };
 
 const mockAnthropic = {
@@ -52,7 +52,7 @@ describe('RagQueryService', () => {
     it('should query pgvector and return top-K chunks for employee', async () => {
       vi.mocked(mockPrisma.$queryRaw).mockResolvedValue(mockChunks);
 
-      const vector = Array(1536).fill(0.1);
+      const vector: number[] = Array<number>(1536).fill(0.1);
       const result = await service.retrieve(employeeId, vector);
 
       expect(mockPrisma.$queryRaw).toHaveBeenCalledOnce();
@@ -64,7 +64,7 @@ describe('RagQueryService', () => {
     it('should return empty array when no similar chunks found', async () => {
       vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([]);
 
-      const result = await service.retrieve(employeeId, Array(1536).fill(0));
+      const result = await service.retrieve(employeeId, Array<number>(1536).fill(0));
 
       expect(result).toHaveLength(0);
     });
@@ -72,7 +72,7 @@ describe('RagQueryService', () => {
     it('should apply source type filter when provided', async () => {
       vi.mocked(mockPrisma.$queryRaw).mockResolvedValue([mockChunks[0]]);
 
-      const result = await service.retrieve(employeeId, Array(1536).fill(0.1), {
+      const result = await service.retrieve(employeeId, Array<number>(1536).fill(0.1), {
         sourceType: ['cra_entry'],
       });
 

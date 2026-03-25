@@ -31,22 +31,39 @@
 - [x] Tests e2e workflow complet (22 scénarios supertest)
 - [x] PR Sprint 3 → main (PR #3 ouverte ✅)
 
-## Sprint 4 — Documents & Signature
-- [ ] Upload S3 avec MinIO (backend)
-- [ ] Interface upload / partage (frontend)
-- [ ] Génération PDF CRA (packages/pdf-generator)
-- [ ] Workflow signature complet (backend + frontend)
-- [ ] Annexe projets dans le CRA PDF
-- [ ] Tests e2e signature tripartite
-- [ ] PR Sprint 4 → main
+## Sprint 4 — Documents & Signature ✅
+- [x] Upload S3 avec MinIO (backend)
+- [x] Interface upload / partage (frontend)
+- [x] Génération PDF CRA (packages/pdf-generator)
+- [x] Workflow signature complet (backend + frontend)
+- [x] Annexe projets dans le CRA PDF
+- [x] Tests e2e signature tripartite
+- [x] PR Sprint 4 → main (PR #4 mergé ✅)
 
-## Sprint 5 — Reports & Finitions
-- [ ] Bilan mensuel automatique
-- [ ] Dashboard partageable (token temporaire)
-- [ ] Présentation projets PDF + lien live
-- [ ] Tests e2e complets
-- [ ] Audit sécurité (/review-security)
-- [ ] PR Sprint 5 → main
+## Sprint 5 — Reports & Finitions ✅
+- [x] Bilan mensuel automatique
+- [x] Dashboard partageable (token temporaire)
+- [x] Présentation projets PDF + lien live
+- [x] Tests e2e complets
+- [x] Audit sécurité (/review-security)
+- [x] PR Sprint 5 → main (PR #5 mergé ✅)
+
+## Sprint 6 — RAG Assistant ✅
+- [x] Indexation pgvector (LangChain.js + OpenAI embeddings)
+- [x] Query streaming SSE via Claude API
+- [x] Chat frontend avec suggestions proactives
+- [x] Isolation stricte par employeeId
+- [x] PR Sprint 6 → main (PR #6 mergé ✅)
+
+## v1.0 — Release ✅
+- [x] 6 scénarios e2e Playwright (intégration complète)
+- [x] N+1 query fixes (leaveBalance, scheduler météo)
+- [x] Loading skeletons (9 routes, Suspense boundaries)
+- [x] Audit de sécurité complet (docs/architecture/security-audit.md)
+- [x] Documentation architecture : data-model, api-overview, security-model
+- [x] README v1.0 rewrite (quickstart, .env, architecture)
+- [x] Tag v1.0.0 + GitHub Release
+- [x] Push main ✅ — **v1.0.0 Released 🎉**
 
 ## Phase 2 — Post-MVP
 

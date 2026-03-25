@@ -1,42 +1,44 @@
-# P14 — Intégration finale et release v1.0
+# v1.0.0 Released
 
-**Branche :** `main` (après merge PR sécurité)
-**Date de création :** 2026-03-18
-**Statut :** À DÉMARRER
+**Date :** 2026-03-18
+**Statut :** TERMINÉ ✅
 
 ---
 
-## Contexte
+## Ce qui a été livré
 
-L'audit de sécurité v1.0 est terminé (rapport dans `docs/architecture/security-audit.md`).
-Le problème critique C1 (isolation données weather) a été corrigé et mergé.
-Les 7 avertissements non bloquants ont été documentés pour le suivi post-release.
+La version 1.0.0 de l'ESN CRA App est publiée sur GitHub :
+https://github.com/ZasshuNekoPro/cra-esn-app/releases/tag/v1.0.0
 
-## Objectif
+### Sprints mergés
 
-Préparer la release v1.0 du MVP ESN CRA App :
-- Tests e2e complets (parcours salarié, ESN admin, client)
-- Build de production frontend + backend
-- Documentation de déploiement
-- Validation finale des variables d'environnement
-- Tag de release `v1.0.0`
+| PR | Sprint | Contenu |
+|----|--------|---------|
+| #1 | Sprint 1 | Auth, Prisma, scaffolding |
+| #2 | Sprint 2 | Module CRA |
+| #3 | Sprint 3 | Module Projets |
+| #4 | Sprint 4 | Documents, Consentement, CRA-PDF |
+| #5 | Sprint 5 | Reports, Dashboard partageable, Notifications |
+| #6 | Sprint 6 | RAG — indexation, streaming, chat, suggestions |
 
-## Tâches
+### Livraisons v1.0
 
-1. **Tests e2e** : lancer `pnpm test:e2e` et corriger les éventuels échecs
-2. **Build prod** : `pnpm build` — vérifier absence d'erreurs
-3. **Checklist déploiement** : `.env.example` complet, migrations Prisma à jour
-4. **Tag** : `git tag v1.0.0` + release GitHub
-5. **Avertissements audit** : ouvrir des issues GitHub pour W2-W7 (suivi post-release)
+- 6 scénarios e2e Playwright (auth, CRA, projets, consentement, RAG, partage public)
+- N+1 query fixes (leaveBalance → findMany, scheduler → $queryRaw DISTINCT ON)
+- 9 loading skeletons (Suspense boundaries App Router)
+- Audit de sécurité complet (8 vulnérabilités corrigées)
+- Documentation architecture complète (data-model, api-overview, security-model)
+- README v1.0 rewrite
 
-## Historique des tâches terminées
+### Métriques qualité
 
-| Tâche | Statut | PR |
-|-------|--------|-----|
-| P1 Auth + Scaffolding | ✅ | #1 |
-| P2 Module CRA | ✅ | #2 |
-| P3 Module Projets | ✅ | #3 |
-| P4 Documents, Consentement, CRA-PDF | ✅ | #4 |
-| P5 Reports, Dashboard, Notifications | ✅ | #5 |
-| P6 RAG — indexation, streaming, chat | ✅ | #6 |
-| P13 Audit sécurité v1.0 | ✅ | #7 (en cours) |
+- 291 tests unitaires Vitest — 0 échec
+- TypeScript strict — 0 erreur typecheck
+- 0 `any` non justifié
+
+---
+
+## Prochaine étape
+
+Phase 2 — Post-MVP : voir section "Phase 2" dans BACKLOG.md.
+Priorité : multi-missions simultanées (8 chantiers listés).

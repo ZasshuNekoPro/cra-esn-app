@@ -394,19 +394,23 @@ export class ReportsService {
   }
 
   private async buildLeaveBalances(employeeId: string, year: number) {
-    const types = [LeaveType.PAID_LEAVE, LeaveType.RTT] as const;
-    const result: import('@esn/shared-types').LeaveBalanceSummary[] = [];
-    for (const leaveType of types) {
-      const bal = await this.prisma.leaveBalance.findUnique({
-        where: { userId_year_leaveType: { userId: employeeId, year, leaveType } },
-      });
-      if (bal) {
-        const total = toNumber(bal.totalDays);
-        const used = toNumber(bal.usedDays);
-        result.push({ leaveType, totalDays: total, usedDays: used, remainingDays: total - used });
-      }
-    }
-    return result;
+    const balances = await this.prisma.leaveBalance.findMany({
+      where: {
+        userId: employeeId,
+        year,
+        leaveType: { in: [LeaveType.PAID_LEAVE, LeaveType.RTT] },
+      },
+    });
+    return balances.map((bal) => {
+      const total = toNumber(bal.totalDays);
+      const used = toNumber(bal.usedDays);
+      return {
+        leaveType: bal.leaveType as import('@esn/shared-types').LeaveType,
+        totalDays: total,
+        usedDays: used,
+        remainingDays: total - used,
+      };
+    });
   }
 
   private async buildProjectsSummary(

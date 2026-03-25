@@ -77,7 +77,7 @@ const mockPrisma = {
   publicHoliday: { findMany: vi.fn() },
   projectEntry: { findMany: vi.fn() },
   project: { findMany: vi.fn(), findFirst: vi.fn() },
-  leaveBalance: { findUnique: vi.fn() },
+  leaveBalance: { findUnique: vi.fn(), findMany: vi.fn() },
   dashboardShare: {
     create: vi.fn(),
     findFirst: vi.fn(),
@@ -100,6 +100,7 @@ describe('ReportsService', () => {
     mockPrisma.mission.findFirst.mockResolvedValue(mockMission);
     mockPrisma.publicHoliday.findMany.mockResolvedValue([]);
     mockPrisma.leaveBalance.findUnique.mockResolvedValue(null);
+    mockPrisma.leaveBalance.findMany.mockResolvedValue([]);
     mockPrisma.projectEntry.findMany.mockResolvedValue([]);
     mockPrisma.project.findMany.mockResolvedValue([]);
     mockPrisma.auditLog.create.mockResolvedValue({});
