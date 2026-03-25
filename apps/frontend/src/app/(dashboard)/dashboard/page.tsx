@@ -1,6 +1,6 @@
+import Link from 'next/link';
 import { auth } from '../../../auth';
 import { craApi } from '../../../lib/api/cra';
-import { ApiClientError } from '../../../lib/api/client';
 import { WorkingDaysProgress } from '../../../components/cra/WorkingDaysProgress';
 import { LeaveBalanceSummary } from '../../../components/cra/LeaveBalanceSummary';
 import { MonthStatusTimeline } from '../../../components/cra/MonthStatusTimeline';
@@ -17,12 +17,8 @@ async function getCurrentMonthCraData(): Promise<{
     const craMonth = await craApi.getOrCreateMonth(year, month);
     const summary = await craApi.getSummary(craMonth.id);
     return { month: craMonth, summary };
-  } catch (err) {
-    if (err instanceof ApiClientError) {
-      // Not critical — dashboard can render without CRA data
-      return null;
-    }
-    throw err;
+  } catch {
+    return null;
   }
 }
 
@@ -97,8 +93,14 @@ export default async function DashboardPage(): Promise<JSX.Element> {
       ) : (
         <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
           <p className="text-sm text-gray-500">
-            Aucune donnée CRA disponible pour ce mois. Commencez par créer votre CRA.
+            Aucune donnée CRA disponible pour ce mois.
           </p>
+          <Link
+            href="/cra"
+            className="mt-3 inline-block rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700 transition-colors"
+          >
+            Créer mon CRA
+          </Link>
         </div>
       )}
     </div>

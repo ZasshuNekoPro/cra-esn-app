@@ -9,7 +9,8 @@ import { MonthGrid } from './MonthGrid';
 import { EntryModal } from './EntryModal';
 import { SignatureActions } from './SignatureActions';
 import { CraStatusBadge } from './CraStatusBadge';
-import { craApi } from '../../lib/api/cra';
+import { EntryTypeLegend } from './EntryTypeLegend';
+import { clientCraApi } from '../../lib/api/clientCra';
 
 interface CraMonthClientProps {
   craMonth: CraMonth;
@@ -52,7 +53,7 @@ export function CraMonthClient({
   const handleSave = async (data: CreateCraEntryRequest): Promise<void> => {
     if (selectedEntry) {
       // Update existing entry
-      const updated = await craApi.updateEntry(craMonth.id, selectedEntry.id, {
+      const updated = await clientCraApi.updateEntry(craMonth.id, selectedEntry.id, {
         entryType: data.entryType,
         dayFraction: data.dayFraction,
         comment: data.comment,
@@ -63,7 +64,7 @@ export function CraMonthClient({
       );
     } else {
       // Create new entry
-      const created = await craApi.createEntry(craMonth.id, data);
+      const created = await clientCraApi.createEntry(craMonth.id, data);
       setEntries((prev) => [...prev, created]);
     }
     router.refresh();
@@ -71,7 +72,7 @@ export function CraMonthClient({
 
   const handleDelete = async (): Promise<void> => {
     if (!selectedEntry) return;
-    await craApi.deleteEntry(craMonth.id, selectedEntry.id);
+    await clientCraApi.deleteEntry(craMonth.id, selectedEntry.id);
     setEntries((prev) => prev.filter((e) => e.id !== selectedEntry.id));
     router.refresh();
   };
@@ -118,6 +119,9 @@ export function CraMonthClient({
         isReadOnly={isReadOnly}
         onDayClick={handleDayClick}
       />
+
+      {/* Color legend */}
+      <EntryTypeLegend />
 
       {/* Entry modal */}
       <EntryModal

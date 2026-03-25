@@ -3,6 +3,7 @@ import { NotFoundException } from '@nestjs/common';
 import { NotificationsService } from '../../../src/notifications/notifications.service';
 import { NotificationChannel } from '@esn/shared-types';
 import type { PrismaService } from '../../../src/database/prisma.service';
+import type { MailerService } from '../../../src/notifications/mailer.service';
 
 const makePrisma = () =>
   ({
@@ -14,6 +15,9 @@ const makePrisma = () =>
       update: vi.fn(),
       updateMany: vi.fn(),
     },
+    user: {
+      findUnique: vi.fn(),
+    },
   }) as unknown as PrismaService;
 
 describe('NotificationsService', () => {
@@ -22,7 +26,8 @@ describe('NotificationsService', () => {
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new NotificationsService(prisma as unknown as PrismaService);
+    const mailer = { sendEmail: vi.fn().mockResolvedValue(undefined) } as unknown as MailerService;
+    service = new NotificationsService(prisma as unknown as PrismaService, mailer);
     vi.clearAllMocks();
   });
 
@@ -99,6 +104,7 @@ describe('NotificationsService', () => {
 
   it('notifyEmail creates an EMAIL channel notification', async () => {
     vi.mocked(prisma.notification.create).mockResolvedValue({} as never);
+    vi.mocked(prisma.user.findUnique).mockResolvedValue({ email: 'user@example.com' } as never);
 
     await service.notifyEmail('user-uuid-1', 'Email subject', 'Email body');
 

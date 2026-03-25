@@ -3,8 +3,10 @@ import {
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
+import { CraStatus as PrismaCraStatus } from '@prisma/client';
 import { AuditAction } from '@esn/shared-types';
 import type { ReportRecipient, SendReportResponse } from '@esn/shared-types';
+import { ConfigService } from '@nestjs/config';
 import { MonthlyReportPdfGenerator } from '@esn/pdf-generator';
 import type {
   MonthlyReportCraEntry,
@@ -85,6 +87,7 @@ export class ReportsSendService {
     private readonly storage: StorageService,
     private readonly notifications: NotificationsService,
     private readonly pdfGenerator: MonthlyReportPdfGenerator,
+    private readonly config: ConfigService,
   ) {}
 
   async sendMonthlyReport(
@@ -130,6 +133,26 @@ export class ReportsSendService {
       );
     }
 
+    // ── 3b. Auto-submit CRA if DRAFT with entries ────────────────────────
+    const craMonthRaw = await this.prisma.craMonth.findFirst({
+      where: { employeeId, year, month },
+      include: { entries: { select: { id: true } } },
+    }) as { id: string; status: string; entries: { id: string }[] } | null;
+
+    if (craMonthRaw?.status === PrismaCraStatus.DRAFT && craMonthRaw.entries.length > 0) {
+      await this.prisma.craMonth.update({
+        where: { id: craMonthRaw.id },
+        data: { status: PrismaCraStatus.SUBMITTED, submittedAt: new Date() },
+      });
+      await this.prisma.auditLog.create({
+        data: {
+          action: AuditAction.CRA_SUBMITTED,
+          resource: `cra_month:${craMonthRaw.id}`,
+          initiatorId: employeeId,
+        },
+      });
+    }
+
     // ── 4. Build MonthlyReportData ───────────────────────────────────────
     const reportData = await this.buildMonthlyReportData(
       employee,
@@ -147,16 +170,50 @@ export class ReportsSendService {
     const s3Key = `reports/${employeeId}/${year}/${month}/${reportType}-${ts}.pdf`;
     const pdfS3Key = await this.storage.uploadFile(pdfBuffer, s3Key, 'application/pdf', pdfBuffer.length);
 
-    // ── 7. Notify each effective recipient ───────────────────────────────
-    const subject = `Rapport mensuel — ${this.monthLabel(month)} ${year} — ${employee.firstName} ${employee.lastName}`;
-    const body = `Le rapport mensuel de ${employee.firstName} ${employee.lastName} pour ${this.monthLabel(month)} ${year} est disponible.`;
+    // ── 7. Archive previous PENDING validation requests for same period ──
+    await this.prisma.reportValidationRequest.updateMany({
+      where: {
+        employeeId,
+        year,
+        month,
+        reportType,
+        status: 'PENDING',
+        recipient: { in: sentTo },
+      },
+      data: { status: 'ARCHIVED' },
+    });
+
+    // ── 8. Create validation requests + notify recipients ─────────────────
+    const frontendUrl = this.config.get<string>('FRONTEND_URL') ?? 'http://localhost:3100';
+    const ttlHours = Math.min(dto.validationTtlHours ?? 48, 168);
+    const expiresAt = new Date(Date.now() + ttlHours * 3600 * 1000);
+    const employeeFullName = `${employee.firstName} ${employee.lastName}`;
+    const subject = `Rapport mensuel — ${this.monthLabel(month)} ${year} — ${employeeFullName}`;
 
     for (const recipient of sentTo) {
+      const validationRequest = await this.prisma.reportValidationRequest.create({
+        data: {
+          employeeId,
+          year,
+          month,
+          reportType,
+          recipient,
+          pdfS3Key,
+          expiresAt,
+        },
+      }) as { id: string; token: string };
+
+      const validationLink = `${frontendUrl}/validate-report/${validationRequest.token}`;
+      const body =
+        `Le rapport mensuel de ${employeeFullName} pour ${this.monthLabel(month)} ${year} est disponible.\n\n` +
+        `Cliquez sur le lien ci-dessous pour valider ou refuser ce rapport :\n${validationLink}\n\n` +
+        `Ce lien expire dans ${ttlHours} heures.`;
+
       const userId = recipientMap[recipient] as string;
       await this.notifications.notifyEmail(userId, subject, body);
     }
 
-    // ── 8. Audit log ─────────────────────────────────────────────────────
+    // ── 9. Audit log ──────────────────────────────────────────────────────
     const auditLog = await this.prisma.auditLog.create({
       data: {
         action: AuditAction.REPORT_SENT,

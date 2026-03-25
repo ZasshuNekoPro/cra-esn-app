@@ -80,7 +80,7 @@ export function DayCell({
         data-testid="day-cell"
         data-date={isoDate}
         onClick={handleClick}
-        className={`relative w-full min-h-[64px] p-1.5 border border-gray-200 rounded text-left transition-colors hover:bg-gray-50 ${bgColor} ${cursorClass}`}
+        className={`relative w-full min-h-[64px] p-1.5 border border-gray-200 rounded text-left transition-colors hover:brightness-95 ${bgColor} ${cursorClass}`}
       >
         <span className="text-xs font-semibold text-gray-700">{dayNumber}</span>
         {entry && (

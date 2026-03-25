@@ -84,7 +84,12 @@ const mockPrisma = {
     findUnique: vi.fn(),
     update: vi.fn(),
   },
-  auditLog: { create: vi.fn() },
+  auditLog: { create: vi.fn(), findUnique: vi.fn() },
+  reportValidationRequest: { findMany: vi.fn().mockResolvedValue([]) },
+};
+
+const mockStorage = {
+  getDownloadUrl: vi.fn(),
 };
 
 // ── Suite ─────────────────────────────────────────────────────────────────────
@@ -94,7 +99,7 @@ describe('ReportsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new ReportsService(mockPrisma as unknown as PrismaService);
+    service = new ReportsService(mockPrisma as unknown as PrismaService, mockStorage as never);
     // Default stubs
     mockPrisma.user.findUnique.mockResolvedValue(mockUser);
     mockPrisma.mission.findFirst.mockResolvedValue(mockMission);

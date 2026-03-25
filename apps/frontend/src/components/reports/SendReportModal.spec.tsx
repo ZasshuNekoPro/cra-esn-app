@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import type { SendReportResponse } from '@esn/shared-types';
 
@@ -101,12 +101,52 @@ describe('SendReportModal', () => {
     // Step 2: check ESN (default)
     fireEvent.click(screen.getByRole('button', { name: /envoyer/i }));
 
-    expect(mutate).toHaveBeenCalledWith({
-      year: 2026,
-      month: 3,
-      reportType: 'CRA_WITH_WEATHER',
-      recipients: expect.arrayContaining(['ESN']),
-    });
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        year: 2026,
+        month: 3,
+        reportType: 'CRA_WITH_WEATHER',
+        recipients: expect.arrayContaining(['ESN']) as string[],
+      }),
+    );
+  });
+
+  it('sends both ESN and CLIENT when both are checked', () => {
+    const mutate = makeMutate();
+    mockedUseSendReport.mockReturnValue(makeHookResult({ mutate }));
+
+    renderModal(2026, 3);
+
+    fireEvent.click(screen.getByRole('button', { name: /suivant/i }));
+
+    // CLIENT is unchecked by default — check it
+    fireEvent.click(screen.getByLabelText(/Client/i));
+
+    fireEvent.click(screen.getByRole('button', { name: /envoyer/i }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        recipients: expect.arrayContaining(['ESN', 'CLIENT']) as string[],
+      }),
+    );
+  });
+
+  it('includes validationTtlHours in the payload', () => {
+    const mutate = makeMutate();
+    mockedUseSendReport.mockReturnValue(makeHookResult({ mutate }));
+
+    renderModal(2026, 3);
+
+    // Change TTL to 72h
+    fireEvent.change(screen.getByLabelText(/durée de validité/i), { target: { value: '72' } });
+    fireEvent.click(screen.getByRole('button', { name: /suivant/i }));
+    fireEvent.click(screen.getByRole('button', { name: /envoyer/i }));
+
+    expect(mutate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        validationTtlHours: 72,
+      }),
+    );
   });
 
   it('disables submit button when no recipient is checked', () => {

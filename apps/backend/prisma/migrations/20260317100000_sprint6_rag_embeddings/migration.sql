@@ -5,7 +5,7 @@
 ALTER TABLE "embeddings"
   ADD COLUMN "source_type" TEXT NOT NULL DEFAULT 'document',
   ADD COLUMN "source_id"   TEXT NOT NULL DEFAULT '',
-  ADD COLUMN "employee_id" UUID NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
+  ADD COLUMN "employee_id" TEXT NOT NULL DEFAULT '00000000-0000-0000-0000-000000000000';
 
 -- Add foreign key constraint (employee_id → users.id)
 ALTER TABLE "embeddings"

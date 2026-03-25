@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { NotificationChannel } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
+import { MailerService } from './mailer.service';
 
 @Injectable()
 export class NotificationsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly mailer: MailerService,
+  ) {}
 
   // ── Write ──────────────────────────────────────────────────────────────────
 
@@ -20,7 +24,7 @@ export class NotificationsService {
     });
   }
 
-  /** Notify via EMAIL channel (persisted to DB; SMTP dispatch handled by external mailer). */
+  /** Notify via EMAIL channel: persists to DB and dispatches real SMTP email. */
   async notifyEmail(userId: string, subject: string, body: string): Promise<void> {
     await this.prisma.notification.create({
       data: {
@@ -31,6 +35,15 @@ export class NotificationsService {
         sentAt: new Date(),
       },
     });
+
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { email: true },
+    });
+    if (user?.email) {
+      const html = `<p>${body.replace(/\n/g, '<br>')}</p>`;
+      await this.mailer.sendEmail(user.email, subject, html);
+    }
   }
 
   // ── Read ───────────────────────────────────────────────────────────────────

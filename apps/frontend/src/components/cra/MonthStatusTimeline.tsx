@@ -134,6 +134,11 @@ export function MonthStatusTimeline({
         </ol>
       </div>
 
+      {/* DRAFT notice */}
+      {craStatus === CraStatus.DRAFT && !isRejected && (
+        <p className="text-xs text-gray-400 italic">CRA non encore soumis</p>
+      )}
+
       {/* Rejection comment */}
       {isRejected && rejectionComment && (
         <div className="rounded-md border border-red-200 bg-red-50 p-3">

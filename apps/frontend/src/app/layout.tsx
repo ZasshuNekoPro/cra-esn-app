@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 import './globals.css';
+import { QueryProvider } from './QueryProvider';
 
 export const metadata: Metadata = {
   title: 'ESN CRA App',
@@ -12,7 +13,7 @@ export default function RootLayout({
 }: Readonly<{ children: ReactNode }>): JSX.Element {
   return (
     <html lang="fr" suppressHydrationWarning>
-      <body>{children}</body>
+      <body><QueryProvider>{children}</QueryProvider></body>
     </html>
   );
 }

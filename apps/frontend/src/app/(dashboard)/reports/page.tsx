@@ -1,7 +1,6 @@
 import { auth } from '../../../auth';
 import { redirect } from 'next/navigation';
 import { reportsApi } from '../../../lib/api/reports';
-import { ApiClientError } from '../../../lib/api/client';
 import { MonthSummaryCard } from '../../../components/reports/MonthSummaryCard';
 import { ProjectsWeatherGrid } from '../../../components/reports/ProjectsWeatherGrid';
 import { UpcomingMilestonesCard } from '../../../components/reports/UpcomingMilestonesCard';
@@ -9,14 +8,22 @@ import { LeaveBalanceCard } from '../../../components/reports/LeaveBalanceCard';
 import { NotificationBell } from '../../../components/reports/NotificationBell';
 import { ShareDashboardButton } from '../../../components/reports/ShareDashboardButton';
 import { SendReportButton } from '../../../components/reports/SendReportButton';
-import type { MonthlyReport } from '@esn/shared-types';
+import { SentReportsTable } from '../../../components/reports/SentReportsTable';
+import type { MonthlyReport, SentReportHistoryItem } from '@esn/shared-types';
 
 async function getReport(year: number, month: number): Promise<MonthlyReport | null> {
   try {
     return await reportsApi.getMonthlyReport(year, month);
-  } catch (err) {
-    if (err instanceof ApiClientError) return null;
-    throw err;
+  } catch {
+    return null;
+  }
+}
+
+async function getSentHistory(): Promise<SentReportHistoryItem[]> {
+  try {
+    return await reportsApi.getSentHistory();
+  } catch {
+    return [];
   }
 }
 
@@ -27,7 +34,7 @@ export default async function ReportsPage(): Promise<JSX.Element> {
   const now = new Date();
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
-  const report = await getReport(year, month);
+  const [report, sentHistory] = await Promise.all([getReport(year, month), getSentHistory()]);
 
   const monthLabel = now.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
 
@@ -48,6 +55,14 @@ export default async function ReportsPage(): Promise<JSX.Element> {
           <SendReportButton year={year} month={month} />
           <ShareDashboardButton />
         </div>
+      </div>
+
+      {/* Sent reports history */}
+      <div className="rounded-lg border border-gray-200 bg-white p-5 shadow-sm">
+        <h2 className="mb-4 text-base font-semibold text-gray-900">
+          Historique des envois
+        </h2>
+        <SentReportsTable items={sentHistory} />
       </div>
 
       {report ? (

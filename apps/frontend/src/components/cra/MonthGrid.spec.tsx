@@ -279,6 +279,6 @@ describe('MonthGrid', () => {
     );
     expect(emptyWorkDay).toBeTruthy();
     // Should have hover styling indicating it's clickable
-    expect(emptyWorkDay!.className).toContain('hover:bg-gray-50');
+    expect(emptyWorkDay!.className).toContain('hover:brightness-95');
   });
 });

@@ -3,7 +3,8 @@ import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 import { Role } from '@esn/shared-types';
 
-const PUBLIC_PATHS = ['/login'];
+const AUTH_PATHS = ['/login'];
+const ANONYMOUS_PATHS = ['/validate-report'];
 const ESN_PATHS = ['/esn'];
 
 export default auth(function middleware(req: NextRequest & { auth: { user?: { role?: Role } } | null }) {
@@ -11,8 +12,13 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
   const session = req.auth;
   const isAuthenticated = !!session;
 
-  // Allow public paths without auth
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // Fully public paths — accessible with or without auth (no redirect)
+  if (ANONYMOUS_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.next();
+  }
+
+  // Auth-only public paths (redirect authenticated users away)
+  if (AUTH_PATHS.some((p) => pathname.startsWith(p))) {
     if (isAuthenticated) {
       // Redirect logged-in users away from login page
       return NextResponse.redirect(new URL('/dashboard', req.url));

@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { signOut } from '../../auth';
+import { signOutAction } from './actions';
 import { Role } from '@esn/shared-types';
 
 interface SidebarUser {
@@ -32,6 +32,7 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/dashboard', label: 'Tableau de bord' },
   { href: '/esn/employees', label: 'Salariés' },
   { href: '/esn/missions', label: 'Missions' },
+  { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
 ];
 
 interface Props {
@@ -75,12 +76,7 @@ export function DashboardSidebar({ user }: Props): JSX.Element {
           {user.firstName} {user.lastName}
         </p>
         <p className="text-xs text-gray-500 truncate mb-3">{user.email}</p>
-        <form
-          action={async () => {
-            'use server';
-            await signOut({ redirectTo: '/login' });
-          }}
-        >
+        <form action={signOutAction}>
           <button
             type="submit"
             className="w-full text-left text-sm text-gray-500 hover:text-gray-700"
