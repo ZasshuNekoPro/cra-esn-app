@@ -3,8 +3,9 @@ import {
   ForbiddenException,
   ConflictException,
   BadRequestException,
+  NotFoundException,
 } from '@nestjs/common';
-import { WeatherState, ProjectStatus, AuditAction } from '@esn/shared-types';
+import { WeatherState, ProjectStatus, AuditAction, Role } from '@esn/shared-types';
 import type { CreateWeatherEntryRequest, WeatherMonthlySummary, RagIndexEvent } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -73,8 +74,12 @@ export class WeatherService {
 
   async getHistory(
     projectId: string,
+    callerId: string,
+    callerRole: Role,
     options?: { yearMonth?: string },
   ) {
+    await this.assertProjectAccess(projectId, callerId, callerRole);
+
     const where: Record<string, unknown> = { projectId };
 
     if (options?.yearMonth) {
@@ -93,9 +98,13 @@ export class WeatherService {
 
   async getMonthlySummary(
     projectId: string,
+    callerId: string,
+    callerRole: Role,
     year: number,
     month: number,
   ): Promise<WeatherMonthlySummary> {
+    await this.assertProjectAccess(projectId, callerId, callerRole);
+
     const start = new Date(year, month - 1, 1);
     const end = new Date(year, month, 1);
 
@@ -132,5 +141,33 @@ export class WeatherService {
       stormCount: entryCounts[WeatherState.STORM] ?? 0,
       entryCounts,
     };
+  }
+
+  // ── Helpers ─────────────────────────────────────────────────────────────────
+
+  private async assertProjectAccess(
+    projectId: string,
+    callerId: string,
+    callerRole: Role,
+  ): Promise<void> {
+    let where: Record<string, unknown>;
+    switch (callerRole) {
+      case Role.EMPLOYEE:
+        where = { id: projectId, mission: { employeeId: callerId } };
+        break;
+      case Role.ESN_ADMIN:
+        where = { id: projectId, mission: { esnAdminId: callerId } };
+        break;
+      case Role.CLIENT:
+        where = { id: projectId, mission: { clientId: callerId } };
+        break;
+      default:
+        throw new NotFoundException('Projet introuvable');
+    }
+
+    const project = await this.prisma.project.findFirst({ where });
+    if (!project) {
+      throw new NotFoundException('Projet introuvable');
+    }
   }
 }

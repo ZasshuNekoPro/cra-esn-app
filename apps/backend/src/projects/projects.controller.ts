@@ -126,9 +126,10 @@ export class ProjectsController {
   @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   getWeatherHistory(
     @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
     @Query('yearMonth') yearMonth?: string,
   ) {
-    return this.weatherService.getHistory(id, yearMonth ? { yearMonth } : {});
+    return this.weatherService.getHistory(id, user.sub, user.role, yearMonth ? { yearMonth } : {});
   }
 
   /**
@@ -157,8 +158,9 @@ export class ProjectsController {
     @Param('id') id: string,
     @Query('year', ParseIntPipe) year: number,
     @Query('month', ParseIntPipe) month: number,
+    @CurrentUser() user: JwtPayload,
   ) {
-    return this.weatherService.getMonthlySummary(id, year, month);
+    return this.weatherService.getMonthlySummary(id, user.sub, user.role, year, month);
   }
 
   // ── Comments ─────────────────────────────────────────────────────────────

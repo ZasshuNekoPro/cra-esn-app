@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, ConflictException, NotFoundException } from '@nestjs/common';
 import { WeatherService } from '../../../src/projects/weather.service';
-import { WeatherState, ProjectStatus } from '@esn/shared-types';
+import { WeatherState, ProjectStatus, Role } from '@esn/shared-types';
 import type { PrismaService } from '../../../src/database/prisma.service';
 
 const employeeId = 'employee-uuid-1';
@@ -158,9 +158,10 @@ describe('WeatherService', () => {
         id: `w${i}`,
         date: new Date(`2026-02-${String(i + 1).padStart(2, '0')}`),
       }));
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(mockProject as never);
       vi.mocked(mockPrisma.weatherEntry.findMany).mockResolvedValue(entries as never);
 
-      const result = await service.getHistory(projectId);
+      const result = await service.getHistory(projectId, employeeId, Role.EMPLOYEE);
       expect(result).toHaveLength(30);
       expect(mockPrisma.weatherEntry.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -172,15 +173,63 @@ describe('WeatherService', () => {
     });
 
     it('should filter by month when yearMonth param provided', async () => {
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(mockProject as never);
       vi.mocked(mockPrisma.weatherEntry.findMany).mockResolvedValue([]);
 
-      await service.getHistory(projectId, { yearMonth: '2026-03' });
+      await service.getHistory(projectId, employeeId, Role.EMPLOYEE, { yearMonth: '2026-03' });
 
       expect(mockPrisma.weatherEntry.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
           where: expect.objectContaining({
             date: expect.objectContaining({ gte: expect.any(Date), lt: expect.any(Date) }),
           }),
+        }),
+      );
+    });
+
+    it('should throw NotFoundException if EMPLOYEE does not own the project', async () => {
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(null);
+
+      await expect(
+        service.getHistory(projectId, 'intruder-id', Role.EMPLOYEE),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if ESN_ADMIN does not manage the project mission', async () => {
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(null);
+
+      await expect(
+        service.getHistory(projectId, 'other-admin-id', Role.ESN_ADMIN),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should throw NotFoundException if CLIENT is not linked to the project mission', async () => {
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(null);
+
+      await expect(
+        service.getHistory(projectId, 'other-client-id', Role.CLIENT),
+      ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should allow ESN_ADMIN with correct mission access', async () => {
+      const esnProject = { ...mockProject, mission: { ...mockMission, esnAdminId: 'esnadmin-uuid-1' } };
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(esnProject as never);
+      vi.mocked(mockPrisma.weatherEntry.findMany).mockResolvedValue([]);
+
+      await expect(
+        service.getHistory(projectId, 'esnadmin-uuid-1', Role.ESN_ADMIN),
+      ).resolves.not.toThrow();
+    });
+
+    it('should pass employeeId filter when role is EMPLOYEE', async () => {
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(mockProject as never);
+      vi.mocked(mockPrisma.weatherEntry.findMany).mockResolvedValue([]);
+
+      await service.getHistory(projectId, employeeId, Role.EMPLOYEE);
+
+      expect(mockPrisma.project.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ mission: { employeeId } }),
         }),
       );
     });
@@ -193,9 +242,10 @@ describe('WeatherService', () => {
         { ...mockWeatherEntry, state: WeatherState.SUNNY },
         { ...mockWeatherEntry, state: WeatherState.CLOUDY },
       ];
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(mockProject as never);
       vi.mocked(mockPrisma.weatherEntry.findMany).mockResolvedValue(entries as never);
 
-      const result = await service.getMonthlySummary(projectId, 2026, 3);
+      const result = await service.getMonthlySummary(projectId, employeeId, Role.EMPLOYEE, 2026, 3);
       expect(result.dominantState).toBe(WeatherState.SUNNY);
     });
 
@@ -205,9 +255,10 @@ describe('WeatherService', () => {
         { ...mockWeatherEntry, state: WeatherState.SUNNY },
         { ...mockWeatherEntry, state: WeatherState.STORM },
       ];
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(mockProject as never);
       vi.mocked(mockPrisma.weatherEntry.findMany).mockResolvedValue(entries as never);
 
-      const result = await service.getMonthlySummary(projectId, 2026, 3);
+      const result = await service.getMonthlySummary(projectId, employeeId, Role.EMPLOYEE, 2026, 3);
       expect(result.dominantState).toBe(WeatherState.STORM);
     });
 
@@ -217,11 +268,20 @@ describe('WeatherService', () => {
         { ...mockWeatherEntry, state: WeatherState.SUNNY },
         { ...mockWeatherEntry, state: WeatherState.CLOUDY },
       ];
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(mockProject as never);
       vi.mocked(mockPrisma.weatherEntry.findMany).mockResolvedValue(entries as never);
 
-      const result = await service.getMonthlySummary(projectId, 2026, 3);
+      const result = await service.getMonthlySummary(projectId, employeeId, Role.EMPLOYEE, 2026, 3);
       expect(result.entryCounts[WeatherState.SUNNY]).toBe(2);
       expect(result.entryCounts[WeatherState.CLOUDY]).toBe(1);
+    });
+
+    it('should throw NotFoundException if caller does not have access to the project', async () => {
+      vi.mocked(mockPrisma.project.findFirst).mockResolvedValue(null);
+
+      await expect(
+        service.getMonthlySummary(projectId, 'intruder-id', Role.EMPLOYEE, 2026, 3),
+      ).rejects.toThrow(NotFoundException);
     });
   });
 });
