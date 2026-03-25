@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   Controller,
   Get,
   Post,
@@ -15,13 +16,18 @@ import { Public } from '../common/decorators/public.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { Role } from '@esn/shared-types';
 import { ReportsService } from './reports.service';
+import { ReportsSendService } from './reports-send.service';
 import { CreateDashboardShareDto } from './dto/create-dashboard-share.dto';
+import { SendReportDto } from './dto/send-report.dto';
 import type { JwtPayload } from '@esn/shared-types';
 
 @Controller('reports')
 @UseGuards(RolesGuard)
 export class ReportsController {
-  constructor(private readonly reportsService: ReportsService) {}
+  constructor(
+    private readonly reportsService: ReportsService,
+    private readonly reportsSendService: ReportsSendService,
+  ) {}
 
   // ── Monthly report ─────────────────────────────────────────────────────────
 
@@ -33,6 +39,25 @@ export class ReportsController {
     @Param('month', ParseIntPipe) month: number,
   ) {
     return this.reportsService.getMonthlyReport(user.sub, year, month);
+  }
+
+  @Post('monthly/:year/:month/send')
+  @Roles(Role.EMPLOYEE)
+  sendMonthlyReport(
+    @CurrentUser() user: JwtPayload,
+    @Param('year', ParseIntPipe) year: number,
+    @Param('month', ParseIntPipe) month: number,
+    @Body() dto: SendReportDto,
+  ) {
+    if (month < 1 || month > 12) {
+      throw new BadRequestException('month must be between 1 and 12');
+    }
+    if (year < 2020 || year > 2100) {
+      throw new BadRequestException('year must be between 2020 and 2100');
+    }
+    dto.year = year;
+    dto.month = month;
+    return this.reportsSendService.sendMonthlyReport(dto, user.sub);
   }
 
   // ── Project presentation ───────────────────────────────────────────────────

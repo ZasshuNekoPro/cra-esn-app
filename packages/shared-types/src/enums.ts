@@ -129,4 +129,6 @@ export enum AuditAction {
   // RAG
   RAG_QUERY = 'RAG_QUERY',
   RAG_REINDEX = 'RAG_REINDEX',
+  // Reports
+  REPORT_SENT = 'REPORT_SENT',
 }
