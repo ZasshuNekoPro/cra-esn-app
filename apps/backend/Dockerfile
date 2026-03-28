@@ -53,10 +53,8 @@ ENV NODE_ENV=production
 # Re-generate Prisma client in runner context
 RUN cd apps/backend && ./node_modules/.bin/prisma generate
 
-# Fix permissions for non-root user and create user
+# Non-root user for security (no chown needed - run prisma as root then switch)
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
-RUN chown -R nestjs:nodejs /app
-USER nestjs
 
 EXPOSE 3001
 
