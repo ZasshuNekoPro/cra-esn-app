@@ -28,7 +28,7 @@ RUN pnpm --filter backend build
 # ── Stage 2 : runner ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
-RUN npm install -g pnpm@9
+RUN apk add --no-cache openssl && npm install -g pnpm@9
 
 WORKDIR /app
 
@@ -53,8 +53,9 @@ ENV NODE_ENV=production
 # Re-generate Prisma client in runner context
 RUN cd apps/backend && ./node_modules/.bin/prisma generate
 
-# Non-root user for security
+# Fix permissions for non-root user and create user
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
+RUN chown -R nestjs:nodejs /app
 USER nestjs
 
 EXPOSE 3001
