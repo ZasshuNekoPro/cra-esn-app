@@ -17,6 +17,9 @@ COPY apps/backend/ ./apps/backend/
 # Install all dependencies (including devDependencies required for build)
 RUN pnpm install --frozen-lockfile --filter backend...
 
+# Build shared workspace packages first (backend imports from their dist/)
+RUN pnpm --filter "@esn/shared-types" --filter "@esn/shared-utils" --filter "@esn/pdf-generator" --filter "@esn/rag-engine" build || true
+
 # Generate Prisma client (use local binary to avoid npx downloading a different version)
 RUN cd apps/backend && ./node_modules/.bin/prisma generate
 
