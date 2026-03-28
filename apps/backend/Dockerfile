@@ -5,6 +5,10 @@ RUN npm install -g pnpm@9
 
 WORKDIR /app
 
+# Force NODE_ENV=development so devDependencies (prisma) are installed
+# even when Coolify injects NODE_ENV=production as build ARG
+ENV NODE_ENV=development
+
 # Copy workspace manifests first for optimal Docker layer caching
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
 COPY packages/ ./packages/
@@ -13,8 +17,8 @@ COPY apps/backend/ ./apps/backend/
 # Install all dependencies (including devDependencies required for build)
 RUN pnpm install --frozen-lockfile --filter backend...
 
-# Generate Prisma client
-RUN cd apps/backend && npx prisma generate
+# Generate Prisma client (use local binary to avoid npx downloading a different version)
+RUN cd apps/backend && ./node_modules/.bin/prisma generate
 
 # Compile TypeScript → dist/
 RUN pnpm --filter backend build
@@ -42,8 +46,12 @@ COPY --from=builder /app/apps/backend/package.json ./apps/backend/
 # Install production dependencies only
 RUN pnpm install --frozen-lockfile --filter backend... --prod
 
-# Re-generate Prisma client in runner stage (links against installed @prisma/client)
-RUN cd apps/backend && npx prisma generate
+# Copy generated Prisma client from builder (avoids needing prisma CLI in prod)
+COPY --from=builder /app/apps/backend/node_modules/.prisma ./apps/backend/node_modules/.prisma
+
+# Copy prisma CLI from builder for migrate deploy at startup
+COPY --from=builder /app/apps/backend/node_modules/prisma ./apps/backend/node_modules/prisma
+COPY --from=builder /app/apps/backend/node_modules/.bin/prisma ./apps/backend/node_modules/.bin/prisma
 
 # Non-root user for security
 RUN addgroup -g 1001 -S nodejs && adduser -S nestjs -u 1001
@@ -52,4 +60,4 @@ USER nestjs
 EXPOSE 3001
 
 # Run migrations then start the app
-CMD ["sh", "-c", "cd apps/backend && npx prisma migrate deploy && node dist/main.js"]
+CMD ["sh", "-c", "cd apps/backend && ./node_modules/.bin/prisma migrate deploy && node dist/main.js"]
