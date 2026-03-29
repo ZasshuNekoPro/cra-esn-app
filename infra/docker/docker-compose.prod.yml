@@ -106,6 +106,7 @@ services:
     environment:
       NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
       NEXTAUTH_URL:    ${NEXTAUTH_URL}
+      AUTH_TRUST_HOST: "true"
       BACKEND_URL:     http://backend:3001
       NODE_ENV:        production
       PORT:            3100
