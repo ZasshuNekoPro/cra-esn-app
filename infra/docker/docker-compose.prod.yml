@@ -76,6 +76,7 @@ services:
       REDIS_URL:         redis://redis:6379
       BCRYPT_ROUNDS:     ${BCRYPT_ROUNDS:-12}
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY:   ${OPENAI_API_KEY:-}
       SMTP_HOST:         ${SMTP_HOST:-}
       SMTP_PORT:         ${SMTP_PORT:-587}
       SMTP_USER:         ${SMTP_USER:-}
