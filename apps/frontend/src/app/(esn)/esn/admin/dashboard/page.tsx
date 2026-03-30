@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { craApi } from '../../../../lib/api/cra';
+import { craApi } from '../../../../../lib/api/cra';
 
 export default async function AdminDashboardPage(): Promise<JSX.Element> {
   let pendingCount: number | null = null;

@@ -1,6 +1,6 @@
-import { consentApi } from '../../../../lib/api/consent';
-import { ConsentList } from '../../../../components/consent/ConsentList';
-import { RequestConsentForm } from '../../../../components/consent/RequestConsentForm';
+import { consentApi } from '../../../../../lib/api/consent';
+import { ConsentList } from '../../../../../components/consent/ConsentList';
+import { RequestConsentForm } from '../../../../../components/consent/RequestConsentForm';
 
 export default async function AdminConsentPage(): Promise<JSX.Element> {
   const consents = await consentApi.listSent().catch(() => []);
