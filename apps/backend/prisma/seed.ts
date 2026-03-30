@@ -22,6 +22,18 @@ async function main(): Promise<void> {
     },
   });
 
+  await prisma.user.upsert({
+    where: { email: 'platform@esn-app.local' },
+    update: {},
+    create: {
+      email: 'platform@esn-app.local',
+      password: hashedPassword,
+      firstName: 'Super',
+      lastName: 'Admin',
+      role: Role.PLATFORM_ADMIN,
+    },
+  });
+
   const esnAdmin = await prisma.user.upsert({
     where: { email: 'admin@esn-corp.local' },
     update: {},
@@ -232,9 +244,10 @@ async function main(): Promise<void> {
 
   console.log('\n✅ Seeding complete!');
   console.log('\nTest credentials (password: password123):');
-  console.log('  Employee : alice@example.com');
-  console.log('  ESN Admin: admin@esn-corp.local');
-  console.log('  Client   : contact@client-corp.local');
+  console.log('  Platform Admin: platform@esn-app.local');
+  console.log('  ESN Admin     : admin@esn-corp.local');
+  console.log('  Employee      : alice@example.com');
+  console.log('  Client        : contact@client-corp.local');
 }
 
 main()
