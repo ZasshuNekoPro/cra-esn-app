@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { Role } from '@esn/shared-types';
-import { usersClientApi, type PublicUser } from '../../../../lib/api/users';
-import { missionsClientApi, type Mission } from '../../../../lib/api/missions';
-import { ApiClientError } from '../../../../lib/api/client';
+import { usersClientApi, type PublicUser } from '../../../../../lib/api/users';
+import { missionsClientApi, type Mission } from '../../../../../lib/api/missions';
+import { ApiClientError } from '../../../../../lib/api/client';
 
 export default function AdminMissionsPage(): JSX.Element {
   const [missions, setMissions] = useState<Mission[]>([]);

@@ -1,0 +1,124 @@
+# Production stack — for local full-stack testing before Coolify deployment.
+# In Coolify, PostgreSQL/Redis/MinIO are provisioned as separate services.
+#
+# Usage:
+#   cp .env.production.example .env.prod.local   # fill in values
+#   docker compose -f infra/docker/docker-compose.prod.yml --env-file .env.prod.local up -d
+
+version: '3.9'
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    container_name: esn_cra_postgres_prod
+    environment:
+      POSTGRES_USER:     ${POSTGRES_USER:-esn_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB:       ${POSTGRES_DB:-esn_cra}
+    volumes:
+      - postgres_prod_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-esn_user}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: esn_cra_redis_prod
+    volumes:
+      - redis_prod_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    container_name: esn_cra_minio_prod
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER:     ${S3_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${S3_SECRET_KEY}
+    ports:
+      - "9001:9001"   # MinIO console (admin UI) — not required in Coolify
+    volumes:
+      - minio_prod_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ../..
+      dockerfile: apps/backend/Dockerfile
+    container_name: esn_cra_backend_prod
+    environment:
+      DATABASE_URL:      postgresql://${POSTGRES_USER:-esn_user}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-esn_cra}
+      JWT_SECRET:        ${JWT_SECRET}
+      JWT_EXPIRATION:    ${JWT_EXPIRATION:-7d}
+      NODE_ENV:          production
+      BACKEND_PORT:      3001
+      FRONTEND_URL:      ${FRONTEND_URL}
+      CORS_ORIGIN:       ${CORS_ORIGIN}
+      STORAGE_DRIVER:    s3
+      S3_ENDPOINT:       http://minio:9000
+      S3_ACCESS_KEY:     ${S3_ACCESS_KEY}
+      S3_SECRET_KEY:     ${S3_SECRET_KEY}
+      S3_BUCKET:         ${S3_BUCKET:-esn-cra-documents}
+      S3_REGION:         ${S3_REGION:-eu-west-3}
+      REDIS_URL:         redis://redis:6379
+      BCRYPT_ROUNDS:     ${BCRYPT_ROUNDS:-12}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      OPENAI_API_KEY:   ${OPENAI_API_KEY:-}
+      SMTP_HOST:         ${SMTP_HOST:-}
+      SMTP_PORT:         ${SMTP_PORT:-587}
+      SMTP_USER:         ${SMTP_USER:-}
+      SMTP_PASS:         ${SMTP_PASS:-}
+      SMTP_FROM:         ${SMTP_FROM:-}
+    ports:
+      - "3001:3001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ../..
+      dockerfile: apps/frontend/Dockerfile
+    container_name: esn_cra_frontend_prod
+    environment:
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      NEXTAUTH_URL:    ${NEXTAUTH_URL}
+      AUTH_TRUST_HOST: "true"
+      BACKEND_URL:     http://backend:3001
+      NODE_ENV:        production
+      PORT:            3100
+    ports:
+      - "3100:3100"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_prod_data:
+  redis_prod_data:
+  minio_prod_data:

@@ -3,8 +3,8 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Role } from '@esn/shared-types';
-import { usersClientApi } from '../../../../lib/api/users';
-import { ApiClientError } from '../../../../lib/api/client';
+import { usersClientApi } from '../../../../../lib/api/users';
+import { ApiClientError } from '../../../../../lib/api/client';
 
 export default function CreateEsnAdminPage(): JSX.Element {
   const router = useRouter();

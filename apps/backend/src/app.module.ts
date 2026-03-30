@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD, APP_FILTER } from '@nestjs/core';
-import { ConfigModule } from '@nestjs/config';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ScheduleModule } from '@nestjs/schedule';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 import { EventEmitterModule } from '@nestjs/event-emitter';
@@ -14,6 +14,7 @@ import { DocumentsModule } from './documents/documents.module';
 import { ConsentModule } from './consent/consent.module';
 import { ReportsModule } from './reports/reports.module';
 import { RagModule } from './rag/rag.module';
+import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { MissionsModule } from './missions/missions.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
@@ -24,7 +25,14 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
   imports: [
     ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     ScheduleModule.forRoot(),
-    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 100 }]),
+    ThrottlerModule.forRootAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => [{
+        ttl: config.get<number>('RATE_LIMIT_TTL', 60) * 1000,
+        limit: config.get<number>('RATE_LIMIT_MAX', 100),
+      }],
+    }),
     EventEmitterModule.forRoot(),
     PrismaModule,
     AuthModule,
@@ -36,6 +44,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     ConsentModule,
     ReportsModule,
     RagModule,
+    HealthModule,
     UsersModule,
     MissionsModule,
   ],

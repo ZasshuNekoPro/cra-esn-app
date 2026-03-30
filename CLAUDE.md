@@ -101,6 +101,18 @@ gh pr view --web                    # Ouvrir la PR dans le navigateur
 - `packages/shared-types/` → Types TypeScript partagés backend/frontend
 - `.env.example` → Variables d'environnement requises
 
+## Déploiement production (branche `preprod`)
+
+- **Dockerfiles** : `apps/backend/Dockerfile` (port 3001) + `apps/frontend/Dockerfile` (port 3100)
+- **Health check** : `GET /api/health` — public, `@SkipThrottle`, vérifie DB via `SELECT 1`
+- **Init admin** : `pnpm seed:prod` avec `ADMIN_EMAIL` + `ADMIN_PASSWORD` (min 12 chars) requis
+- **Migrations** : `prisma migrate deploy` automatique dans le CMD du Dockerfile backend
+- **Services Coolify** : `pgvector/pgvector:pg15` + `redis:7-alpine` + MinIO S3
+- **Variables env** : `.env.production.example` — template complet (backend + frontend)
+- **Guide déploiement** : `infra/DEPLOY.md` — étapes Coolify + test local
+- **Rate limiting** : configurable via `RATE_LIMIT_TTL` (secondes) et `RATE_LIMIT_MAX`
+- **Module missions/users** : Phase 2 — missions créées directement en DB au déploiement initial
+
 ## Ce que Claude ne doit PAS faire
 - Ne pas modifier le schéma Prisma sans mettre à jour les types partagés
 - Ne pas bypasser ConsentGuard même pour des tests rapides
