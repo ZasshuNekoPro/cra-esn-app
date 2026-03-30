@@ -29,10 +29,11 @@ const EMPLOYEE_NAV: NavItem[] = [
 ];
 
 const ESN_NAV: NavItem[] = [
-  { href: '/esn/dashboard', label: 'Tableau de bord' },
-  { href: '/esn/employees', label: 'Salariés' },
-  { href: '/esn/missions', label: 'Missions' },
+  { href: '/esn/admin/dashboard', label: 'Tableau de bord' },
+  { href: '/esn/admin/employees', label: 'Salariés' },
+  { href: '/esn/admin/missions', label: 'Missions' },
   { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
+  { href: '/esn/admin/consent', label: 'Consentements' },
 ];
 
 interface Props {
