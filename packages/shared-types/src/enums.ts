@@ -2,8 +2,9 @@
 // Keep in sync with apps/backend/prisma/schema.prisma
 
 export enum Role {
-  EMPLOYEE = 'EMPLOYEE',
+  PLATFORM_ADMIN = 'PLATFORM_ADMIN',
   ESN_ADMIN = 'ESN_ADMIN',
+  EMPLOYEE = 'EMPLOYEE',
   CLIENT = 'CLIENT',
 }
 
