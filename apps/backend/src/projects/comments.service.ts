@@ -9,6 +9,7 @@ import { PrismaService } from '../database/prisma.service';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 const VISIBILITY_BY_ROLE: Record<Role, CommentVisibility[]> = {
+  [Role.PLATFORM_ADMIN]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN, CommentVisibility.EMPLOYEE_CLIENT],
   [Role.EMPLOYEE]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN, CommentVisibility.EMPLOYEE_CLIENT],
   [Role.ESN_ADMIN]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN],
   [Role.CLIENT]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_CLIENT],

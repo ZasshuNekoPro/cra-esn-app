@@ -6,6 +6,13 @@ import { Role } from '@esn/shared-types';
 const AUTH_PATHS = ['/login'];
 const ANONYMOUS_PATHS = ['/validate-report'];
 const ESN_PATHS = ['/esn'];
+const PLATFORM_PATHS = ['/platform'];
+
+function roleDefaultPath(role: Role | undefined): string {
+  if (role === Role.PLATFORM_ADMIN) return '/platform/admin/dashboard';
+  if (role === Role.ESN_ADMIN) return '/esn/admin/dashboard';
+  return '/dashboard';
+}
 
 export default auth(function middleware(req: NextRequest & { auth: { user?: { role?: Role } } | null }) {
   const { pathname } = req.nextUrl;
@@ -20,8 +27,7 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
   // Auth-only public paths (redirect authenticated users away)
   if (AUTH_PATHS.some((p) => pathname.startsWith(p))) {
     if (isAuthenticated) {
-      // Redirect logged-in users away from login page
-      return NextResponse.redirect(new URL('/dashboard', req.url));
+      return NextResponse.redirect(new URL(roleDefaultPath(session?.user?.role), req.url));
     }
     return NextResponse.next();
   }
@@ -35,9 +41,14 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
 
   const role = session?.user?.role;
 
+  // Platform admin routes — only PLATFORM_ADMIN
+  if (PLATFORM_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.PLATFORM_ADMIN) {
+    return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
+  }
+
   // ESN admin routes — only ESN_ADMIN
   if (ESN_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.ESN_ADMIN) {
-    return NextResponse.redirect(new URL('/dashboard', req.url));
+    return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
   }
 
   return NextResponse.next();

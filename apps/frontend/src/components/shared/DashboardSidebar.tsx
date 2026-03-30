@@ -28,10 +28,16 @@ const EMPLOYEE_NAV: NavItem[] = [
   { href: '/settings', label: 'Paramètres' },
 ];
 
+const PLATFORM_NAV: NavItem[] = [
+  { href: '/platform/admin/dashboard', label: 'Tableau de bord' },
+  { href: '/platform/admin/users', label: 'Créer une ESN' },
+];
+
 const ESN_NAV: NavItem[] = [
-  { href: '/esn/dashboard', label: 'Tableau de bord' },
-  { href: '/esn/employees', label: 'Salariés' },
-  { href: '/esn/missions', label: 'Missions' },
+  { href: '/esn/admin/dashboard', label: 'Tableau de bord' },
+  { href: '/esn/admin/employees', label: 'Salariés' },
+  { href: '/esn/admin/clients', label: 'Clients' },
+  { href: '/esn/admin/missions', label: 'Missions' },
   { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
 ];
 
@@ -41,7 +47,12 @@ interface Props {
 
 export function DashboardSidebar({ user }: Props): JSX.Element {
   const pathname = usePathname();
-  const navItems = user.role === Role.ESN_ADMIN ? ESN_NAV : EMPLOYEE_NAV;
+  const navItems =
+    user.role === Role.PLATFORM_ADMIN
+      ? PLATFORM_NAV
+      : user.role === Role.ESN_ADMIN
+        ? ESN_NAV
+        : EMPLOYEE_NAV;
 
   return (
     <aside className="w-64 bg-white shadow-sm flex flex-col">

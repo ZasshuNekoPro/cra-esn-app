@@ -16,8 +16,9 @@ datasource db {
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 enum Role {
-  EMPLOYEE
+  PLATFORM_ADMIN
   ESN_ADMIN
+  EMPLOYEE
   CLIENT
 }
 
