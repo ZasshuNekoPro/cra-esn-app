@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clientApiClient } from '../../../../lib/api/clientFetch';
+import { clientApiClient } from '../../../../../lib/api/clientFetch';
 
 interface Props {
   craMonthId: string;
