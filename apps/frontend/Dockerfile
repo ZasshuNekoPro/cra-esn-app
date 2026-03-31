@@ -24,6 +24,12 @@ COPY --from=deps /app ./
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
+# Build-time env vars needed for Next.js static generation
+ENV BACKEND_URL=http://localhost:3001
+ENV NEXTAUTH_URL=http://localhost:3100
+ENV NEXTAUTH_SECRET=build-time-placeholder
+ENV AUTH_TRUST_HOST=true
+
 RUN pnpm --filter frontend build
 
 # ── Stage 3 : runner ──────────────────────────────────────────────────────────
