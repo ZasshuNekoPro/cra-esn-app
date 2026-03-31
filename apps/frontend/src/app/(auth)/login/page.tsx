@@ -1,8 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { Suspense, useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+
+export const dynamic = 'force-dynamic';
 
 export default function LoginPage(): JSX.Element {
   const router = useRouter();
