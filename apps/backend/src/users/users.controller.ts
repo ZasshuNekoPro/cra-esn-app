@@ -21,31 +21,31 @@ export class UsersController {
 
   /**
    * POST /users
-   * PLATFORM_ADMIN → creates ESN_ADMIN
-   * ESN_ADMIN       → creates EMPLOYEE or CLIENT
+   * PLATFORM_ADMIN → creates ESN_ADMIN or ESN_MANAGER
+   * ESN_ADMIN / ESN_MANAGER → creates EMPLOYEE or CLIENT (scoped to their ESN)
    */
   @Post()
-  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN)
+  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN, Role.ESN_MANAGER)
   create(@Body() dto: CreateUserDto, @CurrentUser() user: JwtPayload) {
-    return this.usersService.create(dto, user.role);
+    return this.usersService.create(dto, user.role, user.esnId ?? null);
   }
 
   /**
    * GET /users
    * PLATFORM_ADMIN → all users
-   * ESN_ADMIN       → employees + clients only
+   * ESN_ADMIN / ESN_MANAGER → employees + clients in their ESN
    */
   @Get()
-  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN)
+  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN, Role.ESN_MANAGER)
   findAll(@CurrentUser() user: JwtPayload) {
-    return this.usersService.findAll(user.role);
+    return this.usersService.findAll(user.role, user.esnId ?? null);
   }
 
   /**
    * GET /users/:id
    */
   @Get(':id')
-  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN)
+  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN, Role.ESN_MANAGER)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }

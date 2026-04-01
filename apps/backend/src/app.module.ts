@@ -17,6 +17,7 @@ import { RagModule } from './rag/rag.module';
 import { HealthModule } from './health/health.module';
 import { UsersModule } from './users/users.module';
 import { MissionsModule } from './missions/missions.module';
+import { EsnModule } from './esn/esn.module';
 import { JwtAuthGuard } from './common/guards/jwt-auth.guard';
 import { RolesGuard } from './common/guards/roles.guard';
 import { HttpExceptionFilter } from './common/filters/http-exception.filter';
@@ -47,6 +48,7 @@ import { HttpExceptionFilter } from './common/filters/http-exception.filter';
     HealthModule,
     UsersModule,
     MissionsModule,
+    EsnModule,
   ],
   providers: [
     // Global exception filter

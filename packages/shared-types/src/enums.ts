@@ -3,9 +3,10 @@
 
 export enum Role {
   PLATFORM_ADMIN = 'PLATFORM_ADMIN',
-  ESN_ADMIN = 'ESN_ADMIN',
-  EMPLOYEE = 'EMPLOYEE',
-  CLIENT = 'CLIENT',
+  ESN_ADMIN      = 'ESN_ADMIN',
+  ESN_MANAGER    = 'ESN_MANAGER',
+  EMPLOYEE       = 'EMPLOYEE',
+  CLIENT         = 'CLIENT',
 }
 
 export enum CraStatus {

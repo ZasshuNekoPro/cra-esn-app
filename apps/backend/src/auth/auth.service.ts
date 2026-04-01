@@ -14,6 +14,7 @@ type UserWithoutPassword = Omit<
     role: string;
     phone: string | null;
     avatarUrl: string | null;
+    esnId: string | null;
     deletedAt: Date | null;
     createdAt: Date;
     updatedAt: Date;
@@ -58,6 +59,7 @@ export class AuthService {
       sub: user.id,
       email: user.email,
       role: user.role as JwtPayload['role'],
+      esnId: user.esnId ?? null,
     };
 
     return {
