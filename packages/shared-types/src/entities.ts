@@ -25,6 +25,13 @@ export interface BaseEntity {
 
 // ── User ──────────────────────────────────────────────────────────────────────
 
+export interface Esn extends BaseEntity {
+  name: string;
+  siret?: string | null;
+  address?: string | null;
+  logoUrl?: string | null;
+}
+
 export interface User extends BaseEntity {
   email: string;
   firstName: string;
@@ -32,6 +39,7 @@ export interface User extends BaseEntity {
   role: Role;
   phone?: string | null;
   avatarUrl?: string | null;
+  esnId?: string | null;
   deletedAt?: Date | null;
 }
 
