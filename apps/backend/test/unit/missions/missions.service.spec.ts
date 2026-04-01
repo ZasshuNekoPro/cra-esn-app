@@ -40,32 +40,32 @@ describe('MissionsService', () => {
 
     it('ESN_ADMIN creates mission for any employee', async () => {
       mockPrisma.mission.create.mockResolvedValue(MISSION);
-      await service.create(dto, 'esn-1', Role.ESN_ADMIN);
+      await service.create(dto, 'esn-1', Role.ESN_ADMIN, 'esn-uuid');
       expect(mockPrisma.mission.create).toHaveBeenCalledOnce();
     });
 
     it('EMPLOYEE creates mission only for themselves', async () => {
       mockPrisma.mission.create.mockResolvedValue(MISSION);
-      await service.create({ ...dto, employeeId: 'emp-1' }, 'emp-1', Role.EMPLOYEE);
+      await service.create({ ...dto, employeeId: 'emp-1' }, 'emp-1', Role.EMPLOYEE, null);
       expect(mockPrisma.mission.create).toHaveBeenCalledOnce();
     });
 
     it('EMPLOYEE cannot create mission for another employee', async () => {
       await expect(
-        service.create({ ...dto, employeeId: 'other-emp' }, 'emp-1', Role.EMPLOYEE),
+        service.create({ ...dto, employeeId: 'other-emp' }, 'emp-1', Role.EMPLOYEE, null),
       ).rejects.toThrow(ForbiddenException);
     });
 
     it('CLIENT creates mission with self as clientId', async () => {
       mockPrisma.mission.create.mockResolvedValue(MISSION);
       const clientDto = { ...dto, clientId: 'client-1' };
-      await service.create(clientDto, 'client-1', Role.CLIENT);
+      await service.create(clientDto, 'client-1', Role.CLIENT, null);
       expect(mockPrisma.mission.create).toHaveBeenCalledOnce();
     });
 
     it('CLIENT cannot set another client', async () => {
       await expect(
-        service.create({ ...dto, clientId: 'other-client' }, 'client-1', Role.CLIENT),
+        service.create({ ...dto, clientId: 'other-client' }, 'client-1', Role.CLIENT, null),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -73,17 +73,29 @@ describe('MissionsService', () => {
   // ── findAll ────────────────────────────────────────────────────────────────
 
   describe('findAll', () => {
-    it('ESN_ADMIN sees all active missions', async () => {
+    it('ESN_ADMIN sees active missions scoped to their ESN', async () => {
       mockPrisma.mission.findMany.mockResolvedValue([MISSION]);
-      await service.findAll('esn-1', Role.ESN_ADMIN);
+      await service.findAll('esn-1', Role.ESN_ADMIN, 'esn-uuid');
       expect(mockPrisma.mission.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { isActive: true } }),
+        expect.objectContaining({
+          where: { isActive: true, employee: { esnId: 'esn-uuid' } },
+        }),
+      );
+    });
+
+    it('ESN_MANAGER sees active missions scoped to their ESN', async () => {
+      mockPrisma.mission.findMany.mockResolvedValue([MISSION]);
+      await service.findAll('mgr-1', Role.ESN_MANAGER, 'esn-uuid');
+      expect(mockPrisma.mission.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { isActive: true, employee: { esnId: 'esn-uuid' } },
+        }),
       );
     });
 
     it('EMPLOYEE sees only their missions', async () => {
       mockPrisma.mission.findMany.mockResolvedValue([]);
-      await service.findAll('emp-1', Role.EMPLOYEE);
+      await service.findAll('emp-1', Role.EMPLOYEE, null);
       expect(mockPrisma.mission.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { employeeId: 'emp-1', isActive: true } }),
       );
@@ -91,7 +103,7 @@ describe('MissionsService', () => {
 
     it('CLIENT sees only their missions', async () => {
       mockPrisma.mission.findMany.mockResolvedValue([]);
-      await service.findAll('client-1', Role.CLIENT);
+      await service.findAll('client-1', Role.CLIENT, null);
       expect(mockPrisma.mission.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { clientId: 'client-1', isActive: true } }),
       );

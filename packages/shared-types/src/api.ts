@@ -40,6 +40,7 @@ export interface JwtPayload {
   sub: string;   // user id
   email: string;
   role: Role;
+  esnId?: string | null;
   iat?: number;
   exp?: number;
 }
@@ -64,6 +65,23 @@ export interface CreateUserRequest {
   lastName: string;
   role: Role;
   phone?: string;
+  esnId?: string;
+}
+
+// ── ESN (companies) ───────────────────────────────────────────────────────────
+
+export interface CreateEsnRequest {
+  name: string;
+  siret?: string;
+  address?: string;
+  logoUrl?: string;
+}
+
+export interface UpdateEsnRequest {
+  name?: string;
+  siret?: string;
+  address?: string;
+  logoUrl?: string;
 }
 
 // ── Missions ──────────────────────────────────────────────────────────────────

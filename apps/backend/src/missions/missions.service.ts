@@ -30,15 +30,12 @@ const MISSION_WITH_USERS = {
 export class MissionsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(dto: CreateMissionDto, callerId: string, callerRole: Role) {
-    // Enforce role rules
+  async create(dto: CreateMissionDto, callerId: string, callerRole: Role, callerEsnId: string | null) {
     if (callerRole === Role.EMPLOYEE) {
-      // Employee can only create missions where they are the employee
       if (dto.employeeId !== callerId) {
         throw new ForbiddenException('Employees can only create missions for themselves');
       }
     } else if (callerRole === Role.CLIENT) {
-      // Client must be set as clientId
       if (!dto.clientId) {
         dto.clientId = callerId;
       } else if (dto.clientId !== callerId) {
@@ -61,15 +58,19 @@ export class MissionsService {
     });
   }
 
-  async findAll(callerId: string, callerRole: Role) {
-    const where =
-      callerRole === Role.ESN_ADMIN
-        ? { isActive: true }
-        : callerRole === Role.EMPLOYEE
-          ? { employeeId: callerId, isActive: true }
-          : callerRole === Role.CLIENT
-            ? { clientId: callerId, isActive: true }
-            : {};
+  async findAll(callerId: string, callerRole: Role, callerEsnId: string | null) {
+    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
+
+    const where = isEsnStaff
+      ? {
+          isActive: true,
+          ...(callerEsnId !== null ? { employee: { esnId: callerEsnId } } : {}),
+        }
+      : callerRole === Role.EMPLOYEE
+        ? { employeeId: callerId, isActive: true }
+        : callerRole === Role.CLIENT
+          ? { clientId: callerId, isActive: true }
+          : {};
 
     return this.prisma.mission.findMany({
       where,
@@ -85,8 +86,9 @@ export class MissionsService {
     });
     if (!mission) throw new NotFoundException(`Mission ${id} not found`);
 
+    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
     const hasAccess =
-      callerRole === Role.ESN_ADMIN ||
+      isEsnStaff ||
       mission.employeeId === callerId ||
       mission.clientId === callerId;
 
@@ -95,8 +97,9 @@ export class MissionsService {
   }
 
   async update(id: string, dto: UpdateMissionDto, callerRole: Role) {
-    if (callerRole !== Role.ESN_ADMIN) {
-      throw new ForbiddenException('Only ESN admins can update missions');
+    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
+    if (!isEsnStaff) {
+      throw new ForbiddenException('Only ESN staff can update missions');
     }
     const mission = await this.prisma.mission.findUnique({ where: { id } });
     if (!mission) throw new NotFoundException(`Mission ${id} not found`);
@@ -115,8 +118,9 @@ export class MissionsService {
   }
 
   async deactivate(id: string, callerRole: Role): Promise<void> {
-    if (callerRole !== Role.ESN_ADMIN) {
-      throw new ForbiddenException('Only ESN admins can deactivate missions');
+    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
+    if (!isEsnStaff) {
+      throw new ForbiddenException('Only ESN staff can deactivate missions');
     }
     const mission = await this.prisma.mission.findUnique({ where: { id } });
     if (!mission) throw new NotFoundException(`Mission ${id} not found`);

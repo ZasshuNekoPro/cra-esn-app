@@ -41,6 +41,14 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
 ];
 
+const MANAGER_NAV: NavItem[] = [
+  { href: '/manager/dashboard', label: 'Tableau de bord' },
+  { href: '/manager/employees', label: 'Salariés' },
+  { href: '/manager/clients', label: 'Clients' },
+  { href: '/manager/missions', label: 'Missions' },
+  { href: '/manager/cra-validation', label: 'Validation CRA' },
+];
+
 interface Props {
   user: SidebarUser;
 }
@@ -52,7 +60,9 @@ export function DashboardSidebar({ user }: Props): JSX.Element {
       ? PLATFORM_NAV
       : user.role === Role.ESN_ADMIN
         ? ESN_NAV
-        : EMPLOYEE_NAV;
+        : user.role === Role.ESN_MANAGER
+          ? MANAGER_NAV
+          : EMPLOYEE_NAV;
 
   return (
     <aside className="w-64 bg-white shadow-sm flex flex-col">

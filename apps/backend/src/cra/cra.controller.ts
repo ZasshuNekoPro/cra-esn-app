@@ -177,7 +177,7 @@ export class CraController {
    * For this endpoint, the consent check is delegated to the service layer.
    */
   @Post('months/:id/sign-esn')
-  @Roles(Role.ESN_ADMIN)
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
   @HttpCode(HttpStatus.OK)
   async signEsn(
     @Param('id') id: string,
@@ -191,7 +191,7 @@ export class CraController {
    * Transition SIGNED_EMPLOYEE → DRAFT (ESN admin only, requires employee consent).
    */
   @Post('months/:id/reject-esn')
-  @Roles(Role.ESN_ADMIN)
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
   @HttpCode(HttpStatus.OK)
   async rejectEsn(
     @Param('id') id: string,
@@ -235,7 +235,7 @@ export class CraController {
    * Returns CRA months in SIGNED_EMPLOYEE status for the ESN admin's missions.
    */
   @Get('pending-esn')
-  @Roles(Role.ESN_ADMIN)
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
   async getPendingEsnValidation(
     @CurrentUser() user: JwtPayload,
   ): Promise<PendingCraListResponse> {

@@ -7,10 +7,12 @@ const AUTH_PATHS = ['/login'];
 const ANONYMOUS_PATHS = ['/validate-report'];
 const ESN_PATHS = ['/esn'];
 const PLATFORM_PATHS = ['/platform'];
+const MANAGER_PATHS = ['/manager'];
 
 function roleDefaultPath(role: Role | undefined): string {
   if (role === Role.PLATFORM_ADMIN) return '/platform/admin/dashboard';
   if (role === Role.ESN_ADMIN) return '/esn/admin/dashboard';
+  if (role === Role.ESN_MANAGER) return '/manager/dashboard';
   return '/dashboard';
 }
 
@@ -48,6 +50,11 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
 
   // ESN admin routes — only ESN_ADMIN
   if (ESN_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.ESN_ADMIN) {
+    return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
+  }
+
+  // ESN manager routes — only ESN_MANAGER
+  if (MANAGER_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.ESN_MANAGER) {
     return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
   }
 
