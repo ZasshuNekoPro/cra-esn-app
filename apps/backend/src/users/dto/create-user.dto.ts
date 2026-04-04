@@ -25,6 +25,10 @@ export class CreateUserDto {
   phone?: string;
 
   @IsOptional()
+  @IsString()
+  company?: string;
+
+  @IsOptional()
   @IsUUID()
   esnId?: string;
 }

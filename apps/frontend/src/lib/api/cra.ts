@@ -49,4 +49,7 @@ export const craApi = {
 
   getPendingEsn: (): Promise<PendingCraListResponse> =>
     apiClient.get<PendingCraListResponse>('/cra/pending-esn'),
+
+  getPendingClient: (): Promise<PendingCraListResponse> =>
+    apiClient.get<PendingCraListResponse>('/cra/pending-client'),
 };

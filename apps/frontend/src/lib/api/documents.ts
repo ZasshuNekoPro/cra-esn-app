@@ -69,4 +69,7 @@ export const documentsApi = {
 
   delete: (id: string): Promise<void> =>
     apiFetch(`/documents/${id}`, { method: 'DELETE' }),
+
+  listSharedWithMe: (): Promise<DocumentWithRelations[]> =>
+    apiClient.get('/documents/shared-with-me'),
 };

@@ -270,6 +270,24 @@ export class DocumentsService {
     return document.versions;
   }
 
+  // ── Shared with me (CLIENT view) ─────────────────────────────────────────
+
+  async listSharedWithMe(requesterId: string) {
+    const shares = await this.prisma.documentShare.findMany({
+      where: { sharedWithId: requesterId, revokedAt: null },
+      include: {
+        document: {
+          include: {
+            versions: { orderBy: { version: 'desc' }, take: 1 },
+            owner: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    return shares.map((s) => s.document);
+  }
+
   // ── Soft delete ───────────────────────────────────────────────────────────
 
   async softDelete(documentId: string, ownerId: string) {

@@ -52,8 +52,16 @@ export class DocumentsController {
 
   /** GET /documents — List documents for the authenticated employee */
   @Get()
+  @Roles(Role.EMPLOYEE)
   list(@CurrentUser() user: JwtPayload, @Query() filters: ListDocumentsDto) {
     return this.documents.list(user.sub, filters);
+  }
+
+  /** GET /documents/shared-with-me — Documents shared with the authenticated client */
+  @Get('shared-with-me')
+  @Roles(Role.CLIENT)
+  listSharedWithMe(@CurrentUser() user: JwtPayload) {
+    return this.documents.listSharedWithMe(user.sub);
   }
 
   /** GET /documents/:id — Document detail with versions and shares */

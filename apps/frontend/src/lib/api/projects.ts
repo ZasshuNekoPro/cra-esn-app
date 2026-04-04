@@ -25,6 +25,9 @@ export const projectsApi = {
   list: (): Promise<ProjectSummary[]> =>
     apiClient.get('/projects'),
 
+  listForClient: (): Promise<ProjectSummary[]> =>
+    apiClient.get('/projects/for-client'),
+
   get: (id: string): Promise<ProjectDetail> =>
     apiClient.get(`/projects/${id}`),
 
