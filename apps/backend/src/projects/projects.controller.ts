@@ -52,6 +52,16 @@ export class ProjectsController {
   }
 
   /**
+   * GET /projects/for-client
+   * List all projects linked to the authenticated client's missions.
+   */
+  @Get('for-client')
+  @Roles(Role.CLIENT)
+  listProjectsForClient(@CurrentUser() user: JwtPayload) {
+    return this.projectsService.findAllForClient(user.sub);
+  }
+
+  /**
    * GET /projects/:id
    * Project detail with weather history, milestones, pending validations.
    */

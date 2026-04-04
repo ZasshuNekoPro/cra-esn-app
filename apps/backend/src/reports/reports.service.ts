@@ -553,6 +553,55 @@ export class ReportsService {
       };
     });
   }
+
+  // ── listReportsForClient ──────────────────────────────────────────────────
+
+  /**
+   * Returns all ReportValidationRequest entries with recipient='CLIENT'
+   * for employees on missions where the caller is the client.
+   */
+  async listReportsForClient(clientId: string): Promise<ReportValidationItem[]> {
+    const missions = await this.prisma.mission.findMany({
+      where: { clientId },
+      select: { employeeId: true },
+    });
+    const employeeIds = missions.map((m) => m.employeeId);
+
+    if (employeeIds.length === 0) return [];
+
+    const rows = await this.prisma.reportValidationRequest.findMany({
+      where: {
+        recipient: 'CLIENT',
+        employeeId: { in: employeeIds },
+      },
+      orderBy: { createdAt: 'desc' },
+    }) as Array<{
+      id: string;
+      token: string;
+      year: number;
+      month: number;
+      reportType: string;
+      recipient: string;
+      status: string;
+      comment: string | null;
+      resolvedBy: string | null;
+      resolvedAt: Date | null;
+      expiresAt: Date;
+      createdAt: Date;
+    }>;
+
+    return rows.map((v) => ({
+      id: v.id,
+      token: v.token,
+      recipient: v.recipient as ReportValidationItem['recipient'],
+      status: v.status as ReportValidationItem['status'],
+      comment: v.comment,
+      resolvedBy: v.resolvedBy,
+      resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
+      expiresAt: v.expiresAt.toISOString(),
+      createdAt: v.createdAt.toISOString(),
+    }));
+  }
 }
 
 function toNumber(value: unknown): number {

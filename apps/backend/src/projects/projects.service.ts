@@ -38,6 +38,44 @@ export class ProjectsService {
     });
   }
 
+  async findAllForClient(clientId: string): Promise<ProjectSummary[]> {
+    const projects = await this.prisma.project.findMany({
+      where: { mission: { clientId } },
+      include: {
+        weatherEntries: {
+          orderBy: { date: 'desc' },
+          take: 1,
+        },
+        milestones: {
+          where: { status: { not: MilestoneStatus.ARCHIVED as never } },
+          select: { status: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    return projects.map((p): ProjectSummary => {
+      const latestWeather: WeatherEntry | null =
+        p.weatherEntries.length > 0
+          ? (p.weatherEntries[0] as unknown as WeatherEntry)
+          : null;
+      const milestoneCount = p.milestones.length;
+      const lateMilestoneCount = p.milestones.filter(
+        (m) => (m.status as unknown as MilestoneStatus) === MilestoneStatus.LATE,
+      ).length;
+
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
+      const { weatherEntries: _w, milestones: _m, ...rest } = p;
+      return {
+        ...rest,
+        status: p.status as unknown as ProjectStatus,
+        latestWeather,
+        milestoneCount,
+        lateMilestoneCount,
+      } as unknown as ProjectSummary;
+    });
+  }
+
   async findAllForEmployee(employeeId: string): Promise<ProjectSummary[]> {
     const projects = await this.prisma.project.findMany({
       where: { mission: { employeeId } },

@@ -113,6 +113,15 @@ export class ReportsController {
     return this.reportsService.revokeDashboardShare(token, user.sub);
   }
 
+  // ── Client view ───────────────────────────────────────────────────────────
+
+  /** GET /reports/for-client — reports pending CLIENT validation for the caller's missions */
+  @Get('for-client')
+  @Roles(Role.CLIENT)
+  getReportsForClient(@CurrentUser() user: JwtPayload) {
+    return this.reportsService.listReportsForClient(user.sub);
+  }
+
   // ── Public view (no auth) ──────────────────────────────────────────────────
 
   @Get('shared/:token')

@@ -139,6 +139,7 @@ model User {
   lastName  String    @map("last_name")
   role      Role      @default(EMPLOYEE)
   phone     String?
+  company   String?
   avatarUrl String?   @map("avatar_url")
   esnId     String?   @map("esn_id")
   esn       Esn?      @relation(fields: [esnId], references: [id])

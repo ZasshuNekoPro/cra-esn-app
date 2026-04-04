@@ -241,4 +241,16 @@ export class CraController {
   ): Promise<PendingCraListResponse> {
     return this.craService.listPendingEsnValidation(user.sub);
   }
+
+  /**
+   * GET /cra/pending-client
+   * Returns CRA months in SIGNED_ESN status for the authenticated client's missions.
+   */
+  @Get('pending-client')
+  @Roles(Role.CLIENT)
+  async getPendingClientValidation(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<PendingCraListResponse> {
+    return this.craService.listPendingClientValidation(user.sub);
+  }
 }

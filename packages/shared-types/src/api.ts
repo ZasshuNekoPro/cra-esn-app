@@ -65,6 +65,7 @@ export interface CreateUserRequest {
   lastName: string;
   role: Role;
   phone?: string;
+  company?: string;
   esnId?: string;
 }
 
