@@ -16,6 +16,7 @@ type PublicUser = {
   lastName: string;
   role: string;
   phone: string | null;
+  company: string | null;
   avatarUrl: string | null;
   esnId: string | null;
   createdAt: Date;
@@ -29,6 +30,7 @@ const PUBLIC_SELECT = {
   lastName: true,
   role: true,
   phone: true,
+  company: true,
   avatarUrl: true,
   esnId: true,
   createdAt: true,
@@ -86,6 +88,7 @@ export class UsersService {
         lastName: dto.lastName,
         role: dto.role,
         phone: dto.phone ?? null,
+        company: dto.company ?? null,
         esnId: resolvedEsnId,
       },
       select: PUBLIC_SELECT,

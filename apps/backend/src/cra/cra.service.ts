@@ -626,6 +626,38 @@ export class CraService {
 
     return { count: items.length, items };
   }
+
+  /**
+   * List CRA months in SIGNED_ESN status for missions where the caller is the client.
+   * Used by the CLIENT role to see CRAs pending their signature.
+   */
+  async listPendingClientValidation(clientId: string): Promise<PendingCraListResponse> {
+    const months = await this.prisma.craMonth.findMany({
+      where: {
+        status: 'SIGNED_ESN',
+        mission: { clientId },
+      },
+      include: {
+        mission: {
+          include: {
+            employee: { select: { id: true, firstName: true, lastName: true } },
+          },
+        },
+      },
+      orderBy: [{ year: 'asc' }, { month: 'asc' }],
+    });
+
+    const items: PendingCraItem[] = months.map((m) => ({
+      craMonthId: m.id,
+      year: m.year,
+      month: m.month,
+      employeeId: m.mission.employee.id,
+      employeeName: `${m.mission.employee.firstName} ${m.mission.employee.lastName}`,
+      submittedAt: m.updatedAt.toISOString(),
+    }));
+
+    return { count: items.length, items };
+  }
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

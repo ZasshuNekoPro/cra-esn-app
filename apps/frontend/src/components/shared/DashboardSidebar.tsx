@@ -30,7 +30,8 @@ const EMPLOYEE_NAV: NavItem[] = [
 
 const PLATFORM_NAV: NavItem[] = [
   { href: '/platform/admin/dashboard', label: 'Tableau de bord' },
-  { href: '/platform/admin/users', label: 'Créer une ESN' },
+  { href: '/platform/admin/esn', label: 'Entreprises ESN' },
+  { href: '/platform/admin/users', label: 'Administrateurs ESN' },
 ];
 
 const ESN_NAV: NavItem[] = [
@@ -39,6 +40,7 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/admin/clients', label: 'Clients' },
   { href: '/esn/admin/missions', label: 'Missions' },
   { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
+  { href: '/esn/admin/consent', label: 'Consentements' },
 ];
 
 const MANAGER_NAV: NavItem[] = [
@@ -47,6 +49,14 @@ const MANAGER_NAV: NavItem[] = [
   { href: '/manager/clients', label: 'Clients' },
   { href: '/manager/missions', label: 'Missions' },
   { href: '/manager/cra-validation', label: 'Validation CRA' },
+];
+
+const CLIENT_NAV: NavItem[] = [
+  { href: '/client/dashboard', label: 'Tableau de bord' },
+  { href: '/client/cra-validation', label: 'Validation CRA' },
+  { href: '/client/projects', label: 'Projets' },
+  { href: '/client/documents', label: 'Documents' },
+  { href: '/client/reports', label: 'Rapports' },
 ];
 
 interface Props {
@@ -62,7 +72,9 @@ export function DashboardSidebar({ user }: Props): JSX.Element {
         ? ESN_NAV
         : user.role === Role.ESN_MANAGER
           ? MANAGER_NAV
-          : EMPLOYEE_NAV;
+          : user.role === Role.CLIENT
+            ? CLIENT_NAV
+            : EMPLOYEE_NAV;
 
   return (
     <aside className="w-64 bg-white shadow-sm flex flex-col">

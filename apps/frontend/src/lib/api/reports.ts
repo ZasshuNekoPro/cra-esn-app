@@ -9,6 +9,7 @@ import type {
   SendReportResponse,
   SentReportHistoryItem,
   ReportDownloadResponse,
+  ReportValidationItem,
 } from '@esn/shared-types';
 
 export const reportsApi = {
@@ -62,4 +63,7 @@ export const reportsApi = {
 
   markAllRead: (): Promise<void> =>
     apiClient.patch<void>('/notifications/read-all'),
+
+  listForClient: (): Promise<ReportValidationItem[]> =>
+    apiClient.get<ReportValidationItem[]>('/reports/for-client'),
 };

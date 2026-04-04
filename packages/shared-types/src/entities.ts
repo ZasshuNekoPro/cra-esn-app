@@ -38,6 +38,7 @@ export interface User extends BaseEntity {
   lastName: string;
   role: Role;
   phone?: string | null;
+  company?: string | null;
   avatarUrl?: string | null;
   esnId?: string | null;
   deletedAt?: Date | null;

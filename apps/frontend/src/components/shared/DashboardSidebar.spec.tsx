@@ -29,10 +29,16 @@ describe('DashboardSidebar — PLATFORM_ADMIN', () => {
     expect(dashLink).toHaveAttribute('href', '/platform/admin/dashboard');
   });
 
-  it('bug #2 — should have a link to /platform/admin/users to create ESN', () => {
+  it('bug #2 — should have a link to /platform/admin/users to manage ESN admins', () => {
     render(<DashboardSidebar user={user} />);
-    const createLink = screen.getByRole('link', { name: /ESN/i });
+    const createLink = screen.getByRole('link', { name: 'Administrateurs ESN' });
     expect(createLink).toHaveAttribute('href', '/platform/admin/users');
+  });
+
+  it('should have a link to /platform/admin/esn to manage ESN companies', () => {
+    render(<DashboardSidebar user={user} />);
+    const esnLink = screen.getByRole('link', { name: 'Entreprises ESN' });
+    expect(esnLink).toHaveAttribute('href', '/platform/admin/esn');
   });
 
   it('bug #3 — should NOT show "Validation CRA" tab for platform admin', () => {

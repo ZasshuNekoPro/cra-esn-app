@@ -9,6 +9,7 @@ export interface PublicUser {
   lastName: string;
   role: string;
   phone: string | null;
+  company: string | null;
   createdAt: string;
 }
 
