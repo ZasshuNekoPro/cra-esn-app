@@ -1,22 +1,31 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Role } from '@esn/shared-types';
 import { usersClientApi } from '../../../../../lib/api/users';
+import { esnClientApi } from '../../../../../lib/api/esn';
 import { ApiClientError } from '../../../../../lib/api/client';
+import type { Esn } from '@esn/shared-types';
 
 export default function CreateEsnAdminPage(): JSX.Element {
   const router = useRouter();
+  const [esns, setEsns] = useState<Esn[]>([]);
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
     email: '',
     password: '',
     phone: '',
+    esnId: '',
+    role: Role.ESN_ADMIN as Role.ESN_ADMIN | Role.ESN_MANAGER,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    esnClientApi.list().then(setEsns).catch(() => { /* silently ignore */ });
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -25,9 +34,13 @@ export default function CreateEsnAdminPage(): JSX.Element {
 
     try {
       await usersClientApi.create({
-        ...form,
+        firstName: form.firstName,
+        lastName: form.lastName,
+        email: form.email,
+        password: form.password,
         phone: form.phone || undefined,
-        role: Role.ESN_ADMIN,
+        role: form.role,
+        esnId: form.esnId || undefined,
       });
       router.push('/platform/admin/dashboard');
     } catch (err) {
@@ -98,6 +111,42 @@ export default function CreateEsnAdminPage(): JSX.Element {
           />
         </div>
 
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
+          <select
+            value={form.role}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role.ESN_ADMIN | Role.ESN_MANAGER }))}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            <option value={Role.ESN_ADMIN}>ESN Admin</option>
+            <option value={Role.ESN_MANAGER}>ESN Manager</option>
+          </select>
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            ESN associée <span className="text-red-500">*</span>
+          </label>
+          {esns.length === 0 ? (
+            <p className="text-sm text-amber-600 bg-amber-50 p-3 rounded">
+              Aucune ESN disponible.{' '}
+              <a href="/platform/admin/esn" className="underline">Créer une ESN d&apos;abord →</a>
+            </p>
+          ) : (
+            <select
+              required
+              value={form.esnId}
+              onChange={(e) => setForm((f) => ({ ...f, esnId: e.target.value }))}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">— Sélectionner une ESN —</option>
+              {esns.map((esn) => (
+                <option key={esn.id} value={esn.id}>{esn.name}</option>
+              ))}
+            </select>
+          )}
+        </div>
+
         {error && (
           <p className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</p>
         )}
@@ -105,7 +154,7 @@ export default function CreateEsnAdminPage(): JSX.Element {
         <div className="flex gap-3 pt-2">
           <button
             type="submit"
-            disabled={loading}
+            disabled={loading || esns.length === 0}
             className="flex-1 bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
           >
             {loading ? 'Création...' : 'Créer le compte ESN'}
