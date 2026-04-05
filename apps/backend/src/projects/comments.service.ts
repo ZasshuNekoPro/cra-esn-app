@@ -127,8 +127,12 @@ export class CommentsService {
         return { id: projectId, mission: { employeeId: callerId } };
       case Role.ESN_ADMIN:
         return { id: projectId, mission: { esnAdminId: callerId } };
+      case Role.ESN_MANAGER:
+        return { id: projectId, mission: { esnAdminId: callerId } };
       case Role.CLIENT:
         return { id: projectId, mission: { clientId: callerId } };
+      default:
+        throw new ForbiddenException('Accès non autorisé');
     }
   }
 }
