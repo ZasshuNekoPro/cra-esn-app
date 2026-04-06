@@ -10,6 +10,7 @@ import type {
   SentReportHistoryItem,
   ReportDownloadResponse,
   ReportValidationItem,
+  ReportValidationItemForEsn,
 } from '@esn/shared-types';
 
 export const reportsApi = {
@@ -66,4 +67,7 @@ export const reportsApi = {
 
   listForClient: (): Promise<ReportValidationItem[]> =>
     apiClient.get<ReportValidationItem[]>('/reports/for-client'),
+
+  listForEsn: (): Promise<ReportValidationItemForEsn[]> =>
+    apiClient.get<ReportValidationItemForEsn[]>('/reports/for-esn'),
 };

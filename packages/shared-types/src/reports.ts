@@ -42,6 +42,15 @@ export interface ReportValidationItem {
   createdAt: string;           // ISO 8601
 }
 
+/** Extended validation item with employee context — returned by GET /reports/for-esn */
+export interface ReportValidationItemForEsn extends ReportValidationItem {
+  year: number;
+  month: number;
+  reportType: ReportType;
+  employeeId: string;
+  employeeName: string;
+}
+
 /** Public context returned by GET /reports/validate/:token (no auth required). */
 export interface ValidateReportPublicInfo {
   token: string;

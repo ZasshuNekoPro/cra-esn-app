@@ -554,6 +554,70 @@ export class ReportsService {
     });
   }
 
+  // ── listReportsForEsn ────────────────────────────────────────────────────
+
+  /**
+   * Returns all ReportValidationRequest entries with recipient='ESN'
+   * for employees belonging to the same ESN as the caller (matched via esnId).
+   */
+  async listReportsForEsn(callerId: string): Promise<import('@esn/shared-types').ReportValidationItemForEsn[]> {
+    const caller = await this.prisma.user.findUnique({
+      where: { id: callerId },
+      select: { esnId: true },
+    });
+    if (!caller?.esnId) return [];
+
+    const employees = await this.prisma.user.findMany({
+      where: { esnId: caller.esnId, deletedAt: null },
+      select: { id: true, firstName: true, lastName: true },
+    });
+    const employeeMap = new Map(
+      employees.map((e) => [e.id, `${e.firstName} ${e.lastName}`]),
+    );
+    const employeeIds = [...employeeMap.keys()];
+
+    if (employeeIds.length === 0) return [];
+
+    const rows = await this.prisma.reportValidationRequest.findMany({
+      where: {
+        recipient: 'ESN',
+        employeeId: { in: employeeIds },
+      },
+      orderBy: { createdAt: 'desc' },
+    }) as Array<{
+      id: string;
+      token: string;
+      year: number;
+      month: number;
+      reportType: string;
+      recipient: string;
+      status: string;
+      comment: string | null;
+      resolvedBy: string | null;
+      resolvedAt: Date | null;
+      expiresAt: Date;
+      createdAt: Date;
+      employeeId: string;
+    }>;
+
+    return rows.map((v) => ({
+      id: v.id,
+      token: v.token,
+      year: v.year,
+      month: v.month,
+      reportType: v.reportType as import('@esn/shared-types').ReportType,
+      recipient: v.recipient as import('@esn/shared-types').ReportRecipient,
+      status: v.status as import('@esn/shared-types').ReportValidationStatus,
+      comment: v.comment,
+      resolvedBy: v.resolvedBy,
+      resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
+      expiresAt: v.expiresAt.toISOString(),
+      createdAt: v.createdAt.toISOString(),
+      employeeId: v.employeeId,
+      employeeName: employeeMap.get(v.employeeId) ?? 'Inconnu',
+    }));
+  }
+
   // ── listReportsForClient ──────────────────────────────────────────────────
 
   /**
