@@ -40,6 +40,7 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/admin/clients', label: 'Clients' },
   { href: '/esn/admin/missions', label: 'Missions' },
   { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
+  { href: '/esn/admin/reports', label: 'Rapports salariés' },
   { href: '/esn/admin/consent', label: 'Consentements' },
 ];
 

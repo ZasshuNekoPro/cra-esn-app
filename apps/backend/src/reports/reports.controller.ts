@@ -113,6 +113,15 @@ export class ReportsController {
     return this.reportsService.revokeDashboardShare(token, user.sub);
   }
 
+  // ── ESN admin view ────────────────────────────────────────────────────────
+
+  /** GET /reports/for-esn — reports sent to ESN for the caller's ESN employees */
+  @Get('for-esn')
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  getReportsForEsn(@CurrentUser() user: JwtPayload) {
+    return this.reportsService.listReportsForEsn(user.sub);
+  }
+
   // ── Client view ───────────────────────────────────────────────────────────
 
   /** GET /reports/for-client — reports pending CLIENT validation for the caller's missions */
