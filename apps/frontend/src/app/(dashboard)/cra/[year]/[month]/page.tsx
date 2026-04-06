@@ -1,7 +1,8 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 import { auth } from '../../../../../auth';
 import { craApi } from '../../../../../lib/api/cra';
 import { CraMonthClient } from '../../../../../components/cra/CraMonthClient';
+import { ApiClientError } from '../../../../../lib/api/client';
 
 interface PageParams {
   year: string;
@@ -32,14 +33,20 @@ export default async function CraMonthPage({ params }: Props): Promise<JSX.Eleme
     notFound();
   }
 
-  // Fetch or create the CRA month (server-side)
-  const craMonth = await craApi.getOrCreateMonth(year, month);
-
-  // Fetch month details with entries
-  const craMonthWithEntries = await craApi.getMonth(craMonth.id);
-
-  // Fetch summary to get public holidays
-  const summary = await craApi.getSummary(craMonth.id);
+  let craMonth, craMonthWithEntries, summary;
+  try {
+    // Fetch or create the CRA month (server-side)
+    craMonth = await craApi.getOrCreateMonth(year, month);
+    // Fetch month details with entries
+    craMonthWithEntries = await craApi.getMonth(craMonth.id);
+    // Fetch summary to get public holidays
+    summary = await craApi.getSummary(craMonth.id);
+  } catch (err) {
+    if (err instanceof ApiClientError && (err.statusCode === 401 || err.statusCode === 403)) {
+      redirect('/login');
+    }
+    throw err;
+  }
 
   // Extract public holiday dates from summary (via entries or a separate field)
   // The summary does not include a publicHolidays field in the current type, so we
