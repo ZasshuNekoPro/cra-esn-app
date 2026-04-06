@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
+import { Role } from '@esn/shared-types';
 import { EsnService } from '../../esn.service';
 
 const mockPrisma = {
@@ -8,6 +9,10 @@ const mockPrisma = {
     findUnique: vi.fn(),
     create: vi.fn(),
     update: vi.fn(),
+    count: vi.fn(),
+  },
+  user: {
+    count: vi.fn(),
   },
 };
 
@@ -76,6 +81,67 @@ describe('EsnService', () => {
     it('throws NotFoundException when ESN not found on update', async () => {
       mockPrisma.esn.findUnique.mockResolvedValue(null);
       await expect(service.update('bad-id', { name: 'X' })).rejects.toThrow(NotFoundException);
+    });
+  });
+
+  describe('getStats', () => {
+    it('returns platform-wide statistics', async () => {
+      mockPrisma.esn.count.mockResolvedValue(2);
+      mockPrisma.user.count
+        .mockResolvedValueOnce(3)  // ESN_ADMIN + ESN_MANAGER
+        .mockResolvedValueOnce(10) // EMPLOYEE
+        .mockResolvedValueOnce(4); // CLIENT
+      mockPrisma.esn.findMany.mockResolvedValue([
+        { id: 'esn-1', name: 'Acme ESN', users: [{ role: Role.ESN_ADMIN }, { role: Role.EMPLOYEE }, { role: Role.CLIENT }] },
+        { id: 'esn-2', name: 'Beta ESN', users: [{ role: Role.ESN_MANAGER }, { role: Role.EMPLOYEE }] },
+      ]);
+
+      const result = await service.getStats();
+
+      expect(result.esnCount).toBe(2);
+      expect(result.esnAdminCount).toBe(3);
+      expect(result.employeeCount).toBe(10);
+      expect(result.clientCount).toBe(4);
+      expect(result.esnList).toHaveLength(2);
+    });
+
+    it('computes per-ESN role counts correctly', async () => {
+      mockPrisma.esn.count.mockResolvedValue(1);
+      mockPrisma.user.count
+        .mockResolvedValueOnce(2)
+        .mockResolvedValueOnce(5)
+        .mockResolvedValueOnce(3);
+      mockPrisma.esn.findMany.mockResolvedValue([
+        {
+          id: 'esn-1',
+          name: 'Acme ESN',
+          users: [
+            { role: Role.ESN_ADMIN },
+            { role: Role.ESN_MANAGER },
+            { role: Role.EMPLOYEE },
+            { role: Role.EMPLOYEE },
+            { role: Role.CLIENT },
+          ],
+        },
+      ]);
+
+      const result = await service.getStats();
+      const esn = result.esnList[0];
+
+      expect(esn.adminCount).toBe(2);
+      expect(esn.employeeCount).toBe(2);
+      expect(esn.clientCount).toBe(1);
+    });
+
+    it('returns empty esnList when no ESN exists', async () => {
+      mockPrisma.esn.count.mockResolvedValue(0);
+      mockPrisma.user.count.mockResolvedValue(0);
+      mockPrisma.esn.findMany.mockResolvedValue([]);
+
+      const result = await service.getStats();
+
+      expect(result.esnCount).toBe(0);
+      expect(result.esnList).toHaveLength(0);
     });
   });
 

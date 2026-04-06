@@ -12,7 +12,7 @@ export const clientCraApi = {
     clientApiFetch<CraEntry>(`/cra/months/${id}/entries`, { method: 'POST', body }),
 
   updateEntry: (id: string, eid: string, body: UpdateCraEntryRequest): Promise<CraEntry> =>
-    clientApiFetch<CraEntry>(`/cra/months/${id}/entries/${eid}`, { method: 'PATCH', body }),
+    clientApiFetch<CraEntry>(`/cra/months/${id}/entries/${eid}`, { method: 'PUT', body }),
 
   deleteEntry: (id: string, eid: string): Promise<void> =>
     clientApiFetch<void>(`/cra/months/${id}/entries/${eid}`, { method: 'DELETE' }),

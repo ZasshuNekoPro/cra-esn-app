@@ -1,21 +1,16 @@
 import { auth } from '../../../../../auth';
 import { redirect } from 'next/navigation';
 import Link from 'next/link';
+import { esnApi } from '../../../../../lib/api/esn';
+import type { PlatformStats } from '@esn/shared-types';
 
-async function getEsnAdmins() {
+async function getStats(): Promise<PlatformStats | null> {
   const session = await auth();
-  if (!session) return [];
-
+  if (!session) return null;
   try {
-    const res = await fetch(`${process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3001/api'}/users`, {
-      headers: { Authorization: `Bearer ${session.accessToken}` },
-      cache: 'no-store',
-    });
-    if (!res.ok) return [];
-    const data = await res.json() as Array<{ id: string; email: string; firstName: string; lastName: string; role: string; createdAt: string }>;
-    return data.filter((u) => u.role === 'ESN_ADMIN');
+    return await esnApi.getStats();
   } catch {
-    return [];
+    return null;
   }
 }
 
@@ -23,48 +18,74 @@ export default async function PlatformDashboardPage(): Promise<JSX.Element> {
   const session = await auth();
   if (!session) redirect('/login');
 
-  const esnAdmins = await getEsnAdmins();
+  const stats = await getStats();
 
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-2xl font-bold text-gray-900">Tableau de bord — Administration plateforme</h1>
-        <Link
-          href="/platform/admin/users"
-          className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-        >
-          + Créer une ESN
-        </Link>
+        <div className="flex gap-3">
+          <Link
+            href="/platform/admin/esn"
+            className="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+          >
+            + Créer une ESN
+          </Link>
+          <Link
+            href="/platform/admin/users"
+            className="bg-gray-800 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-gray-900"
+          >
+            + Créer un compte
+          </Link>
+        </div>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-6 mb-6">
-        <p className="text-sm text-gray-500 mb-1">Comptes ESN enregistrés</p>
-        <p className="text-3xl font-bold text-blue-600">{esnAdmins.length}</p>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+        <div className="bg-white rounded-lg shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">ESN enregistrées</p>
+          <p className="text-3xl font-bold text-blue-600">{stats?.esnCount ?? '—'}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Comptes ESN Admin</p>
+          <p className="text-3xl font-bold text-indigo-600">{stats?.esnAdminCount ?? '—'}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Salariés</p>
+          <p className="text-3xl font-bold text-green-600">{stats?.employeeCount ?? '—'}</p>
+        </div>
+        <div className="bg-white rounded-lg shadow-sm border p-5">
+          <p className="text-sm text-gray-500 mb-1">Clients</p>
+          <p className="text-3xl font-bold text-orange-600">{stats?.clientCount ?? '—'}</p>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow-sm border">
-        <div className="px-6 py-4 border-b">
+        <div className="px-6 py-4 border-b flex items-center justify-between">
           <h2 className="font-semibold text-gray-900">ESN enregistrées</h2>
+          <Link href="/platform/admin/esn" className="text-sm text-blue-600 hover:underline">
+            Gérer →
+          </Link>
         </div>
-        {esnAdmins.length === 0 ? (
+        {!stats || stats.esnList.length === 0 ? (
           <div className="px-6 py-8 text-center text-gray-500">
             <p>Aucune ESN enregistrée.</p>
-            <Link href="/platform/admin/users" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
+            <Link href="/platform/admin/esn" className="text-blue-600 hover:underline text-sm mt-2 inline-block">
               Créer la première ESN →
             </Link>
           </div>
         ) : (
-          <ul className="divide-y">
-            {esnAdmins.map((esn) => (
-              <li key={esn.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">{esn.firstName} {esn.lastName}</p>
-                  <p className="text-sm text-gray-500">{esn.email}</p>
+          <div className="divide-y">
+            {stats.esnList.map((esn) => (
+              <div key={esn.id} className="px-6 py-4 flex items-center justify-between">
+                <p className="font-medium text-gray-900">{esn.name}</p>
+                <div className="flex gap-4 text-sm text-gray-500">
+                  <span>{esn.adminCount} admin{esn.adminCount > 1 ? 's' : ''}</span>
+                  <span>{esn.employeeCount} salarié{esn.employeeCount > 1 ? 's' : ''}</span>
+                  <span>{esn.clientCount} client{esn.clientCount > 1 ? 's' : ''}</span>
                 </div>
-                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded">ESN Admin</span>
-              </li>
+              </div>
             ))}
-          </ul>
+          </div>
         )}
       </div>
     </div>

@@ -19,6 +19,15 @@ export class EsnController {
   }
 
   /**
+   * GET /esn/stats — platform-wide statistics (PLATFORM_ADMIN only)
+   */
+  @Get('stats')
+  @Roles(Role.PLATFORM_ADMIN)
+  getStats() {
+    return this.esnService.getStats();
+  }
+
+  /**
    * GET /esn/:id — get one ESN (PLATFORM_ADMIN only)
    */
   @Get(':id')

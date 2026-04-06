@@ -1,7 +1,9 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Role } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import type { CreateEsnDto } from './dto/create-esn.dto';
 import type { UpdateEsnDto } from './dto/update-esn.dto';
+import type { PlatformStats } from '@esn/shared-types';
 
 const ESN_SELECT = {
   id: true,
@@ -72,6 +74,37 @@ export class EsnService {
       },
       select: ESN_SELECT,
     });
+  }
+
+  async getStats(): Promise<PlatformStats> {
+    const [esnCount, esnAdminCount, employeeCount, clientCount, esnsWithUsers] = await Promise.all([
+      this.prisma.esn.count(),
+      this.prisma.user.count({
+        where: { role: { in: [Role.ESN_ADMIN, Role.ESN_MANAGER] }, deletedAt: null },
+      }),
+      this.prisma.user.count({ where: { role: Role.EMPLOYEE, deletedAt: null } }),
+      this.prisma.user.count({ where: { role: Role.CLIENT, deletedAt: null } }),
+      this.prisma.esn.findMany({
+        select: {
+          id: true,
+          name: true,
+          users: { where: { deletedAt: null }, select: { role: true } },
+        },
+        orderBy: { name: 'asc' },
+      }),
+    ]);
+
+    const esnList = esnsWithUsers.map((esn) => ({
+      id: esn.id,
+      name: esn.name,
+      adminCount: esn.users.filter(
+        (u) => u.role === Role.ESN_ADMIN || u.role === Role.ESN_MANAGER,
+      ).length,
+      employeeCount: esn.users.filter((u) => u.role === Role.EMPLOYEE).length,
+      clientCount: esn.users.filter((u) => u.role === Role.CLIENT).length,
+    }));
+
+    return { esnCount, esnAdminCount, employeeCount, clientCount, esnList };
   }
 
   async findUsers(id: string) {

@@ -16,6 +16,7 @@ vi.mock('./clientFetch', () => ({
     get: <T>(path: string): Promise<T> => mockClientApiFetch(path, { method: 'GET' }) as Promise<T>,
     post: <T>(path: string, body?: unknown): Promise<T> => mockClientApiFetch(path, { method: 'POST', body }) as Promise<T>,
     patch: <T>(path: string, body?: unknown): Promise<T> => mockClientApiFetch(path, { method: 'PATCH', body }) as Promise<T>,
+    put: <T>(path: string, body?: unknown): Promise<T> => mockClientApiFetch(path, { method: 'PUT', body }) as Promise<T>,
     delete: <T>(path: string): Promise<T> => mockClientApiFetch(path, { method: 'DELETE' }) as Promise<T>,
   },
 }));
@@ -37,12 +38,12 @@ describe('clientCraApi', () => {
     );
   });
 
-  it('updateEntry calls PATCH /cra/months/:id/entries/:eid', async () => {
+  it('updateEntry calls PUT /cra/months/:id/entries/:eid', async () => {
     const body = { entryType: CraEntryType.WORK_REMOTE, dayFraction: 0.5 };
     await clientCraApi.updateEntry('m1', 'e1', body);
     expect(mockClientApiFetch).toHaveBeenCalledWith(
       '/cra/months/m1/entries/e1',
-      expect.objectContaining({ method: 'PATCH', body }),
+      expect.objectContaining({ method: 'PUT', body }),
     );
   });
 

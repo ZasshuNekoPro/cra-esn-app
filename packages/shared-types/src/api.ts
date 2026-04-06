@@ -85,6 +85,22 @@ export interface UpdateEsnRequest {
   logoUrl?: string;
 }
 
+export interface EsnStatItem {
+  id: string;
+  name: string;
+  adminCount: number;
+  employeeCount: number;
+  clientCount: number;
+}
+
+export interface PlatformStats {
+  esnCount: number;
+  esnAdminCount: number;
+  employeeCount: number;
+  clientCount: number;
+  esnList: EsnStatItem[];
+}
+
 // ── Missions ──────────────────────────────────────────────────────────────────
 
 export interface CreateMissionRequest {

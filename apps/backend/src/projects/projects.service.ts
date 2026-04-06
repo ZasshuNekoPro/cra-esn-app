@@ -2,6 +2,7 @@ import {
   Injectable,
   NotFoundException,
   ConflictException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { ProjectStatus, ValidationStatus, MilestoneStatus, Role, AuditAction } from '@esn/shared-types';
 import type {
@@ -254,8 +255,12 @@ export class ProjectsService {
       case Role.ESN_ADMIN:
         // ConsentGuard already verified; ESN can see all projects on their managed missions
         return { id: projectId, mission: { esnAdminId: callerId } };
+      case Role.ESN_MANAGER:
+        return { id: projectId, mission: { esnAdminId: callerId } };
       case Role.CLIENT:
         return { id: projectId, mission: { clientId: callerId } };
+      default:
+        throw new ForbiddenException('Accès non autorisé');
     }
   }
 
