@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { WeatherState } from '@esn/shared-types';
 import type { WeatherEntry } from '@esn/shared-types';
 import { WeatherIcon } from './WeatherIcon';
-import { projectsApi } from '../../lib/api/projects';
+import { createWeatherEntryAction } from '../../app/(dashboard)/projects/actions';
 
 const COMMENT_REQUIRED_STATES: WeatherState[] = [WeatherState.RAINY, WeatherState.STORM];
 
@@ -19,25 +19,37 @@ const WEATHER_STATE_LABELS: Record<WeatherState, string> = {
 
 interface WeatherEntryFormProps {
   projectId: string;
-  defaultDate?: string; // ISO date
+  selectedYear: number;
+  selectedMonth: number;
+  defaultDate?: string; // ISO date — overrides computed default when a calendar day is clicked
   onSuccess: (entry: WeatherEntry) => void;
   onCancel: () => void;
 }
 
 export function WeatherEntryForm({
   projectId,
+  selectedYear,
+  selectedMonth,
   defaultDate,
   onSuccess,
   onCancel,
 }: WeatherEntryFormProps): JSX.Element {
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  const monthStart = `${selectedYear}-${pad(selectedMonth)}-01`;
+  const monthEnd = new Date(selectedYear, selectedMonth, 0).toISOString().slice(0, 10);
+
   const today = new Date().toISOString().slice(0, 10);
-  const [state, setState] = useState<WeatherState>(WeatherState.SUNNY);
-  const [date, setDate] = useState(defaultDate ?? today);
+  const isCurrentMonth =
+    new Date().getFullYear() === selectedYear && new Date().getMonth() + 1 === selectedMonth;
+  const smartDefault = defaultDate ?? (isCurrentMonth ? today : monthStart);
+
+  const [weatherState, setWeatherState] = useState<WeatherState>(WeatherState.SUNNY);
+  const [date, setDate] = useState(smartDefault);
   const [comment, setComment] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const needsComment = COMMENT_REQUIRED_STATES.includes(state);
+  const needsComment = COMMENT_REQUIRED_STATES.includes(weatherState);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -48,8 +60,8 @@ export function WeatherEntryForm({
     setError(null);
     setSubmitting(true);
     try {
-      const entry = await projectsApi.createWeatherEntry(projectId, {
-        state,
+      const entry = await createWeatherEntryAction(projectId, {
+        state: weatherState,
         date,
         comment: comment.trim() || undefined,
       });
@@ -68,6 +80,8 @@ export function WeatherEntryForm({
         <input
           type="date"
           value={date}
+          min={monthStart}
+          max={monthEnd}
           onChange={(e) => setDate(e.target.value)}
           className="w-full border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           required
@@ -81,10 +95,10 @@ export function WeatherEntryForm({
             <button
               key={ws}
               type="button"
-              onClick={() => setState(ws)}
+              onClick={() => setWeatherState(ws)}
               className={[
                 'flex flex-col items-center gap-1 p-3 rounded-md border text-xs font-medium transition-colors',
-                state === ws
+                weatherState === ws
                   ? 'border-blue-500 bg-blue-50 text-blue-700'
                   : 'border-gray-200 hover:border-gray-300',
               ].join(' ')}
@@ -98,7 +112,12 @@ export function WeatherEntryForm({
 
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Commentaire {needsComment ? <span className="text-red-500">*</span> : <span className="text-gray-400">(optionnel)</span>}
+          Commentaire{' '}
+          {needsComment ? (
+            <span className="text-red-500">*</span>
+          ) : (
+            <span className="text-gray-400">(optionnel)</span>
+          )}
         </label>
         <textarea
           value={comment}
