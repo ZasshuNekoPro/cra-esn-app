@@ -35,10 +35,10 @@ export default async function AdminDashboardPage(): Promise<JSX.Element> {
           </p>
           {pendingCount !== null && pendingCount > 0 && (
             <Link
-              href="/esn/admin/cra-validation"
+              href="/esn/admin/reports"
               className="mt-2 inline-block text-xs font-medium text-orange-600 hover:text-orange-700 underline"
             >
-              Voir les CRA →
+              Voir les validations →
             </Link>
           )}
         </div>

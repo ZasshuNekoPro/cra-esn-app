@@ -41,9 +41,9 @@ describe('DashboardSidebar — PLATFORM_ADMIN', () => {
     expect(esnLink).toHaveAttribute('href', '/platform/admin/esn');
   });
 
-  it('bug #3 — should NOT show "Validation CRA" tab for platform admin', () => {
+  it('bug #3 — should NOT show "Validation & Rapports" tab for platform admin', () => {
     render(<DashboardSidebar user={user} />);
-    expect(screen.queryByText('Validation CRA')).toBeNull();
+    expect(screen.queryByText('Validation & Rapports')).toBeNull();
   });
 });
 
@@ -56,9 +56,9 @@ describe('DashboardSidebar — ESN_ADMIN', () => {
     expect(dashLink).toHaveAttribute('href', '/esn/admin/dashboard');
   });
 
-  it('should show Validation CRA for ESN_ADMIN', () => {
+  it('should show Validation & Rapports for ESN_ADMIN', () => {
     render(<DashboardSidebar user={user} />);
-    expect(screen.getByText('Validation CRA')).toBeInTheDocument();
+    expect(screen.getByText('Validation & Rapports')).toBeInTheDocument();
   });
 });
 
@@ -73,7 +73,7 @@ describe('DashboardSidebar — ESN_MANAGER', () => {
 
   it('should show Validation CRA for ESN_MANAGER', () => {
     render(<DashboardSidebar user={user} />);
-    expect(screen.getByText('Validation CRA')).toBeInTheDocument();
+    expect(screen.getByText('Validation CRA')).toBeInTheDocument(); // manager garde l'onglet CRA distinct
   });
 
   it('should show Salariés, Clients, Missions links', () => {
@@ -93,8 +93,8 @@ describe('DashboardSidebar — EMPLOYEE', () => {
     expect(dashLink).toHaveAttribute('href', '/dashboard');
   });
 
-  it('should NOT show Validation CRA for employee', () => {
+  it('should NOT show Validation & Rapports for employee', () => {
     render(<DashboardSidebar user={user} />);
-    expect(screen.queryByText('Validation CRA')).toBeNull();
+    expect(screen.queryByText('Validation & Rapports')).toBeNull();
   });
 });

@@ -39,8 +39,7 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/admin/employees', label: 'Salariés' },
   { href: '/esn/admin/clients', label: 'Clients' },
   { href: '/esn/admin/missions', label: 'Missions' },
-  { href: '/esn/admin/cra-validation', label: 'Validation CRA' },
-  { href: '/esn/admin/reports', label: 'Rapports salariés' },
+  { href: '/esn/admin/reports', label: 'Validation & Rapports' },
   { href: '/esn/admin/consent', label: 'Consentements' },
 ];
 
@@ -54,10 +53,9 @@ const MANAGER_NAV: NavItem[] = [
 
 const CLIENT_NAV: NavItem[] = [
   { href: '/client/dashboard', label: 'Tableau de bord' },
-  { href: '/client/cra-validation', label: 'Validation CRA' },
+  { href: '/client/reports', label: 'Validation & Rapports' },
   { href: '/client/projects', label: 'Projets' },
   { href: '/client/documents', label: 'Documents' },
-  { href: '/client/reports', label: 'Rapports' },
 ];
 
 interface Props {
