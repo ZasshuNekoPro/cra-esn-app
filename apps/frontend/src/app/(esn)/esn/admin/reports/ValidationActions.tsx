@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { reportsApi } from '../../../../../lib/api/reports';
+import { archiveValidationAction, remindValidationAction } from './actions';
 
 interface Props {
   id: string;
@@ -18,9 +18,9 @@ export function ValidationActions({ id }: Props): JSX.Element {
     setError(null);
     try {
       if (action === 'archive') {
-        await reportsApi.archiveValidation(id);
+        await archiveValidationAction(id);
       } else {
-        await reportsApi.remindValidation(id);
+        await remindValidationAction(id);
       }
       router.refresh();
     } catch {
