@@ -6,22 +6,25 @@ const prisma = new PrismaClient();
 async function main(): Promise<void> {
   console.log('🌱 Seeding database...');
 
-  // ── Users ──────────────────────────────────────────────────────────────────
   const hashedPassword = await bcrypt.hash('password123', 10);
 
-  const employee = await prisma.user.upsert({
-    where: { email: 'alice@example.com' },
+  // ── ESN ────────────────────────────────────────────────────────────────────
+  const esn = await prisma.esn.upsert({
+    where: { id: 'seed-esn-001' },
     update: {},
     create: {
-      email: 'alice@example.com',
-      password: hashedPassword,
-      firstName: 'Alice',
-      lastName: 'Dupont',
-      role: Role.EMPLOYEE,
-      phone: '+33 6 12 34 56 78',
+      id: 'seed-esn-001',
+      name: 'ESN Corp',
+      siret: '12345678900010',
+      address: '10 rue de la Paix, 75001 Paris',
     },
   });
 
+  console.log('  ✓ ESN created');
+
+  // ── Users ──────────────────────────────────────────────────────────────────
+
+  // PLATFORM_ADMIN — pas rattaché à une ESN
   await prisma.user.upsert({
     where: { email: 'platform@esn-app.local' },
     update: {},
@@ -34,36 +37,59 @@ async function main(): Promise<void> {
     },
   });
 
+  // ESN_ADMIN — rattaché à l'ESN
   const esnAdmin = await prisma.user.upsert({
     where: { email: 'admin@esn-corp.local' },
-    update: {},
+    update: { esnId: esn.id },
     create: {
       email: 'admin@esn-corp.local',
       password: hashedPassword,
       firstName: 'Bob',
       lastName: 'Martin',
       role: Role.ESN_ADMIN,
+      esnId: esn.id,
     },
   });
 
+  // EMPLOYEE — rattaché à l'ESN
+  const employee = await prisma.user.upsert({
+    where: { email: 'alice@example.com' },
+    update: { esnId: esn.id },
+    create: {
+      email: 'alice@example.com',
+      password: hashedPassword,
+      firstName: 'Alice',
+      lastName: 'Dupont',
+      role: Role.EMPLOYEE,
+      phone: '+33 6 12 34 56 78',
+      esnId: esn.id,
+    },
+  });
+
+  // CLIENT — rattaché à l'ESN (lien indirect via mission, mais esnId permet le scoping)
   const client = await prisma.user.upsert({
     where: { email: 'contact@client-corp.local' },
-    update: {},
+    update: { esnId: esn.id },
     create: {
       email: 'contact@client-corp.local',
       password: hashedPassword,
       firstName: 'Claire',
       lastName: 'Bernard',
       role: Role.CLIENT,
+      esnId: esn.id,
     },
   });
 
-  console.log('  ✓ Users created');
+  console.log('  ✓ Users created (ESN_ADMIN + EMPLOYEE + CLIENT liés à l\'ESN)');
 
   // ── Mission ────────────────────────────────────────────────────────────────
   const mission = await prisma.mission.upsert({
     where: { id: 'seed-mission-001' },
-    update: {},
+    update: {
+      esnAdminId: esnAdmin.id,
+      clientId: client.id,
+      employeeId: employee.id,
+    },
     create: {
       id: 'seed-mission-001',
       title: 'Développement Plateforme RH',
@@ -244,10 +270,10 @@ async function main(): Promise<void> {
 
   console.log('\n✅ Seeding complete!');
   console.log('\nTest credentials (password: password123):');
-  console.log('  Platform Admin: platform@esn-app.local');
-  console.log('  ESN Admin     : admin@esn-corp.local');
-  console.log('  Employee      : alice@example.com');
-  console.log('  Client        : contact@client-corp.local');
+  console.log('  Platform Admin : platform@esn-app.local');
+  console.log('  ESN Admin      : admin@esn-corp.local  (ESN: ESN Corp)');
+  console.log('  Employee       : alice@example.com     (ESN: ESN Corp)');
+  console.log('  Client         : contact@client-corp.local (ESN: ESN Corp, mission: alice)');
 }
 
 main()

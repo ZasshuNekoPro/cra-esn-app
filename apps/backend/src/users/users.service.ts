@@ -105,10 +105,13 @@ export class UsersService {
     }
 
     // ESN_ADMIN and ESN_MANAGER see only EMPLOYEE+CLIENT in their own ESN
+    // If caller has no esnId, return empty list (misconfigured account)
+    if (callerEsnId === null) return [];
+
     return this.prisma.user.findMany({
       where: {
         deletedAt: null,
-        ...(callerEsnId !== null ? { esnId: callerEsnId } : {}),
+        esnId: callerEsnId,
         role: { in: [Role.EMPLOYEE, Role.CLIENT] },
       },
       select: PUBLIC_SELECT,
