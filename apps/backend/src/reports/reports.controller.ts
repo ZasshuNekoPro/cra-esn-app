@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Query,
@@ -154,5 +155,25 @@ export class ReportsController {
     @Body() dto: ValidateReportDto,
   ) {
     return this.reportsValidateService.submitValidation(token, dto);
+  }
+
+  // ── ESN actions on validation requests ────────────────────────────────────
+
+  @Patch('validation/:id/archive')
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  archiveValidation(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportsValidateService.archiveValidation(id, user.sub);
+  }
+
+  @Patch('validation/:id/remind')
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  remindEmployee(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportsValidateService.remindEmployee(id, user.sub);
   }
 }

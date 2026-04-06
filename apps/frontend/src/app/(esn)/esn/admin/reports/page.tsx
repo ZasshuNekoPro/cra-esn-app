@@ -2,6 +2,7 @@ import { reportsApi } from '../../../../../lib/api/reports';
 import { auth } from '../../../../../auth';
 import { redirect } from 'next/navigation';
 import { ApiClientError } from '../../../../../lib/api/client';
+import { ValidationActions } from './ValidationActions';
 import type { ReportValidationItemForEsn } from '@esn/shared-types';
 
 const MONTH_NAMES = [
@@ -91,7 +92,7 @@ export default async function EsnReportsPage(): Promise<JSX.Element> {
                           </td>
                           <td className="px-6 py-4">
                             {isExpired ? (
-                              <span className="text-xs text-gray-400">Lien expiré</span>
+                              <ValidationActions id={r.id} />
                             ) : (
                               <a
                                 href={`/reports/validate/${r.token}`}

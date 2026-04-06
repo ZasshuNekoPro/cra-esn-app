@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   GoneException,
   Injectable,
   NotFoundException,
@@ -105,6 +106,47 @@ export class ReportsValidateService {
     return this.buildResponse({ ...row, status: newStatus }, allValidated);
   }
 
+  // ── PATCH /reports/validation/:id/archive ────────────────────────────────
+
+  async archiveValidation(id: string, callerId: string): Promise<void> {
+    const row = await this.findRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+
+    await this.prisma.reportValidationRequest.update({
+      where: { id },
+      data: { status: 'ARCHIVED', resolvedAt: new Date(), resolvedBy: callerId },
+    });
+
+    await this.prisma.auditLog.create({
+      data: {
+        action: AuditAction.REPORT_VALIDATED, // closest available; indicates ESN acted on the report
+        resource: `report-validation:${id}`,
+        initiatorId: callerId,
+        metadata: { action: 'ARCHIVED', employeeId: row.employeeId },
+      },
+    });
+  }
+
+  // ── PATCH /reports/validation/:id/remind ─────────────────────────────────
+
+  async remindEmployee(id: string, callerId: string): Promise<void> {
+    const row = await this.findRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+
+    // Archive the expired request so it no longer pollutes the active list
+    await this.prisma.reportValidationRequest.update({
+      where: { id },
+      data: { status: 'ARCHIVED', resolvedAt: new Date(), resolvedBy: callerId },
+    });
+
+    const period = `${this.monthLabel(row.month)} ${row.year}`;
+    const subject = `Rapport ${period} — Nouveau dépôt demandé`;
+    const message =
+      `Votre rapport mensuel de ${period} n'a pas pu être validé (lien expiré).\n\n` +
+      `Merci de soumettre à nouveau votre rapport depuis votre espace salarié.`;
+    await this.notifications.notifyEmail(row.employeeId, subject, message);
+  }
+
   // ── Private helpers ───────────────────────────────────────────────────────
 
   private async findValidRequest(token: string): Promise<ValidationRequestRow> {
@@ -189,6 +231,30 @@ export class ReportsValidateService {
         `Votre rapport mensuel de ${period} a été refusé par ${body.validatorName} (${row.recipient}).\n\n` +
         `Motif : ${body.comment ?? '—'}`;
       await this.notifications.notifyEmail(employeeId, subject, message);
+    }
+  }
+
+  /** Find a validation request by its primary key (no status/expiry check). */
+  private async findRequestById(id: string): Promise<ValidationRequestRow> {
+    const row = await this.prisma.reportValidationRequest.findUnique({
+      where: { id },
+      include: { employee: { select: { firstName: true, lastName: true } } },
+    }) as ValidationRequestRow | null;
+
+    if (!row) throw new NotFoundException('Demande de validation introuvable.');
+    if (row.status === 'ARCHIVED') throw new GoneException('Cette demande a déjà été archivée.');
+    return row;
+  }
+
+  /** Verify the caller (ESN_ADMIN/ESN_MANAGER) belongs to the same ESN as the employee. */
+  private async assertEsnScope(employeeId: string, callerId: string): Promise<void> {
+    const [employee, caller] = await Promise.all([
+      this.prisma.user.findUnique({ where: { id: employeeId }, select: { esnId: true } }),
+      this.prisma.user.findUnique({ where: { id: callerId }, select: { esnId: true } }),
+    ]);
+
+    if (!employee?.esnId || !caller?.esnId || employee.esnId !== caller.esnId) {
+      throw new ForbiddenException('Accès refusé : le salarié n\'appartient pas à votre ESN.');
     }
   }
 

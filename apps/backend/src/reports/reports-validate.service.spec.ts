@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { BadRequestException, GoneException, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, GoneException, NotFoundException } from '@nestjs/common';
 import { AuditAction } from '@esn/shared-types';
 import { ReportsValidateService } from './reports-validate.service';
 
@@ -12,6 +12,7 @@ const mockPrisma = {
     count: vi.fn(),
   },
   auditLog: { create: vi.fn() },
+  user: { findUnique: vi.fn() },
 };
 
 // ── Notifications mock ───────────────────────────────────────────────────────
@@ -24,6 +25,8 @@ const mockNotifications = {
 
 const TOKEN = 'test-uuid-token';
 const EMPLOYEE_ID = 'emp-1';
+const CALLER_ID = 'caller-esn-admin-1';
+const ESN_ID = 'esn-1';
 
 function makeRow(overrides: Record<string, unknown> = {}) {
   return {
@@ -64,6 +67,8 @@ describe('ReportsValidateService', () => {
     mockPrisma.reportValidationRequest.count.mockResolvedValue(0);
     mockPrisma.auditLog.create.mockResolvedValue({ id: 'audit-1' });
     mockNotifications.notifyEmail.mockResolvedValue(undefined);
+    // Default: caller and employee share the same ESN
+    mockPrisma.user.findUnique.mockResolvedValue({ esnId: ESN_ID });
 
     service = new ReportsValidateService(
       mockPrisma as never,
@@ -271,6 +276,75 @@ describe('ReportsValidateService', () => {
       await expect(
         service.submitValidation(TOKEN, { action: 'VALIDATE', validatorName: 'X' }),
       ).rejects.toThrow(GoneException);
+    });
+  });
+
+  // ── archiveValidation ──────────────────────────────────────────────────────
+
+  describe('archiveValidation()', () => {
+    it('sets status to ARCHIVED and creates audit log', async () => {
+      await service.archiveValidation('rvr-1', CALLER_ID);
+
+      expect(mockPrisma.reportValidationRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'rvr-1' },
+          data: expect.objectContaining({ status: 'ARCHIVED', resolvedBy: CALLER_ID }),
+        }),
+      );
+      expect(mockPrisma.auditLog.create).toHaveBeenCalled();
+    });
+
+    it('throws GoneException when already ARCHIVED', async () => {
+      mockPrisma.reportValidationRequest.findUnique.mockResolvedValue(
+        makeRow({ status: 'ARCHIVED' }),
+      );
+      await expect(service.archiveValidation('rvr-1', CALLER_ID)).rejects.toThrow(GoneException);
+    });
+
+    it('throws NotFoundException when id does not exist', async () => {
+      mockPrisma.reportValidationRequest.findUnique.mockResolvedValue(null);
+      await expect(service.archiveValidation('unknown-id', CALLER_ID)).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ForbiddenException when caller belongs to a different ESN', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce({ esnId: 'esn-other' })  // employee
+        .mockResolvedValueOnce({ esnId: ESN_ID });       // caller
+      await expect(service.archiveValidation('rvr-1', CALLER_ID)).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  // ── remindEmployee ─────────────────────────────────────────────────────────
+
+  describe('remindEmployee()', () => {
+    it('archives the request and notifies the employee', async () => {
+      await service.remindEmployee('rvr-1', CALLER_ID);
+
+      expect(mockPrisma.reportValidationRequest.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { id: 'rvr-1' },
+          data: expect.objectContaining({ status: 'ARCHIVED' }),
+        }),
+      );
+      expect(mockNotifications.notifyEmail).toHaveBeenCalledWith(
+        EMPLOYEE_ID,
+        expect.stringContaining('Rapport'),
+        expect.stringContaining('soumettre'),
+      );
+    });
+
+    it('throws GoneException when request is already ARCHIVED', async () => {
+      mockPrisma.reportValidationRequest.findUnique.mockResolvedValue(
+        makeRow({ status: 'ARCHIVED' }),
+      );
+      await expect(service.remindEmployee('rvr-1', CALLER_ID)).rejects.toThrow(GoneException);
+    });
+
+    it('throws ForbiddenException when caller belongs to a different ESN', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce({ esnId: 'esn-other' })
+        .mockResolvedValueOnce({ esnId: ESN_ID });
+      await expect(service.remindEmployee('rvr-1', CALLER_ID)).rejects.toThrow(ForbiddenException);
     });
   });
 });

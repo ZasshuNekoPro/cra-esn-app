@@ -70,4 +70,10 @@ export const reportsApi = {
 
   listForEsn: (): Promise<ReportValidationItemForEsn[]> =>
     apiClient.get<ReportValidationItemForEsn[]>('/reports/for-esn'),
+
+  archiveValidation: (id: string): Promise<void> =>
+    apiClient.patch<void>(`/reports/validation/${id}/archive`),
+
+  remindValidation: (id: string): Promise<void> =>
+    apiClient.patch<void>(`/reports/validation/${id}/remind`),
 };
