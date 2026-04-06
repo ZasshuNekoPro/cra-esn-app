@@ -133,12 +133,8 @@ export class ReportsValidateService {
     const row = await this.findRequestById(id);
     await this.assertEsnScope(row.employeeId, callerId);
 
-    // Archive the expired request so it no longer pollutes the active list
-    await this.prisma.reportValidationRequest.update({
-      where: { id },
-      data: { status: 'ARCHIVED', resolvedAt: new Date(), resolvedBy: callerId },
-    });
-
+    // Only notify — do NOT archive. The ESN admin can still see the row
+    // and use "Archiver" explicitly if they want to remove it from the list.
     const period = `${this.monthLabel(row.month)} ${row.year}`;
     const subject = `Rapport ${period} — Nouveau dépôt demandé`;
     const message =

@@ -317,15 +317,10 @@ describe('ReportsValidateService', () => {
   // ── remindEmployee ─────────────────────────────────────────────────────────
 
   describe('remindEmployee()', () => {
-    it('archives the request and notifies the employee', async () => {
+    it('notifies the employee without archiving the request', async () => {
       await service.remindEmployee('rvr-1', CALLER_ID);
 
-      expect(mockPrisma.reportValidationRequest.update).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { id: 'rvr-1' },
-          data: expect.objectContaining({ status: 'ARCHIVED' }),
-        }),
-      );
+      expect(mockPrisma.reportValidationRequest.update).not.toHaveBeenCalled();
       expect(mockNotifications.notifyEmail).toHaveBeenCalledWith(
         EMPLOYEE_ID,
         expect.stringContaining('Rapport'),
