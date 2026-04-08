@@ -11,6 +11,7 @@ import { SignatureActions } from './SignatureActions';
 import { CraStatusBadge } from './CraStatusBadge';
 import { EntryTypeLegend } from './EntryTypeLegend';
 import { clientCraApi } from '../../lib/api/clientCra';
+import { MONTH_NAMES } from '../../lib/utils/date';
 
 interface CraMonthClientProps {
   craMonth: CraMonth;
@@ -86,11 +87,6 @@ export function CraMonthClient({
     setStatus(newStatus);
     router.refresh();
   };
-
-  const MONTH_NAMES = [
-    'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-    'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-  ];
 
   return (
     <div className="space-y-6">
