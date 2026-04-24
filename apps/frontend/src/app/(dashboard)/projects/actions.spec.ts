@@ -16,7 +16,7 @@ const { createWeatherEntryAction, loadWeatherHistoryAction } = await import('./a
 const STUB_ENTRY = {
   id: 'entry-1',
   projectId: 'proj-1',
-  weather: 'SUNNY',
+  state: WeatherState.SUNNY,
   comment: null,
   date: '2026-04-01',
   createdAt: '2026-04-01T00:00:00.000Z',
