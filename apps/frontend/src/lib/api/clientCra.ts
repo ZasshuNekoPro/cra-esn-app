@@ -7,12 +7,14 @@ import type {
   UpdateCraEntryRequest,
 } from '@esn/shared-types';
 
-export const clientCraApi = {
-  createEntry: (id: string, body: CreateCraEntryRequest): Promise<CraEntry> =>
-    clientApiFetch<CraEntry>(`/cra/months/${id}/entries`, { method: 'POST', body }),
+export type CraEntryMutationResponse = { entry: CraEntry; isOvertime: boolean };
 
-  updateEntry: (id: string, eid: string, body: UpdateCraEntryRequest): Promise<CraEntry> =>
-    clientApiFetch<CraEntry>(`/cra/months/${id}/entries/${eid}`, { method: 'PUT', body }),
+export const clientCraApi = {
+  createEntry: (id: string, body: CreateCraEntryRequest): Promise<CraEntryMutationResponse> =>
+    clientApiFetch<CraEntryMutationResponse>(`/cra/months/${id}/entries`, { method: 'POST', body }),
+
+  updateEntry: (id: string, eid: string, body: UpdateCraEntryRequest): Promise<CraEntryMutationResponse> =>
+    clientApiFetch<CraEntryMutationResponse>(`/cra/months/${id}/entries/${eid}`, { method: 'PUT', body }),
 
   deleteEntry: (id: string, eid: string): Promise<void> =>
     clientApiFetch<void>(`/cra/months/${id}/entries/${eid}`, { method: 'DELETE' }),

@@ -41,6 +41,11 @@ test-results/
 
 # Claude Code internals
 .claude/cache/
+.claude/scheduled_tasks.lock
+
+# Deploy scripts with infrastructure secrets — keep locally only
+.claude/commands/deploy-craesn.md
+.claude/skills/deploy-craesn.md
 
 # Uploads locaux temporaires
 tmp/

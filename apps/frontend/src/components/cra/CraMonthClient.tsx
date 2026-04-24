@@ -11,6 +11,7 @@ import { SignatureActions } from './SignatureActions';
 import { CraStatusBadge } from './CraStatusBadge';
 import { EntryTypeLegend } from './EntryTypeLegend';
 import { clientCraApi } from '../../lib/api/clientCra';
+import { revalidateCraAction } from '../../app/(dashboard)/cra/[year]/[month]/actions';
 import { MONTH_NAMES } from '../../lib/utils/date';
 
 interface CraMonthClientProps {
@@ -53,21 +54,18 @@ export function CraMonthClient({
 
   const handleSave = async (data: CreateCraEntryRequest): Promise<void> => {
     if (selectedEntry) {
-      // Update existing entry
-      const updated = await clientCraApi.updateEntry(craMonth.id, selectedEntry.id, {
+      const { entry: updated } = await clientCraApi.updateEntry(craMonth.id, selectedEntry.id, {
         entryType: data.entryType,
         dayFraction: data.dayFraction,
         comment: data.comment,
         projectEntries: data.projectEntries,
       });
-      setEntries((prev) =>
-        prev.map((e) => (e.id === updated.id ? updated : e)),
-      );
+      setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
     } else {
-      // Create new entry
-      const created = await clientCraApi.createEntry(craMonth.id, data);
+      const { entry: created } = await clientCraApi.createEntry(craMonth.id, data);
       setEntries((prev) => [...prev, created]);
     }
+    await revalidateCraAction(craMonth.year, craMonth.month);
     router.refresh();
   };
 
@@ -75,6 +73,7 @@ export function CraMonthClient({
     if (!selectedEntry) return;
     await clientCraApi.deleteEntry(craMonth.id, selectedEntry.id);
     setEntries((prev) => prev.filter((e) => e.id !== selectedEntry.id));
+    await revalidateCraAction(craMonth.year, craMonth.month);
     router.refresh();
   };
 
@@ -85,7 +84,7 @@ export function CraMonthClient({
 
   const handleStatusChange = (newStatus: CraStatus): void => {
     setStatus(newStatus);
-    router.refresh();
+    void revalidateCraAction(craMonth.year, craMonth.month).then(() => router.refresh());
   };
 
   return (

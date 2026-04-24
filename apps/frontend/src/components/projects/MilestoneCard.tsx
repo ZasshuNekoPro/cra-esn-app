@@ -3,7 +3,8 @@
 import { useState } from 'react';
 import { MilestoneStatus, Role } from '@esn/shared-types';
 import type { Milestone } from '@esn/shared-types';
-import { projectsApi } from '../../lib/api/projects';
+import { clientProjectsApi } from '../../lib/api/clientProjects';
+import { MilestoneForm } from './MilestoneForm';
 
 const STATUS_CONFIG: Record<MilestoneStatus, { label: string; class: string }> = {
   [MilestoneStatus.PLANNED]:     { label: 'Planifié',   class: 'bg-blue-100 text-blue-700' },
@@ -20,12 +21,15 @@ interface MilestoneCardProps {
   projectId: string;
   userRole: Role;
   onCompleted?: (updated: Milestone) => void;
+  onUpdated?: (updated: Milestone) => void;
 }
 
-export function MilestoneCard({ milestone, projectId, userRole, onCompleted }: MilestoneCardProps): JSX.Element {
+export function MilestoneCard({ milestone, projectId, userRole, onCompleted, onUpdated }: MilestoneCardProps): JSX.Element {
   const [completing, setCompleting] = useState(false);
+  const [editing, setEditing] = useState(false);
   const cfg = STATUS_CONFIG[milestone.status];
   const canComplete = userRole === Role.EMPLOYEE && ACTIONABLE_STATUSES.includes(milestone.status);
+  const canEdit = userRole === Role.EMPLOYEE && milestone.status !== MilestoneStatus.DONE && milestone.status !== MilestoneStatus.ARCHIVED;
 
   const dueDate = milestone.dueDate ? new Date(milestone.dueDate) : null;
   const today = new Date();
@@ -37,12 +41,28 @@ export function MilestoneCard({ milestone, projectId, userRole, onCompleted }: M
   const handleComplete = async (): Promise<void> => {
     setCompleting(true);
     try {
-      const updated = await projectsApi.completeMilestone(projectId, milestone.id, {});
+      const updated = await clientProjectsApi.completeMilestone(projectId, milestone.id, {});
       onCompleted?.(updated);
     } finally {
       setCompleting(false);
     }
   };
+
+  if (editing) {
+    return (
+      <div className="p-3 bg-white border border-blue-200 rounded-lg">
+        <MilestoneForm
+          projectId={projectId}
+          existingMilestone={milestone}
+          onSuccess={(updated) => {
+            setEditing(false);
+            onUpdated?.(updated);
+          }}
+          onCancel={() => setEditing(false)}
+        />
+      </div>
+    );
+  }
 
   return (
     <div className="flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg">
@@ -68,6 +88,15 @@ export function MilestoneCard({ milestone, projectId, userRole, onCompleted }: M
         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${cfg.class}`}>
           {cfg.label}
         </span>
+        {canEdit && (
+          <button
+            type="button"
+            onClick={() => setEditing(true)}
+            className="text-xs px-3 py-1.5 bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200"
+          >
+            Modifier
+          </button>
+        )}
         {canComplete && (
           <button
             type="button"

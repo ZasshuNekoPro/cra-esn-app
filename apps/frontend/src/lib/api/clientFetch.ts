@@ -4,7 +4,7 @@ import { getSession } from 'next-auth/react';
 import type { ApiError } from '@esn/shared-types';
 import { ApiClientError } from './client';
 
-const BACKEND_URL = process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3101';
+const BACKEND_URL = process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3001';
 
 interface FetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;

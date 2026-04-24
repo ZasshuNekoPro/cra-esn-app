@@ -1,21 +1,31 @@
 'use client';
 
 import { useState } from 'react';
-import type { Milestone } from '@esn/shared-types';
-import { projectsApi } from '../../lib/api/projects';
+import type { Milestone, UpdateMilestoneRequest } from '@esn/shared-types';
+import { clientProjectsApi } from '../../lib/api/clientProjects';
 
 interface MilestoneFormProps {
   projectId: string;
+  existingMilestone?: Milestone;
   onSuccess: (milestone: Milestone) => void;
   onCancel: () => void;
 }
 
-export function MilestoneForm({ projectId, onSuccess, onCancel }: MilestoneFormProps): JSX.Element {
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState('');
+export function MilestoneForm({ projectId, existingMilestone, onSuccess, onCancel }: MilestoneFormProps): JSX.Element {
+  const [title, setTitle] = useState(existingMilestone?.title ?? '');
+  const [description, setDescription] = useState(existingMilestone?.description ?? '');
+  const [dueDate, setDueDate] = useState(
+    existingMilestone?.dueDate
+      ? (typeof existingMilestone.dueDate === 'string'
+          ? existingMilestone.dueDate
+          : new Date(existingMilestone.dueDate).toISOString()
+        ).slice(0, 10)
+      : '',
+  );
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const isEdit = !!existingMilestone;
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -26,11 +36,21 @@ export function MilestoneForm({ projectId, onSuccess, onCancel }: MilestoneFormP
     setError(null);
     setSubmitting(true);
     try {
-      const milestone = await projectsApi.createMilestone(projectId, {
-        title: title.trim(),
-        description: description.trim() || undefined,
-        dueDate: dueDate || undefined,
-      });
+      let milestone: Milestone;
+      if (isEdit) {
+        const body: UpdateMilestoneRequest = {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          dueDate: dueDate || undefined,
+        };
+        milestone = await clientProjectsApi.updateMilestone(projectId, existingMilestone.id, body);
+      } else {
+        milestone = await clientProjectsApi.createMilestone(projectId, {
+          title: title.trim(),
+          description: description.trim() || undefined,
+          dueDate: dueDate || undefined,
+        });
+      }
       onSuccess(milestone);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Une erreur est survenue.');
@@ -97,7 +117,7 @@ export function MilestoneForm({ projectId, onSuccess, onCancel }: MilestoneFormP
           disabled={submitting}
           className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
         >
-          {submitting ? 'Enregistrement...' : 'Ajouter le jalon'}
+          {submitting ? 'Enregistrement...' : isEdit ? 'Enregistrer' : 'Ajouter le jalon'}
         </button>
       </div>
     </form>

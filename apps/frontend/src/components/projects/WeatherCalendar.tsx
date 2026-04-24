@@ -33,8 +33,10 @@ export function WeatherCalendar({
 }: WeatherCalendarProps): JSX.Element {
   const entryByDate = new Map<string, WeatherEntry>();
   for (const entry of entries) {
-    const d = entry.date instanceof Date ? entry.date : new Date(entry.date);
-    entryByDate.set(toIsoDate(d), entry);
+    const iso = toIsoDate(entry.date instanceof Date ? entry.date : new Date(entry.date));
+    if (!entryByDate.has(iso)) {
+      entryByDate.set(iso, entry);
+    }
   }
 
   const firstDay = new Date(year, month - 1, 1);
