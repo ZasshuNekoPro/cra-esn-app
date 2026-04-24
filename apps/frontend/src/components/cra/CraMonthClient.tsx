@@ -54,7 +54,7 @@ export function CraMonthClient({
 
   const handleSave = async (data: CreateCraEntryRequest): Promise<void> => {
     if (selectedEntry) {
-      const updated = await clientCraApi.updateEntry(craMonth.id, selectedEntry.id, {
+      const { entry: updated } = await clientCraApi.updateEntry(craMonth.id, selectedEntry.id, {
         entryType: data.entryType,
         dayFraction: data.dayFraction,
         comment: data.comment,
@@ -62,7 +62,7 @@ export function CraMonthClient({
       });
       setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
     } else {
-      const created = await clientCraApi.createEntry(craMonth.id, data);
+      const { entry: created } = await clientCraApi.createEntry(craMonth.id, data);
       setEntries((prev) => [...prev, created]);
     }
     await revalidateCraAction(craMonth.year, craMonth.month);

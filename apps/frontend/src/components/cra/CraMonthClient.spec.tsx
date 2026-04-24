@@ -105,8 +105,8 @@ const STUB_ENTRY: CraEntry = {
 describe('CraMonthClient', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockCreateEntry.mockResolvedValue({ ...STUB_ENTRY, id: 'entry-new' });
-    mockUpdateEntry.mockResolvedValue(STUB_ENTRY);
+    mockCreateEntry.mockResolvedValue({ entry: { ...STUB_ENTRY, id: 'entry-new' }, isOvertime: false });
+    mockUpdateEntry.mockResolvedValue({ entry: STUB_ENTRY, isOvertime: false });
   });
 
   it('should call revalidateCraAction with correct year/month when saving a new entry', async () => {
