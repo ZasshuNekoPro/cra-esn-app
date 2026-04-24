@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Role } from '@esn/shared-types';
 import { usersClientApi, type PublicUser } from '../../../../../lib/api/users';
-import { ApiClientError } from '../../../../../lib/api/client';
+import { createClientAction } from './actions';
 
 export default function AdminClientsPage(): JSX.Element {
   const [clients, setClients] = useState<PublicUser[]>([]);
@@ -31,16 +31,17 @@ export default function AdminClientsPage(): JSX.Element {
     setError(null);
     setSubmitting(true);
     try {
-      await usersClientApi.create({
+      const result = await createClientAction({
         ...form,
         phone: form.phone || undefined,
-        role: Role.CLIENT,
       });
-      setForm({ firstName: '', lastName: '', email: '', password: '', phone: '' });
-      setShowForm(false);
-      void loadClients();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Erreur lors de la création');
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setForm({ firstName: '', lastName: '', email: '', password: '', phone: '' });
+        setShowForm(false);
+        void loadClients();
+      }
     } finally {
       setSubmitting(false);
     }

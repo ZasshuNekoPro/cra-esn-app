@@ -28,14 +28,14 @@ describe('UsersService', () => {
       mockPrisma.user.create.mockResolvedValue({ id: '1', email: 'esn@test.com', role: Role.ESN_ADMIN });
 
       const dto = { email: 'esn@test.com', password: 'password123', firstName: 'ESN', lastName: 'Corp', role: Role.ESN_ADMIN };
-      const result = await service.create(dto, Role.PLATFORM_ADMIN);
+      const result = await service.create(dto, Role.PLATFORM_ADMIN, null);
       expect(result).toBeDefined();
       expect(mockPrisma.user.create).toHaveBeenCalledOnce();
     });
 
     it('PLATFORM_ADMIN cannot create EMPLOYEE', async () => {
       const dto = { email: 'emp@test.com', password: 'password123', firstName: 'A', lastName: 'B', role: Role.EMPLOYEE };
-      await expect(service.create(dto, Role.PLATFORM_ADMIN)).rejects.toThrow(ForbiddenException);
+      await expect(service.create(dto, Role.PLATFORM_ADMIN, null)).rejects.toThrow(ForbiddenException);
     });
 
     it('ESN_ADMIN can create EMPLOYEE', async () => {
@@ -43,7 +43,7 @@ describe('UsersService', () => {
       mockPrisma.user.create.mockResolvedValue({ id: '2', role: Role.EMPLOYEE });
 
       const dto = { email: 'emp@test.com', password: 'password123', firstName: 'A', lastName: 'B', role: Role.EMPLOYEE };
-      await service.create(dto, Role.ESN_ADMIN);
+      await service.create(dto, Role.ESN_ADMIN, 'esn-1');
       expect(mockPrisma.user.create).toHaveBeenCalledOnce();
     });
 
@@ -52,20 +52,20 @@ describe('UsersService', () => {
       mockPrisma.user.create.mockResolvedValue({ id: '3', role: Role.CLIENT });
 
       const dto = { email: 'client@test.com', password: 'password123', firstName: 'C', lastName: 'D', role: Role.CLIENT };
-      await service.create(dto, Role.ESN_ADMIN);
+      await service.create(dto, Role.ESN_ADMIN, 'esn-1');
       expect(mockPrisma.user.create).toHaveBeenCalledOnce();
     });
 
     it('ESN_ADMIN cannot create ESN_ADMIN', async () => {
       const dto = { email: 'esn2@test.com', password: 'password123', firstName: 'A', lastName: 'B', role: Role.ESN_ADMIN };
-      await expect(service.create(dto, Role.ESN_ADMIN)).rejects.toThrow(ForbiddenException);
+      await expect(service.create(dto, Role.ESN_ADMIN, 'esn-1')).rejects.toThrow(ForbiddenException);
     });
 
     it('throws ConflictException if email already used', async () => {
       mockPrisma.user.findUnique.mockResolvedValue({ id: 'existing' });
 
       const dto = { email: 'taken@test.com', password: 'password123', firstName: 'A', lastName: 'B', role: Role.EMPLOYEE };
-      await expect(service.create(dto, Role.ESN_ADMIN)).rejects.toThrow(ConflictException);
+      await expect(service.create(dto, Role.ESN_ADMIN, 'esn-1')).rejects.toThrow(ConflictException);
     });
   });
 
@@ -74,19 +74,19 @@ describe('UsersService', () => {
   describe('findAll', () => {
     it('PLATFORM_ADMIN sees all users', async () => {
       mockPrisma.user.findMany.mockResolvedValue([{ id: '1' }, { id: '2' }]);
-      const result = await service.findAll(Role.PLATFORM_ADMIN);
+      const result = await service.findAll(Role.PLATFORM_ADMIN, null);
       expect(result).toHaveLength(2);
       expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({ where: { deletedAt: null } }),
       );
     });
 
-    it('ESN_ADMIN sees only EMPLOYEE and CLIENT', async () => {
+    it('ESN_ADMIN sees only EMPLOYEE and CLIENT in their ESN', async () => {
       mockPrisma.user.findMany.mockResolvedValue([]);
-      await service.findAll(Role.ESN_ADMIN);
+      await service.findAll(Role.ESN_ADMIN, 'esn-1');
       expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
         expect.objectContaining({
-          where: { deletedAt: null, role: { in: [Role.EMPLOYEE, Role.CLIENT] } },
+          where: { deletedAt: null, esnId: 'esn-1', role: { in: [Role.EMPLOYEE, Role.CLIENT] } },
         }),
       );
     });

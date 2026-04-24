@@ -5,6 +5,7 @@ import { WeatherState } from '@esn/shared-types';
 import type { WeatherEntry } from '@esn/shared-types';
 import { WeatherIcon } from './WeatherIcon';
 import { createWeatherEntryAction } from '../../app/(dashboard)/projects/actions';
+import { pad } from '../../lib/utils/date';
 
 const COMMENT_REQUIRED_STATES: WeatherState[] = [WeatherState.RAINY, WeatherState.STORM];
 
@@ -34,13 +35,12 @@ export function WeatherEntryForm({
   onSuccess,
   onCancel,
 }: WeatherEntryFormProps): JSX.Element {
-  const pad = (n: number): string => String(n).padStart(2, '0');
   const monthStart = `${selectedYear}-${pad(selectedMonth)}-01`;
   const monthEnd = new Date(selectedYear, selectedMonth, 0).toISOString().slice(0, 10);
 
-  const today = new Date().toISOString().slice(0, 10);
-  const isCurrentMonth =
-    new Date().getFullYear() === selectedYear && new Date().getMonth() + 1 === selectedMonth;
+  const now = new Date();
+  const today = now.toISOString().slice(0, 10);
+  const isCurrentMonth = now.getFullYear() === selectedYear && now.getMonth() + 1 === selectedMonth;
   const smartDefault = defaultDate ?? (isCurrentMonth ? today : monthStart);
 
   const [weatherState, setWeatherState] = useState<WeatherState>(WeatherState.SUNNY);

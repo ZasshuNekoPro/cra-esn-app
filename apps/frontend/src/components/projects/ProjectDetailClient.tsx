@@ -11,11 +11,7 @@ import { MilestoneTimeline } from './MilestoneTimeline';
 import { ValidationRequestPanel } from './ValidationRequestPanel';
 import { ProjectStatusBadge } from './ProjectStatusBadge';
 import { loadWeatherHistoryAction } from '../../app/(dashboard)/projects/actions';
-
-const MONTH_NAMES = [
-  'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
-  'Juillet', 'Août', 'Septembre', 'Octobre', 'Novembre', 'Décembre',
-];
+import { MONTH_NAMES, formatYearMonth } from '../../lib/utils/date';
 
 interface ProjectDetailClientProps {
   project: ProjectDetail;
@@ -52,8 +48,7 @@ export function ProjectDetailClient({
     setShowWeatherForm(false);
     setSelectedDate(undefined);
     try {
-      const yearMonth = `${newYear}-${String(newMonth).padStart(2, '0')}`;
-      const entries = await loadWeatherHistoryAction(project.id, yearMonth);
+      const entries = await loadWeatherHistoryAction(project.id, formatYearMonth(newYear, newMonth));
       setWeatherEntries(entries);
     } catch {
       // silently keep previous entries on error

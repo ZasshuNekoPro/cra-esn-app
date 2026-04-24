@@ -75,7 +75,7 @@ describe('LoginPage', () => {
     });
   });
 
-  it('redirects to /dashboard on successful login', async () => {
+  it('redirects to / (root) on successful login with no callbackUrl', async () => {
     mockSignIn.mockResolvedValue({ ok: true, error: undefined });
 
     render(<LoginPage />);
@@ -85,7 +85,8 @@ describe('LoginPage', () => {
     fireEvent.submit(screen.getByRole('button', { name: /se connecter/i }).closest('form')!);
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith('/dashboard');
+      // Root page handles role-based redirect (ESN_ADMIN → /esn/admin/dashboard, etc.)
+      expect(mockRouterPush).toHaveBeenCalledWith('/');
     });
   });
 
@@ -150,7 +151,7 @@ describe('LoginPage', () => {
     });
   });
 
-  it('redirects to /dashboard when no callbackUrl', async () => {
+  it('redirects to / when no callbackUrl (root handles role-based redirect)', async () => {
     mockSignIn.mockResolvedValue({ ok: true, error: undefined });
     mockSearchParamsGet.mockReturnValue(null);
 
@@ -160,7 +161,7 @@ describe('LoginPage', () => {
     fireEvent.submit(screen.getByRole('button', { name: /se connecter/i }).closest('form')!);
 
     await waitFor(() => {
-      expect(mockRouterPush).toHaveBeenCalledWith('/dashboard');
+      expect(mockRouterPush).toHaveBeenCalledWith('/');
     });
   });
 
