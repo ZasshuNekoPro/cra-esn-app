@@ -60,9 +60,14 @@ export function ProjectDetailClient({
   };
 
   const handleWeatherSuccess = (entry: WeatherEntry): void => {
-    setWeatherEntries((prev) =>
-      [entry, ...prev].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()),
-    );
+    const entryDateStr = (typeof entry.date === 'string' ? entry.date : entry.date.toISOString()).slice(0, 10);
+    setWeatherEntries((prev) => {
+      const filtered = prev.filter((e) => {
+        const d = (typeof e.date === 'string' ? e.date : new Date(e.date).toISOString()).slice(0, 10);
+        return d !== entryDateStr;
+      });
+      return [entry, ...filtered].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    });
     setShowWeatherForm(false);
     setSelectedDate(undefined);
   };
