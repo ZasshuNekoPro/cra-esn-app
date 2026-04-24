@@ -23,9 +23,9 @@ vi.mock('../lib/api/clientFetch', () => ({
 
 import { useSendReport } from './useSendReport';
 
-function makeWrapper(queryClient: QueryClient) {
+function makeWrapper(queryClient: QueryClient): ({ children }: { children: React.ReactNode }) => React.ReactElement {
   return ({ children }: { children: React.ReactNode }) =>
-    createElement(QueryClientProvider, { client: queryClient }, children);
+    createElement(QueryClientProvider, { client: queryClient }, children) as React.ReactElement;
 }
 
 describe('useSendReport', () => {

@@ -195,7 +195,7 @@ describe('WeatherCalendar', () => {
 
     const entryWithDateString = mockEntry({
       id: 'entry-date-str',
-      date: '2026-04-07' as any, // Type assertion to simulate string input
+      date: '2026-04-07' as unknown as Date, // simulate string date from API deserialization
       state: WeatherState.VALIDATION_PENDING,
     });
 
