@@ -2,17 +2,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import type { SentReportHistoryItem } from '@esn/shared-types';
 
-// Mock reportsApi
-vi.mock('../../lib/api/reports', () => ({
-  reportsApi: {
-    downloadSentReport: vi.fn(),
-  },
+// Break the next-auth/react → next/server import chain (static + dynamic)
+vi.mock('next-auth/react', () => ({
+  getSession: vi.fn().mockResolvedValue(null),
+}));
+
+// SentReportsTable uses clientApiFetch directly (not reportsApi)
+const { mockClientApiFetch } = vi.hoisted(() => ({ mockClientApiFetch: vi.fn() }));
+vi.mock('../../lib/api/clientFetch', () => ({
+  clientApiFetch: mockClientApiFetch,
 }));
 
 import { SentReportsTable } from './SentReportsTable';
-import { reportsApi } from '../../lib/api/reports';
-
-const mockedReportsApi = vi.mocked(reportsApi);
 
 function makeItem(overrides: Partial<SentReportHistoryItem> = {}): SentReportHistoryItem {
   return {
@@ -33,6 +34,9 @@ function makeItem(overrides: Partial<SentReportHistoryItem> = {}): SentReportHis
 describe('SentReportsTable', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Stub URL APIs not available in jsdom
+    URL.createObjectURL = vi.fn().mockReturnValue('blob:mock-url');
+    URL.revokeObjectURL = vi.fn();
   });
 
   // ── Empty state ────────────────────────────────────────────────────────────
@@ -117,7 +121,6 @@ describe('SentReportsTable', () => {
     });
     render(<SentReportsTable items={[item]} />);
     expect(screen.getByText(/Client — Refusé/i)).toBeInTheDocument();
-    // Comment shown as (?) for tooltip
     expect(screen.getByText('(?)')).toBeInTheDocument();
   });
 
@@ -128,22 +131,21 @@ describe('SentReportsTable', () => {
     expect(screen.getByRole('button', { name: /télécharger/i })).toBeInTheDocument();
   });
 
-  it('calls downloadSentReport on click and opens the URL', async () => {
+  it('calls clientApiFetch with the correct download URL on PDF button click', async () => {
     const mockUrl = 'https://s3.example.com/presigned-url?token=abc';
-    mockedReportsApi.downloadSentReport.mockResolvedValue({ url: mockUrl });
+    mockClientApiFetch.mockResolvedValueOnce({ url: mockUrl });
 
-    // Mock window.open
-    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      blob: () => Promise.resolve(new Blob(['pdf content'], { type: 'application/pdf' })),
+    });
 
     render(<SentReportsTable items={[makeItem({ id: 'audit-42' })]} />);
 
     fireEvent.click(screen.getByRole('button', { name: /télécharger/i }));
 
     await waitFor(() => {
-      expect(mockedReportsApi.downloadSentReport).toHaveBeenCalledWith('audit-42');
-      expect(openSpy).toHaveBeenCalledWith(mockUrl, '_blank', 'noopener,noreferrer');
+      expect(mockClientApiFetch).toHaveBeenCalledWith('/reports/sent-history/audit-42/download');
     });
-
-    openSpy.mockRestore();
   });
 });
