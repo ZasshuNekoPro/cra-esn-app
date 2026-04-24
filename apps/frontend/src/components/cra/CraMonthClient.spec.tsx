@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, fireEvent, waitFor } from '@testing-library/react';
 import { CraMonthClient } from './CraMonthClient';
 import { CraStatus, Role, CraEntryType } from '@esn/shared-types';
-import type { CraMonth, CraEntry } from '@esn/shared-types';
+import type { CraMonth, CraEntry, CreateCraEntryRequest } from '@esn/shared-types';
 
 // vi.hoisted ensures these are available inside vi.mock factories (which are hoisted)
 const { mockRefresh, mockRevalidateCraAction, mockCreateEntry, mockUpdateEntry, mockDeleteEntry } =
@@ -39,7 +39,7 @@ vi.mock('./MonthGrid', () => ({
 
 vi.mock('./EntryModal', () => ({
   EntryModal: ({ onSave, onDelete, isOpen }: {
-    onSave: (d: any) => void;
+    onSave: (d: CreateCraEntryRequest) => void;
     onDelete?: () => void;
     isOpen: boolean
   }) =>
