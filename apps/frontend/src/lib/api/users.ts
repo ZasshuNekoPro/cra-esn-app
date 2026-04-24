@@ -14,10 +14,11 @@ export interface PublicUser {
   createdAt: string;
 }
 
-// Server-side (Server Components)
+// Server-side (Server Components & Server Actions)
 export const usersApi = {
   list: (): Promise<PublicUser[]> => apiClient.get<PublicUser[]>('/users'),
   findOne: (id: string): Promise<PublicUser> => apiClient.get<PublicUser>(`/users/${id}`),
+  create: (data: CreateUserRequest): Promise<PublicUser> => apiClient.post<PublicUser>('/users', data),
 };
 
 // Client-side (Client Components / 'use client')

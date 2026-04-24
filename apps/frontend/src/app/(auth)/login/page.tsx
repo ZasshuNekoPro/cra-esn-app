@@ -7,7 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 function LoginForm(): JSX.Element {
   const router = useRouter();
   const params = useSearchParams();
-  const callbackUrl = params.get('callbackUrl') ?? '/dashboard';
+  const callbackUrl = params.get('callbackUrl') ?? '/';
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
