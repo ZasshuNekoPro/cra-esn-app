@@ -21,6 +21,12 @@ const mockNotifications = {
   notifyEmail: vi.fn(),
 };
 
+// ── Storage mock ─────────────────────────────────────────────────────────────
+
+const mockStorage = {
+  getDownloadUrl: vi.fn(),
+};
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const TOKEN = 'test-uuid-token';
@@ -67,12 +73,14 @@ describe('ReportsValidateService', () => {
     mockPrisma.reportValidationRequest.count.mockResolvedValue(0);
     mockPrisma.auditLog.create.mockResolvedValue({ id: 'audit-1' });
     mockNotifications.notifyEmail.mockResolvedValue(undefined);
+    mockStorage.getDownloadUrl.mockResolvedValue('https://s3.example.com/presigned-url');
     // Default: caller and employee share the same ESN
     mockPrisma.user.findUnique.mockResolvedValue({ esnId: ESN_ID });
 
     service = new ReportsValidateService(
       mockPrisma as never,
       mockNotifications as never,
+      mockStorage as never,
     );
   });
 
@@ -340,6 +348,75 @@ describe('ReportsValidateService', () => {
         .mockResolvedValueOnce({ esnId: 'esn-other' })
         .mockResolvedValueOnce({ esnId: ESN_ID });
       await expect(service.remindEmployee('rvr-1', CALLER_ID)).rejects.toThrow(ForbiddenException);
+    });
+  });
+
+  // ── getValidationPdfUrl ────────────────────────────────────────────────────
+
+  describe('getValidationPdfUrl()', () => {
+    it('returns a presigned URL for the PDF', async () => {
+      const result = await service.getValidationPdfUrl('rvr-1', CALLER_ID);
+      expect(result).toEqual({ url: 'https://s3.example.com/presigned-url' });
+      expect(mockStorage.getDownloadUrl).toHaveBeenCalledWith(
+        'reports/emp-1/2026/3/CRA_ONLY-ts.pdf',
+        300,
+      );
+    });
+
+    it('throws NotFoundException when id does not exist', async () => {
+      mockPrisma.reportValidationRequest.findUnique.mockResolvedValue(null);
+      await expect(service.getValidationPdfUrl('unknown-id', CALLER_ID)).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ForbiddenException when caller belongs to a different ESN', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce({ esnId: 'esn-other' })
+        .mockResolvedValueOnce({ esnId: ESN_ID });
+      await expect(service.getValidationPdfUrl('rvr-1', CALLER_ID)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('works for ARCHIVED requests (PDF stays accessible for ESN review)', async () => {
+      mockPrisma.reportValidationRequest.findUnique.mockResolvedValue(
+        makeRow({ status: 'ARCHIVED' }),
+      );
+      const result = await service.getValidationPdfUrl('rvr-1', CALLER_ID);
+      expect(result.url).toBe('https://s3.example.com/presigned-url');
+    });
+  });
+
+  // ── getValidationItem ──────────────────────────────────────────────────────
+
+  describe('getValidationItem()', () => {
+    it('returns mapped ReportValidationItemForEsn for a valid request', async () => {
+      const item = await service.getValidationItem('rvr-1', CALLER_ID);
+      expect(item.id).toBe('rvr-1');
+      expect(item.token).toBe(TOKEN);
+      expect(item.employeeName).toBe('Jean Dupont');
+      expect(item.employeeId).toBe(EMPLOYEE_ID);
+      expect(item.year).toBe(2026);
+      expect(item.month).toBe(3);
+      expect(item.reportType).toBe('CRA_ONLY');
+      expect(item.status).toBe('PENDING');
+    });
+
+    it('throws NotFoundException when id does not exist', async () => {
+      mockPrisma.reportValidationRequest.findUnique.mockResolvedValue(null);
+      await expect(service.getValidationItem('unknown-id', CALLER_ID)).rejects.toThrow(NotFoundException);
+    });
+
+    it('throws ForbiddenException when caller belongs to a different ESN', async () => {
+      mockPrisma.user.findUnique
+        .mockResolvedValueOnce({ esnId: 'esn-other' })
+        .mockResolvedValueOnce({ esnId: ESN_ID });
+      await expect(service.getValidationItem('rvr-1', CALLER_ID)).rejects.toThrow(ForbiddenException);
+    });
+
+    it('works for ARCHIVED requests (ESN can view history)', async () => {
+      mockPrisma.reportValidationRequest.findUnique.mockResolvedValue(
+        makeRow({ status: 'ARCHIVED' }),
+      );
+      const item = await service.getValidationItem('rvr-1', CALLER_ID);
+      expect(item.status).toBe('ARCHIVED');
     });
   });
 });

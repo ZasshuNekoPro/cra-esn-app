@@ -159,6 +159,24 @@ export class ReportsController {
 
   // ── ESN actions on validation requests ────────────────────────────────────
 
+  @Get('validation/:id')
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  getValidationItem(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportsValidateService.getValidationItem(id, user.sub);
+  }
+
+  @Get('validation/:id/download')
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  getValidationPdfUrl(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportsValidateService.getValidationPdfUrl(id, user.sub);
+  }
+
   @Patch('validation/:id/archive')
   @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
   archiveValidation(
