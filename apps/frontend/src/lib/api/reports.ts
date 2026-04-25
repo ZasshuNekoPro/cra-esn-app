@@ -71,6 +71,12 @@ export const reportsApi = {
   listForEsn: (): Promise<ReportValidationItemForEsn[]> =>
     apiClient.get<ReportValidationItemForEsn[]>('/reports/for-esn'),
 
+  getValidation: (id: string): Promise<ReportValidationItemForEsn> =>
+    apiClient.get<ReportValidationItemForEsn>(`/reports/validation/${id}`),
+
+  getValidationPdfUrl: (id: string): Promise<{ url: string }> =>
+    apiClient.get<{ url: string }>(`/reports/validation/${id}/download`),
+
   archiveValidation: (id: string): Promise<void> =>
     apiClient.patch<void>(`/reports/validation/${id}/archive`),
 
