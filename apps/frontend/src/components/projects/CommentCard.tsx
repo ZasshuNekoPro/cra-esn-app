@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { CommentVisibility } from '@esn/shared-types';
 import type { ProjectComment } from '@esn/shared-types';
-import { projectsApi } from '../../lib/api/projects';
+import { resolveBlockerAction } from '../../app/(dashboard)/projects/actions';
 
 const VISIBILITY_CONFIG: Record<CommentVisibility, { label: string; class: string }> = {
   [CommentVisibility.ALL]: { label: 'Tous', class: 'bg-blue-100 text-blue-700' },
@@ -26,7 +26,7 @@ export function CommentCard({ comment, projectId, canResolve = false, onResolved
   const handleResolve = async (): Promise<void> => {
     setResolving(true);
     try {
-      const updated = await projectsApi.resolveBlocker(projectId, comment.id);
+      const updated = await resolveBlockerAction(projectId, comment.id);
       onResolved?.(updated);
     } finally {
       setResolving(false);
