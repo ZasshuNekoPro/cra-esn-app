@@ -7,6 +7,8 @@ WORKDIR /app
 
 # Force NODE_ENV=development so devDependencies (prisma) are installed
 ENV NODE_ENV=development
+# Skip Puppeteer's bundled Chrome download — Chromium is installed in the runner stage
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 # Copy workspace manifests first for optimal Docker layer caching
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -28,7 +30,19 @@ RUN pnpm --filter backend build
 # ── Stage 2 : runner ──────────────────────────────────────────────────────────
 FROM node:20-alpine AS runner
 
-RUN apk add --no-cache openssl && npm install -g pnpm@9
+# Chromium + required libs for Puppeteer PDF generation
+RUN apk add --no-cache \
+    openssl \
+    chromium \
+    nss \
+    freetype \
+    harfbuzz \
+    ca-certificates \
+    ttf-freefont \
+  && npm install -g pnpm@9
+
+ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
+ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
 
 WORKDIR /app
 
