@@ -1,5 +1,12 @@
 # Changelog — ESN CRA App
 
+## [Unreleased]
+
+### Features
+- **Settings page** — salariés peuvent modifier leur prénom, nom, téléphone et changer leur mot de passe depuis `/settings`
+- `PATCH /users/me` — mise à jour partielle du profil (firstName, lastName, phone)
+- `POST /users/me/change-password` — changement de mot de passe avec vérification bcrypt de l'ancien mot de passe
+
 ## [preprod-1.0.0] — 2026-03-25
 
 ### Infrastructure
