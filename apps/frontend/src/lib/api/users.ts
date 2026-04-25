@@ -26,4 +26,8 @@ export const usersClientApi = {
   list: (): Promise<PublicUser[]> => clientApiClient.get<PublicUser[]>('/users'),
   create: (data: CreateUserRequest): Promise<PublicUser> => clientApiClient.post<PublicUser>('/users', data),
   delete: (id: string): Promise<void> => clientApiClient.delete<void>(`/users/${id}`),
+  updateProfile: (data: { firstName?: string; lastName?: string; phone?: string }): Promise<PublicUser> =>
+    clientApiClient.patch<PublicUser>('/users/me', data),
+  changePassword: (data: { currentPassword: string; newPassword: string }): Promise<void> =>
+    clientApiClient.post<void>('/users/me/change-password', data),
 };

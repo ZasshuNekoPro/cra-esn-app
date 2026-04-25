@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { ForbiddenException, ConflictException } from '@nestjs/common';
+import { ForbiddenException, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { UsersService } from '../../users.service';
 import { Role } from '@esn/shared-types';
+import * as bcrypt from 'bcryptjs';
 
 // ─── Mock PrismaService ────────────────────────────────────────────────────────
 
@@ -237,5 +238,107 @@ describe('UsersService — findAll scoping', () => {
         }),
       }),
     );
+  });
+});
+
+// ── updateMe ─────────────────────────────────────────────────────────────────
+
+describe('UsersService — updateMe', () => {
+  let service: UsersService;
+
+  const existingUser = {
+    id: 'u1',
+    email: 'alice@example.com',
+    firstName: 'Alice',
+    lastName: 'Dupont',
+    role: Role.EMPLOYEE,
+    phone: null,
+    avatarUrl: null,
+    password: 'hashed',
+    deletedAt: null,
+    esnId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockPrisma.user.findUnique.mockResolvedValue(existingUser);
+    mockPrisma.user.update.mockResolvedValue({ ...existingUser, firstName: 'Alicia' });
+    service = new UsersService(mockPrisma as never);
+  });
+
+  it('updates and returns the public profile', async () => {
+    const result = await service.updateMe('u1', { firstName: 'Alicia' });
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'u1' },
+        data: expect.objectContaining({ firstName: 'Alicia' }),
+      }),
+    );
+    expect(result).toMatchObject({ firstName: 'Alicia' });
+  });
+
+  it('ignores undefined fields (only patches provided fields)', async () => {
+    await service.updateMe('u1', { lastName: 'Martin' });
+    const call = mockPrisma.user.update.mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(call.data).not.toHaveProperty('firstName');
+    expect(call.data).toHaveProperty('lastName', 'Martin');
+  });
+
+  it('converts empty phone to null', async () => {
+    await service.updateMe('u1', { phone: '' });
+    const call = mockPrisma.user.update.mock.calls[0][0] as { data: Record<string, unknown> };
+    expect(call.data).toHaveProperty('phone', null);
+  });
+
+  it('throws NotFoundException when user does not exist', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    await expect(service.updateMe('unknown', { firstName: 'X' })).rejects.toThrow(NotFoundException);
+  });
+});
+
+// ── changePassword ───────────────────────────────────────────────────────────
+
+describe('UsersService — changePassword', () => {
+  let service: UsersService;
+
+  const existingUser = {
+    id: 'u1',
+    email: 'alice@example.com',
+    password: '',
+    deletedAt: null,
+  };
+
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    const hashed = await bcrypt.hash('ancien123', 10);
+    mockPrisma.user.findUnique.mockResolvedValue({ ...existingUser, password: hashed });
+    mockPrisma.user.update.mockResolvedValue(undefined);
+    service = new UsersService(mockPrisma as never);
+  });
+
+  it('updates the password when current password is correct', async () => {
+    await service.changePassword('u1', { currentPassword: 'ancien123', newPassword: 'nouveau123' });
+    expect(mockPrisma.user.update).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'u1' } }),
+    );
+    const call = mockPrisma.user.update.mock.calls[0][0] as { data: { password: string } };
+    const isNewHash = await bcrypt.compare('nouveau123', call.data.password);
+    expect(isNewHash).toBe(true);
+  });
+
+  it('throws UnauthorizedException when current password is wrong', async () => {
+    await expect(
+      service.changePassword('u1', { currentPassword: 'wrong', newPassword: 'nouveau123' }),
+    ).rejects.toThrow(UnauthorizedException);
+    expect(mockPrisma.user.update).not.toHaveBeenCalled();
+  });
+
+  it('throws NotFoundException when user does not exist', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(null);
+    await expect(
+      service.changePassword('unknown', { currentPassword: 'x', newPassword: 'y' }),
+    ).rejects.toThrow(NotFoundException);
   });
 });
