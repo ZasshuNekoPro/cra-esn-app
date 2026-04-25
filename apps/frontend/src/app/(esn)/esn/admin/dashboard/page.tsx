@@ -1,11 +1,11 @@
 import Link from 'next/link';
-import { craApi } from '../../../../../lib/api/cra';
+import { reportsApi } from '../../../../../lib/api/reports';
 
 export default async function AdminDashboardPage(): Promise<JSX.Element> {
   let pendingCount: number | null = null;
   try {
-    const data = await craApi.getPendingEsn();
-    pendingCount = data.count;
+    const items = await reportsApi.listForEsn();
+    pendingCount = items.filter((item) => item.status === 'PENDING').length;
   } catch {
     // silently fall back to "—"
   }
@@ -25,7 +25,7 @@ export default async function AdminDashboardPage(): Promise<JSX.Element> {
           <p className="text-3xl font-bold text-gray-900 mt-1">—</p>
         </div>
         <div className="bg-white border border-gray-200 rounded-lg p-6">
-          <p className="text-sm text-gray-500">CRA en attente de validation</p>
+          <p className="text-sm text-gray-500">Rapports en attente de validation</p>
           <p
             className={`text-3xl font-bold mt-1 ${
               pendingCount !== null && pendingCount > 0 ? 'text-orange-600' : 'text-gray-900'
