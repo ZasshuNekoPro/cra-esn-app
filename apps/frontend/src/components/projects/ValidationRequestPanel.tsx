@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { ValidationStatus, Role } from '@esn/shared-types';
 import type { ProjectValidationRequest } from '@esn/shared-types';
-import { projectsApi } from '../../lib/api/projects';
+import { clientProjectsApi } from '../../lib/api/clientProjects';
 
 const STATUS_CONFIG: Record<ValidationStatus, { label: string; class: string }> = {
   [ValidationStatus.PENDING]:  { label: 'En attente', class: 'bg-orange-100 text-orange-700' },
@@ -36,7 +36,7 @@ export function ValidationRequestPanel({
     e.preventDefault();
     setSubmitting(true);
     try {
-      const created = await projectsApi.createValidation(projectId, { title, description, targetRole });
+      const created = await clientProjectsApi.createValidation(projectId, { title, description, targetRole });
       setValidations((prev) => [created, ...prev]);
       setTitle('');
       setDescription('');
@@ -51,8 +51,8 @@ export function ValidationRequestPanel({
     try {
       const comment = decisionComments[validationId] ?? '';
       const updated = action === 'approve'
-        ? await projectsApi.approveValidation(projectId, validationId, { decisionComment: comment || undefined })
-        : await projectsApi.rejectValidation(projectId, validationId, { decisionComment: comment || undefined });
+        ? await clientProjectsApi.approveValidation(projectId, validationId, { decisionComment: comment || undefined })
+        : await clientProjectsApi.rejectValidation(projectId, validationId, { decisionComment: comment || undefined });
       setValidations((prev) => prev.map((v) => (v.id === validationId ? updated : v)));
     } finally {
       setDeciding(null);
