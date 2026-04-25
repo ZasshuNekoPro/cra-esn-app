@@ -30,7 +30,7 @@ export async function clientApiFetch<T>(path: string, options: FetchOptions = {}
     let message = res.statusText;
     try {
       const error = (await res.json()) as ApiError;
-      message = Array.isArray(error.message) ? error.message.join(', ') : error.message;
+      message = Array.isArray(error.message) ? error.message.join(', ') : (error.message ?? res.statusText);
     } catch {
       // empty error body (502, empty 401, etc.)
     }

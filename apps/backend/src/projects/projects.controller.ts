@@ -316,7 +316,7 @@ export class ProjectsController {
     @Body() dto: DecideValidationDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.validationsService.approveValidation(validationId, user.sub, dto);
+    return this.validationsService.approveValidation(validationId, user.sub, user.role, dto);
   }
 
   /**
@@ -330,6 +330,6 @@ export class ProjectsController {
     @Body() dto: DecideValidationDto,
     @CurrentUser() user: JwtPayload,
   ) {
-    return this.validationsService.rejectValidation(validationId, user.sub, dto);
+    return this.validationsService.rejectValidation(validationId, user.sub, user.role, dto);
   }
 }

@@ -3,7 +3,7 @@ import {
   NotFoundException,
   ForbiddenException,
 } from '@nestjs/common';
-import { ValidationStatus, AuditAction } from '@esn/shared-types';
+import { ValidationStatus, AuditAction, Role } from '@esn/shared-types';
 import type { CreateProjectValidationRequest, DecideValidationRequest } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 
@@ -54,7 +54,7 @@ export class ValidationsService {
     });
   }
 
-  async approveValidation(validationId: string, callerId: string, dto: DecideValidationRequest) {
+  async approveValidation(validationId: string, callerId: string, callerRole: Role, dto: DecideValidationRequest) {
     const validation = await this.prisma.projectValidationRequest.findFirst({
       where: { id: validationId },
     });
@@ -65,6 +65,14 @@ export class ValidationsService {
 
     if ((validation.status as unknown as ValidationStatus) !== ValidationStatus.PENDING) {
       throw new ForbiddenException('Cette demande a déjà été traitée');
+    }
+
+    const targetRole = validation.targetRole as unknown as Role;
+    const authorized =
+      (targetRole === Role.ESN_ADMIN && (callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER)) ||
+      (targetRole === Role.CLIENT && callerRole === Role.CLIENT);
+    if (!authorized) {
+      throw new ForbiddenException('Vous n\'êtes pas autorisé à décider cette validation');
     }
 
     const updated = await this.prisma.projectValidationRequest.update({
@@ -89,7 +97,7 @@ export class ValidationsService {
     return updated;
   }
 
-  async rejectValidation(validationId: string, callerId: string, dto: DecideValidationRequest) {
+  async rejectValidation(validationId: string, callerId: string, callerRole: Role, dto: DecideValidationRequest) {
     const validation = await this.prisma.projectValidationRequest.findFirst({
       where: { id: validationId },
     });
@@ -100,6 +108,14 @@ export class ValidationsService {
 
     if ((validation.status as unknown as ValidationStatus) !== ValidationStatus.PENDING) {
       throw new ForbiddenException('Cette demande a déjà été traitée');
+    }
+
+    const targetRole = validation.targetRole as unknown as Role;
+    const authorized =
+      (targetRole === Role.ESN_ADMIN && (callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER)) ||
+      (targetRole === Role.CLIENT && callerRole === Role.CLIENT);
+    if (!authorized) {
+      throw new ForbiddenException('Vous n\'êtes pas autorisé à décider cette validation');
     }
 
     const updated = await this.prisma.projectValidationRequest.update({

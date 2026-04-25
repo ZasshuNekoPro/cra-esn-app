@@ -89,6 +89,20 @@ describe('clientApiFetch', () => {
     });
   });
 
+  it('falls back to statusText when error body has no message field', async () => {
+    mockFetch.mockResolvedValueOnce({
+      ok: false,
+      status: 401,
+      statusText: 'Unauthorized',
+      json: () => Promise.resolve({ error: 'Unauthorized', statusCode: 401 }),
+    });
+
+    await expect(clientApiFetch('/protected')).rejects.toMatchObject({
+      statusCode: 401,
+      message: 'Unauthorized',
+    });
+  });
+
   it('includes Authorization header when session has accessToken', async () => {
     mockGetSession.mockResolvedValueOnce({ accessToken: 'tok-abc' });
 
