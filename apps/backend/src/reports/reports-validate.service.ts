@@ -10,9 +10,11 @@ import type {
   ValidateReportPublicInfo,
   ValidateReportRequest,
   ValidateReportResponse,
+  ReportValidationItemForEsn,
 } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StorageService } from '../storage/storage.service';
 
 interface ValidationRequestRow {
   id: string;
@@ -37,6 +39,7 @@ export class ReportsValidateService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // ── GET /reports/validate/:token ──────────────────────────────────────────
@@ -104,6 +107,38 @@ export class ReportsValidateService {
     await this.notifyEmployee(updated.employeeId, row, newStatus, employeeName, body, allValidated);
 
     return this.buildResponse({ ...row, status: newStatus }, allValidated);
+  }
+
+  // ── GET /reports/validation/:id ──────────────────────────────────────────
+
+  async getValidationItem(id: string, callerId: string): Promise<ReportValidationItemForEsn> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+    return {
+      id: row.id,
+      token: row.token,
+      year: row.year,
+      month: row.month,
+      reportType: row.reportType as ReportValidationItemForEsn['reportType'],
+      recipient: row.recipient as ReportValidationItemForEsn['recipient'],
+      status: row.status as ReportValidationItemForEsn['status'],
+      comment: row.comment,
+      resolvedBy: row.resolvedBy,
+      resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
+      expiresAt: row.expiresAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+      employeeId: row.employeeId,
+      employeeName: `${row.employee.firstName} ${row.employee.lastName}`,
+    };
+  }
+
+  // ── GET /reports/validation/:id/download ─────────────────────────────────
+
+  async getValidationPdfUrl(id: string, callerId: string): Promise<{ url: string }> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+    const url = await this.storage.getDownloadUrl(row.pdfS3Key, 300);
+    return { url };
   }
 
   // ── PATCH /reports/validation/:id/archive ────────────────────────────────
@@ -232,13 +267,19 @@ export class ReportsValidateService {
 
   /** Find a validation request by its primary key (no status/expiry check). */
   private async findRequestById(id: string): Promise<ValidationRequestRow> {
+    const row = await this.findAnyRequestById(id);
+    if (row.status === 'ARCHIVED') throw new GoneException('Cette demande a déjà été archivée.');
+    return row;
+  }
+
+  /** Find a validation request by its primary key without any status/expiry guard. */
+  private async findAnyRequestById(id: string): Promise<ValidationRequestRow> {
     const row = await this.prisma.reportValidationRequest.findUnique({
       where: { id },
       include: { employee: { select: { firstName: true, lastName: true } } },
     }) as ValidationRequestRow | null;
 
     if (!row) throw new NotFoundException('Demande de validation introuvable.');
-    if (row.status === 'ARCHIVED') throw new GoneException('Cette demande a déjà été archivée.');
     return row;
   }
 
