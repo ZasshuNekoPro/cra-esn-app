@@ -1,10 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Role } from '@esn/shared-types';
-import { usersClientApi, type PublicUser } from '../../../../../lib/api/users';
+import type { PublicUser } from '../../../../../lib/api/users';
 import { missionsClientApi, type Mission } from '../../../../../lib/api/missions';
 import { ApiClientError } from '../../../../../lib/api/client';
+import { listMissionsAndUsersAction } from './actions';
 
 export default function AdminMissionsPage(): JSX.Element {
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -26,13 +26,10 @@ export default function AdminMissionsPage(): JSX.Element {
 
   const loadData = async (): Promise<void> => {
     try {
-      const [missionList, userList] = await Promise.all([
-        missionsClientApi.list(),
-        usersClientApi.list(),
-      ]);
-      setMissions(missionList);
-      setEmployees(userList.filter((u) => u.role === Role.EMPLOYEE));
-      setClients(userList.filter((u) => u.role === Role.CLIENT));
+      const { missions, employees, clients } = await listMissionsAndUsersAction();
+      setMissions(missions);
+      setEmployees(employees);
+      setClients(clients);
     } catch {
       // silently fail
     } finally {
