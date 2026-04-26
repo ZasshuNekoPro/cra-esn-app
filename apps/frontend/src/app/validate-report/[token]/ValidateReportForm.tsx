@@ -6,13 +6,13 @@ import type { ValidateReportResponse } from '@esn/shared-types';
 
 interface Props {
   token: string;
+  onResult: (result: ValidateReportResponse) => void;
 }
 
-export function ValidateReportForm({ token }: Props): JSX.Element {
+export function ValidateReportForm({ token, onResult }: Props): JSX.Element {
   const [validatorName, setValidatorName] = useState('');
   const [comment, setComment] = useState('');
   const [pendingAction, setPendingAction] = useState<'VALIDATE' | 'REFUSE' | null>(null);
-  const [result, setResult] = useState<ValidateReportResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const loading = pendingAction !== null;
@@ -36,7 +36,7 @@ export function ValidateReportForm({ token }: Props): JSX.Element {
         validatorName: validatorName.trim(),
         comment: comment.trim() || undefined,
       });
-      setResult(res);
+      onResult(res);
     } catch (err: unknown) {
       const e = err as Error;
       setError(e.message || 'Une erreur est survenue.');
@@ -44,28 +44,6 @@ export function ValidateReportForm({ token }: Props): JSX.Element {
       setPendingAction(null);
     }
   };
-
-  if (result) {
-    const isValidated = result.status === 'VALIDATED';
-    return (
-      <div
-        className={`rounded-lg border px-4 py-4 text-center text-sm font-medium ${
-          isValidated
-            ? 'border-green-200 bg-green-50 text-green-700'
-            : 'border-red-200 bg-red-50 text-red-700'
-        }`}
-      >
-        <p className="text-base font-semibold">
-          {isValidated ? 'Rapport validé ✓' : 'Rapport refusé'}
-        </p>
-        {result.allValidated && (
-          <p className="mt-1 text-xs opacity-80">
-            Tous les destinataires ont validé ce rapport.
-          </p>
-        )}
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
