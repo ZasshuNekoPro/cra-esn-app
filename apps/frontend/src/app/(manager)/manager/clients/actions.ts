@@ -1,15 +1,15 @@
 'use server';
 
-import { usersApi } from '../../../../../lib/api/users';
+import { usersApi } from '../../../../lib/api/users';
 import { Role } from '@esn/shared-types';
-import type { PublicUser } from '../../../../../lib/api/users';
+import type { PublicUser } from '../../../../lib/api/users';
 
 interface CreateClientInput {
   email: string;
   password: string;
   firstName: string;
   lastName: string;
-  phone?: string;
+  company?: string;
 }
 
 export async function listClientsAction(): Promise<PublicUser[]> {

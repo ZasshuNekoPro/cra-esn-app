@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Role } from '@esn/shared-types';
-import { usersClientApi, type PublicUser } from '../../../../lib/api/users';
-import { ApiClientError } from '../../../../lib/api/client';
+import type { PublicUser } from '../../../../lib/api/users';
+import { listClientsAction, createClientAction } from './actions';
 
 interface ReferentForm {
   firstName: string;
@@ -35,8 +34,8 @@ export default function ManagerClientsPage(): JSX.Element {
 
   const loadClients = async (): Promise<void> => {
     try {
-      const users = await usersClientApi.list();
-      setClients(users.filter((u) => u.role === Role.CLIENT));
+      const users = await listClientsAction();
+      setClients(users);
     } catch {
       // silently fail
     } finally {
@@ -65,19 +64,20 @@ export default function ManagerClientsPage(): JSX.Element {
     const created: CreatedReferent[] = [];
     try {
       for (const ref of referents) {
-        const user = await usersClientApi.create({
+        const result = await createClientAction({
           ...ref,
-          role: Role.CLIENT,
           company: company || undefined,
         });
-        created.push({ ...ref, id: user.id });
+        if (result.error) {
+          setError(result.error);
+          return;
+        }
+        created.push({ ...ref, id: result.user!.id });
       }
       setCreatedReferents(created);
       setCompany('');
       setReferents([emptyReferent()]);
       void loadClients();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Erreur lors de la création');
     } finally {
       setSubmitting(false);
     }

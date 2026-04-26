@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Role } from '@esn/shared-types';
-import { usersClientApi, type PublicUser } from '../../../../lib/api/users';
-import { ApiClientError } from '../../../../lib/api/client';
+import type { PublicUser } from '../../../../lib/api/users';
+import { listEmployeesAction, createEmployeeAction } from './actions';
 
 export default function ManagerEmployeesPage(): JSX.Element {
   const [employees, setEmployees] = useState<PublicUser[]>([]);
@@ -15,8 +14,8 @@ export default function ManagerEmployeesPage(): JSX.Element {
 
   const loadEmployees = async (): Promise<void> => {
     try {
-      const users = await usersClientApi.list();
-      setEmployees(users.filter((u) => u.role === Role.EMPLOYEE));
+      const users = await listEmployeesAction();
+      setEmployees(users);
     } catch {
       // silently fail
     } finally {
@@ -31,16 +30,17 @@ export default function ManagerEmployeesPage(): JSX.Element {
     setError(null);
     setSubmitting(true);
     try {
-      await usersClientApi.create({
+      const result = await createEmployeeAction({
         ...form,
         phone: form.phone || undefined,
-        role: Role.EMPLOYEE,
       });
-      setForm({ firstName: '', lastName: '', email: '', password: '', phone: '' });
-      setShowForm(false);
-      void loadEmployees();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Erreur lors de la création');
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setForm({ firstName: '', lastName: '', email: '', password: '', phone: '' });
+        setShowForm(false);
+        void loadEmployees();
+      }
     } finally {
       setSubmitting(false);
     }

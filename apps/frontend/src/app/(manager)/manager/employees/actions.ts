@@ -1,8 +1,8 @@
 'use server';
 
-import { usersApi } from '../../../../../lib/api/users';
+import { usersApi } from '../../../../lib/api/users';
 import { Role } from '@esn/shared-types';
-import type { PublicUser } from '../../../../../lib/api/users';
+import type { PublicUser } from '../../../../lib/api/users';
 
 interface CreateEmployeeInput {
   email: string;

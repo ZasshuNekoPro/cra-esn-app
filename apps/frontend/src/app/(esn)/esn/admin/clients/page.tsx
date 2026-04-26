@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Role } from '@esn/shared-types';
-import { usersClientApi, type PublicUser } from '../../../../../lib/api/users';
-import { createClientAction } from './actions';
+import type { PublicUser } from '../../../../../lib/api/users';
+import { listClientsAction, createClientAction } from './actions';
 
 export default function AdminClientsPage(): JSX.Element {
   const [clients, setClients] = useState<PublicUser[]>([]);
@@ -15,8 +14,8 @@ export default function AdminClientsPage(): JSX.Element {
 
   const loadClients = async (): Promise<void> => {
     try {
-      const users = await usersClientApi.list();
-      setClients(users.filter((u) => u.role === Role.CLIENT));
+      const clients = await listClientsAction();
+      setClients(clients);
     } catch {
       // silently fail
     } finally {
