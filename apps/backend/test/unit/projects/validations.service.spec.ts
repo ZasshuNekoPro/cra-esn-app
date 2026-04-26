@@ -110,7 +110,7 @@ describe('ValidationsService', () => {
   });
 
   describe('approveValidation', () => {
-    it('should set status to APPROVED and resolvedAt', async () => {
+    it('should set status to APPROVED when ESN_ADMIN approves ESN_ADMIN-targeted validation', async () => {
       vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(mockValidation as never);
       vi.mocked(mockPrisma.projectValidationRequest.update).mockResolvedValue({
         ...mockValidation,
@@ -120,15 +120,57 @@ describe('ValidationsService', () => {
       } as never);
       vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
 
-      const result = await service.approveValidation(validationId, esnAdminId, {});
+      const result = await service.approveValidation(validationId, esnAdminId, Role.ESN_ADMIN, {});
       expect(result.status).toBe(ValidationStatus.APPROVED);
+    });
+
+    it('should allow ESN_MANAGER to approve ESN_ADMIN-targeted validation', async () => {
+      vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(mockValidation as never);
+      vi.mocked(mockPrisma.projectValidationRequest.update).mockResolvedValue({
+        ...mockValidation,
+        status: ValidationStatus.APPROVED,
+      } as never);
+      vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
+
+      const result = await service.approveValidation(validationId, 'manager-uuid', Role.ESN_MANAGER, {});
+      expect(result.status).toBe(ValidationStatus.APPROVED);
+    });
+
+    it('should throw ForbiddenException when CLIENT tries to approve ESN_ADMIN-targeted validation', async () => {
+      vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(mockValidation as never);
+
+      await expect(
+        service.approveValidation(validationId, 'client-uuid', Role.CLIENT, {}),
+      ).rejects.toThrow(ForbiddenException);
+    });
+
+    it('should allow CLIENT to approve CLIENT-targeted validation', async () => {
+      const clientTargeted = { ...mockValidation, targetRole: Role.CLIENT };
+      vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(clientTargeted as never);
+      vi.mocked(mockPrisma.projectValidationRequest.update).mockResolvedValue({
+        ...clientTargeted,
+        status: ValidationStatus.APPROVED,
+      } as never);
+      vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
+
+      const result = await service.approveValidation(validationId, 'client-uuid', Role.CLIENT, {});
+      expect(result.status).toBe(ValidationStatus.APPROVED);
+    });
+
+    it('should throw ForbiddenException when ESN_ADMIN tries to approve CLIENT-targeted validation', async () => {
+      const clientTargeted = { ...mockValidation, targetRole: Role.CLIENT };
+      vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(clientTargeted as never);
+
+      await expect(
+        service.approveValidation(validationId, esnAdminId, Role.ESN_ADMIN, {}),
+      ).rejects.toThrow(ForbiddenException);
     });
 
     it('should throw NotFoundException if validation not found', async () => {
       vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(null);
 
       await expect(
-        service.approveValidation('nonexistent', esnAdminId, {}),
+        service.approveValidation('nonexistent', esnAdminId, Role.ESN_ADMIN, {}),
       ).rejects.toThrow(NotFoundException);
     });
 
@@ -137,7 +179,7 @@ describe('ValidationsService', () => {
       vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(approved as never);
 
       await expect(
-        service.approveValidation(validationId, esnAdminId, {}),
+        service.approveValidation(validationId, esnAdminId, Role.ESN_ADMIN, {}),
       ).rejects.toThrow(ForbiddenException);
     });
   });
@@ -154,10 +196,18 @@ describe('ValidationsService', () => {
       } as never);
       vi.mocked(mockPrisma.auditLog.create).mockResolvedValue({} as never);
 
-      const result = await service.rejectValidation(validationId, esnAdminId, {
+      const result = await service.rejectValidation(validationId, esnAdminId, Role.ESN_ADMIN, {
         decisionComment: 'Pas complet',
       });
       expect(result.status).toBe(ValidationStatus.REJECTED);
+    });
+
+    it('should throw ForbiddenException when CLIENT tries to reject ESN_ADMIN-targeted validation', async () => {
+      vi.mocked(mockPrisma.projectValidationRequest.findFirst).mockResolvedValue(mockValidation as never);
+
+      await expect(
+        service.rejectValidation(validationId, 'client-uuid', Role.CLIENT, {}),
+      ).rejects.toThrow(ForbiddenException);
     });
   });
 });

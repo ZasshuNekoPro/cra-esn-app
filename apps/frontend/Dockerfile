@@ -25,6 +25,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_ENV=production
 
 # Build-time env vars needed for Next.js static generation
+# NEXT_PUBLIC_BACKEND_URL is baked into the client bundle, so it must be set at build time
+ARG NEXT_PUBLIC_BACKEND_URL=http://192.168.1.138:3001
+ENV NEXT_PUBLIC_BACKEND_URL=$NEXT_PUBLIC_BACKEND_URL
 ENV BACKEND_URL=http://localhost:3001
 ENV NEXTAUTH_URL=http://localhost:3100
 ENV NEXTAUTH_SECRET=build-time-placeholder

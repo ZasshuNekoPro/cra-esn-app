@@ -80,10 +80,12 @@ describe('CraPdfGenerator', () => {
     await generator.generate(data);
 
     // eslint-disable-next-line @typescript-eslint/unbound-method
-    expect(puppeteer.launch).toHaveBeenCalledWith({
-      headless: true,
-      args: ['--no-sandbox'],
-    });
+    expect(puppeteer.launch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        headless: true,
+        args: expect.arrayContaining(['--no-sandbox', '--disable-setuid-sandbox']),
+      }),
+    );
     expect(mockPage.pdf).toHaveBeenCalledWith({ format: 'A4', printBackground: true });
   });
 

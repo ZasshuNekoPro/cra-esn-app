@@ -4,6 +4,7 @@ import {
   GoneException,
   Injectable,
   NotFoundException,
+  StreamableFile,
 } from '@nestjs/common';
 import { AuditAction } from '@esn/shared-types';
 import type {
@@ -139,6 +140,18 @@ export class ReportsValidateService {
     await this.assertEsnScope(row.employeeId, callerId);
     const url = await this.storage.getDownloadUrl(row.pdfS3Key, 300);
     return { url };
+  }
+
+  // ── GET /reports/validation/:id/pdf (streaming — no presigned URL) ────────
+
+  async streamValidationPdf(id: string, callerId: string): Promise<StreamableFile> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+    const stream = await this.storage.getObjectStream(row.pdfS3Key);
+    return new StreamableFile(stream, {
+      type: 'application/pdf',
+      disposition: 'inline; filename="rapport.pdf"',
+    });
   }
 
   // ── PATCH /reports/validation/:id/archive ────────────────────────────────

@@ -1,6 +1,8 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as fs from 'fs/promises';
+import { createReadStream } from 'fs';
+import type { Readable } from 'stream';
 import * as path from 'path';
 import type { IStorageService } from '../storage.interface';
 
@@ -40,6 +42,16 @@ export class LocalStorageService implements IStorageService {
     // Return the NestJS storage endpoint URL; access is controlled by JwtAuthGuard
     const encodedKey = encodeURIComponent(key);
     return `${this.backendUrl}/api/storage/${encodedKey}`;
+  }
+
+  async getObjectStream(key: string): Promise<Readable> {
+    const filePath = this.resolvePath(key);
+    try {
+      await fs.access(filePath);
+    } catch {
+      throw new NotFoundException(`File not found: ${key}`);
+    }
+    return createReadStream(filePath);
   }
 
   async deleteObject(key: string): Promise<void> {

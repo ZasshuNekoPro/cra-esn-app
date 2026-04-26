@@ -3,10 +3,13 @@ import {
   ConflictException,
   NotFoundException,
   ForbiddenException,
+  UnauthorizedException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
 import { Role } from '@esn/shared-types';
 import type { CreateUserDto } from './dto/create-user.dto';
+import type { UpdateProfileDto } from './dto/update-profile.dto';
+import type { ChangePasswordDto } from './dto/change-password.dto';
 import * as bcrypt from 'bcryptjs';
 
 type PublicUser = {
@@ -134,6 +137,37 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id },
       data: { deletedAt: new Date() },
+    });
+  }
+
+  async updateMe(userId: string, dto: UpdateProfileDto): Promise<PublicUser> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+    if (!user) throw new NotFoundException(`User ${userId} not found`);
+
+    return this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.firstName !== undefined && { firstName: dto.firstName }),
+        ...(dto.lastName !== undefined && { lastName: dto.lastName }),
+        ...(dto.phone !== undefined && { phone: dto.phone || null }),
+      },
+      select: PUBLIC_SELECT,
+    });
+  }
+
+  async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
+    const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
+    if (!user) throw new NotFoundException(`User ${userId} not found`);
+
+    const isValid = await bcrypt.compare(dto.currentPassword, user.password);
+    if (!isValid) throw new UnauthorizedException('Mot de passe actuel incorrect');
+
+    const rounds = parseInt(process.env['BCRYPT_ROUNDS'] ?? '12', 10);
+    const hashed = await bcrypt.hash(dto.newPassword, rounds);
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { password: hashed },
     });
   }
 }

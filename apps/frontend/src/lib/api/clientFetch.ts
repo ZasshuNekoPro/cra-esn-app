@@ -27,9 +27,18 @@ export async function clientApiFetch<T>(path: string, options: FetchOptions = {}
   });
 
   if (!res.ok) {
-    const error = (await res.json()) as ApiError;
-    const message = Array.isArray(error.message) ? error.message.join(', ') : error.message;
+    let message = res.statusText;
+    try {
+      const error = (await res.json()) as ApiError;
+      message = Array.isArray(error.message) ? error.message.join(', ') : (error.message ?? res.statusText);
+    } catch {
+      // empty error body (502, empty 401, etc.)
+    }
     throw new ApiClientError(res.status, message);
+  }
+
+  if (res.status === 204) {
+    return undefined as T;
   }
 
   return res.json() as Promise<T>;

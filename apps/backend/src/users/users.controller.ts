@@ -2,6 +2,7 @@ import {
   Controller,
   Get,
   Post,
+  Patch,
   Delete,
   Param,
   Body,
@@ -14,10 +15,29 @@ import { Role } from '@esn/shared-types';
 import type { JwtPayload } from '@esn/shared-types';
 import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { ChangePasswordDto } from './dto/change-password.dto';
 
 @Controller('users')
 export class UsersController {
   constructor(private readonly usersService: UsersService) {}
+
+  /**
+   * PATCH /users/me — update own profile (all authenticated roles)
+   */
+  @Patch('me')
+  updateMe(@CurrentUser() user: JwtPayload, @Body() dto: UpdateProfileDto) {
+    return this.usersService.updateMe(user.sub, dto);
+  }
+
+  /**
+   * POST /users/me/change-password — change own password (all authenticated roles)
+   */
+  @Post('me/change-password')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  changePassword(@CurrentUser() user: JwtPayload, @Body() dto: ChangePasswordDto) {
+    return this.usersService.changePassword(user.sub, dto);
+  }
 
   /**
    * POST /users

@@ -30,13 +30,11 @@ export default async function ValidationDetailPage({ params }: Props): Promise<J
   if (!session) redirect('/login');
 
   let report;
-  let pdfUrl: string | null = null;
+  // Proxy through Next.js to avoid mixed-content blocking on HTTPS pages
+  const pdfUrl = `/api/reports/validation/${params.id}/pdf`;
 
   try {
-    [report, { url: pdfUrl }] = await Promise.all([
-      reportsApi.getValidation(params.id),
-      reportsApi.getValidationPdfUrl(params.id),
-    ]);
+    report = await reportsApi.getValidation(params.id);
   } catch (err) {
     if (err instanceof ApiClientError && (err.statusCode === 401 || err.statusCode === 403)) {
       redirect('/login');

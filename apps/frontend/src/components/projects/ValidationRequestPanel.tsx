@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { ValidationStatus, Role } from '@esn/shared-types';
 import type { ProjectValidationRequest } from '@esn/shared-types';
-import { projectsApi } from '../../lib/api/projects';
+import { clientProjectsApi } from '../../lib/api/clientProjects';
 
 const STATUS_CONFIG: Record<ValidationStatus, { label: string; class: string }> = {
   [ValidationStatus.PENDING]:  { label: 'En attente', class: 'bg-orange-100 text-orange-700' },
@@ -31,41 +31,56 @@ export function ValidationRequestPanel({
   const [decisionComments, setDecisionComments] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [deciding, setDeciding] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(new Set<string>());
 
   const handleCreate = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
     setSubmitting(true);
+    setError(null);
     try {
-      const created = await projectsApi.createValidation(projectId, { title, description, targetRole });
+      const created = await clientProjectsApi.createValidation(projectId, { title, description, targetRole });
       setValidations((prev) => [created, ...prev]);
       setTitle('');
       setDescription('');
       setShowForm(false);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDecide = async (validationId: string, action: 'approve' | 'reject'): Promise<void> => {
-    setDeciding(validationId + action);
+    const key = validationId + action;
+    if (inFlight.current.has(key)) return;
+    inFlight.current.add(key);
+    setDeciding(key);
+    setError(null);
     try {
       const comment = decisionComments[validationId] ?? '';
       const updated = action === 'approve'
-        ? await projectsApi.approveValidation(projectId, validationId, { decisionComment: comment || undefined })
-        : await projectsApi.rejectValidation(projectId, validationId, { decisionComment: comment || undefined });
+        ? await clientProjectsApi.approveValidation(projectId, validationId, { decisionComment: comment || undefined })
+        : await clientProjectsApi.rejectValidation(projectId, validationId, { decisionComment: comment || undefined });
       setValidations((prev) => prev.map((v) => (v.id === validationId ? updated : v)));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Une erreur est survenue');
     } finally {
+      inFlight.current.delete(key);
       setDeciding(null);
     }
   };
 
   const canDecide = (v: ProjectValidationRequest): boolean =>
     v.status === ValidationStatus.PENDING &&
-    ((v.targetRole === Role.ESN_ADMIN && userRole === Role.ESN_ADMIN) ||
+    ((v.targetRole === Role.ESN_ADMIN && (userRole === Role.ESN_ADMIN || userRole === Role.ESN_MANAGER)) ||
       (v.targetRole === Role.CLIENT && userRole === Role.CLIENT));
 
   return (
     <div className="space-y-4">
+      {error && (
+        <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">{error}</p>
+      )}
       {/* Create form toggle */}
       {userRole === Role.EMPLOYEE && !showForm && (
         <button
@@ -81,8 +96,9 @@ export function ValidationRequestPanel({
         <form onSubmit={(e) => void handleCreate(e)} className="bg-white border border-gray-200 rounded-lg p-4 space-y-3">
           <h3 className="text-sm font-semibold text-gray-700">Nouvelle demande de validation</h3>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Titre</label>
+            <label htmlFor="val-title" className="block text-xs font-medium text-gray-600 mb-1">Titre</label>
             <input
+              id="val-title"
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
@@ -91,8 +107,9 @@ export function ValidationRequestPanel({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+            <label htmlFor="val-description" className="block text-xs font-medium text-gray-600 mb-1">Description</label>
             <textarea
+              id="val-description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
@@ -101,8 +118,9 @@ export function ValidationRequestPanel({
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 mb-1">Destinataire</label>
+            <label htmlFor="val-target-role" className="block text-xs font-medium text-gray-600 mb-1">Destinataire</label>
             <select
+              id="val-target-role"
               value={targetRole}
               onChange={(e) => setTargetRole(e.target.value as Role)}
               className="border border-gray-300 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
