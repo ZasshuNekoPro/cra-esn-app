@@ -1,6 +1,10 @@
 /**
  * Public API client for report validation endpoints.
- * No authentication required — uses native fetch without bearer token.
+ * No authentication required.
+ *
+ * Server-side (SSR): calls the backend directly via BACKEND_URL.
+ * Client-side (browser): calls the Next.js proxy route (/api/reports/validate/...)
+ *   to avoid cross-origin CORS issues.
  */
 
 import type {
@@ -9,10 +13,16 @@ import type {
   ValidateReportResponse,
 } from '@esn/shared-types';
 
-const BACKEND_URL = process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3101';
+const isServer = typeof window === 'undefined';
+
+// Server: direct backend URL. Client: relative (same-origin Next.js proxy).
+const BACKEND_URL = isServer
+  ? (process.env['BACKEND_URL'] ?? 'http://localhost:3101')
+  : '';
 
 async function publicFetch<T>(path: string, options: RequestInit = {}): Promise<T> {
-  const res = await fetch(`${BACKEND_URL}/api${path}`, {
+  const base = isServer ? `${BACKEND_URL}/api` : '/api';
+  const res = await fetch(`${base}${path}`, {
     ...options,
     headers: {
       'Content-Type': 'application/json',
