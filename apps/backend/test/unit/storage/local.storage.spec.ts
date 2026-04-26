@@ -16,6 +16,13 @@ vi.mock('fs/promises', () => ({
   unlink: (...args: unknown[]) => mockUnlink(...args),
 }));
 
+// ── Mock fs (createReadStream) ────────────────────────────────────────────────
+
+const mockCreateReadStream = vi.fn();
+vi.mock('fs', () => ({
+  createReadStream: (...args: unknown[]) => mockCreateReadStream(...args),
+}));
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function makeConfig(overrides: Record<string, string> = {}): ConfigService {
@@ -77,5 +84,25 @@ describe('LocalStorageService', () => {
   it('should silently ignore delete of non-existent file', async () => {
     mockUnlink.mockRejectedValueOnce(new Error('ENOENT'));
     await expect(service.deleteObject('missing/file.pdf')).resolves.toBeUndefined();
+  });
+
+  // ── getObjectStream ───────────────────────────────────────────────────────
+
+  it('should return a ReadStream for an existing file', async () => {
+    const fakeStream = { pipe: vi.fn() };
+    mockCreateReadStream.mockReturnValueOnce(fakeStream);
+
+    const stream = await service.getObjectStream('owner/mission/doc.pdf');
+
+    expect(mockAccess).toHaveBeenCalledOnce();
+    expect(mockCreateReadStream).toHaveBeenCalledOnce();
+    expect(stream).toBe(fakeStream);
+  });
+
+  it('should throw NotFoundException when file is missing', async () => {
+    mockAccess.mockRejectedValueOnce(new Error('ENOENT'));
+
+    await expect(service.getObjectStream('missing/file.pdf')).rejects.toThrow(NotFoundException);
+    expect(mockCreateReadStream).not.toHaveBeenCalled();
   });
 });
