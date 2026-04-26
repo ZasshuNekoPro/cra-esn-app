@@ -28,8 +28,65 @@ const WEATHER_ICONS: Record<string, string> = {
   VALIDATED: '✅',
 };
 
+const WEATHER_LABELS: Record<string, string> = {
+  SUNNY: 'Ensoleillé',
+  CLOUDY: 'Nuageux',
+  RAINY: 'Pluvieux',
+  STORM: 'Orageux',
+  VALIDATION_PENDING: 'Validation en attente',
+  VALIDATED: 'Validé',
+};
+
 function safe(value: string | null | undefined): string {
   return value ?? 'Non renseigné';
+}
+
+function buildWeatherCalendar(
+  year: number,
+  month: number,
+  entries: import('../monthly-report.types').ProjectWeatherEntry[],
+): string {
+  const dayMap = new Map<number, string>();
+  for (const e of entries) {
+    const d = new Date(e.date);
+    if (d.getFullYear() === year && d.getMonth() + 1 === month) {
+      dayMap.set(d.getDate(), e.state);
+    }
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  // getDay() returns 0=Sun … 6=Sat; convert to Mon=0 … Sun=6
+  const firstDow = (new Date(year, month - 1, 1).getDay() + 6) % 7;
+
+  const headerRow = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim']
+    .map((d) => `<th class="cal-header">${d}</th>`)
+    .join('');
+
+  const cells: string[] = [];
+  for (let i = 0; i < firstDow; i++) {
+    cells.push('<td class="cal-cell cal-empty"></td>');
+  }
+  for (let day = 1; day <= daysInMonth; day++) {
+    const state = dayMap.get(day);
+    const icon = state ? (WEATHER_ICONS[state] ?? '❓') : '';
+    const stateClass = state ? ' cal-has-weather' : '';
+    cells.push(`<td class="cal-cell${stateClass}">
+        <div class="cal-day-num">${day}</div>
+        ${icon ? `<div class="cal-day-icon">${icon}</div>` : ''}
+      </td>`);
+  }
+
+  const rows: string[] = [];
+  for (let i = 0; i < cells.length; i += 7) {
+    const slice = cells.slice(i, i + 7);
+    while (slice.length < 7) slice.push('<td class="cal-cell cal-empty"></td>');
+    rows.push(`<tr>${slice.join('')}</tr>`);
+  }
+
+  return `<table class="weather-calendar">
+      <thead><tr>${headerRow}</tr></thead>
+      <tbody>${rows.join('')}</tbody>
+    </table>`;
 }
 
 function buildCraSection(data: MonthlyReportData): string {
@@ -105,7 +162,7 @@ function buildProjectsSection(data: MonthlyReportData): string {
   `;
 }
 
-function buildWeatherSection(weatherData: ProjectWeatherData[]): string {
+function buildWeatherSection(year: number, month: number, weatherData: ProjectWeatherData[]): string {
   if (weatherData.length === 0) {
     return `
       <section class="section">
@@ -116,12 +173,15 @@ function buildWeatherSection(weatherData: ProjectWeatherData[]): string {
   }
 
   const projectBlocks = weatherData.map((pw) => {
+    const calendar = buildWeatherCalendar(year, month, pw.entries);
+
     const rows = pw.entries.map((entry) => {
       const icon = WEATHER_ICONS[entry.state] ?? '❓';
+      const label = WEATHER_LABELS[entry.state] ?? entry.state;
       return `
         <tr>
           <td>${formatDate(entry.date)}</td>
-          <td>${icon} ${entry.state}</td>
+          <td>${icon} ${label}</td>
           <td>${entry.comment ?? '—'}</td>
         </tr>
       `;
@@ -130,12 +190,15 @@ function buildWeatherSection(weatherData: ProjectWeatherData[]): string {
     return `
       <div class="project-weather-block">
         <h3 class="project-weather-title">${pw.projectName}</h3>
-        <table class="data-table">
-          <thead>
-            <tr><th>Date</th><th>État</th><th>Commentaire</th></tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
+        ${calendar}
+        <div style="margin-top:12px;">
+          <table class="data-table">
+            <thead>
+              <tr><th>Date</th><th>État</th><th>Commentaire</th></tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
       </div>
     `;
   }).join('');
@@ -154,7 +217,7 @@ export function buildMonthlyReportHtml(data: MonthlyReportData): string {
 
   const weatherSection =
     data.reportType === 'CRA_WITH_WEATHER'
-      ? buildWeatherSection(data.weatherData ?? [])
+      ? buildWeatherSection(data.year, data.month, data.weatherData ?? [])
       : '';
 
   return `<!DOCTYPE html>
@@ -182,7 +245,16 @@ export function buildMonthlyReportHtml(data: MonthlyReportData): string {
       font-size: 10px; text-transform: uppercase; color: #374151; }
     .data-table td { padding: 5px 8px; border-bottom: 1px solid #f3f4f6; }
     .data-table tr:hover td { background: #fafafa; }
-    .project-weather-block { margin-bottom: 16px; }
+    .project-weather-block { margin-bottom: 24px; }
+    .weather-calendar { border-collapse: collapse; width: 100%; margin-bottom: 8px; }
+    .cal-header { background: #dbeafe; text-align: center; padding: 4px 2px;
+      font-size: 9px; font-weight: bold; color: #1e40af; border: 1px solid #bfdbfe; }
+    .cal-cell { border: 1px solid #e5e7eb; width: 14.28%; text-align: center;
+      padding: 3px 2px; vertical-align: top; min-height: 28px; }
+    .cal-empty { background: #f9fafb; }
+    .cal-has-weather { background: #eff6ff; }
+    .cal-day-num { font-size: 9px; color: #6b7280; }
+    .cal-day-icon { font-size: 14px; line-height: 1.2; }
     .footer { margin-top: 32px; padding-top: 8px; border-top: 1px solid #e5e7eb;
       font-size: 9px; color: #9ca3af; text-align: center; }
   </style>
