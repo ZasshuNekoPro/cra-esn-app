@@ -177,6 +177,15 @@ export class ReportsController {
     return this.reportsValidateService.getValidationPdfUrl(id, user.sub);
   }
 
+  @Get('validation/:id/pdf')
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  streamValidationPdf(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportsValidateService.streamValidationPdf(id, user.sub);
+  }
+
   @Patch('validation/:id/archive')
   @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
   archiveValidation(
