@@ -408,7 +408,11 @@ export class ReportsService {
 
       const validations: ReportValidationItem[] = validationRows
         .filter(
-          (v) => v.year === year && v.month === month && v.reportType === reportType,
+          (v) =>
+            v.year === year &&
+            v.month === month &&
+            v.reportType === reportType &&
+            v.status !== 'ARCHIVED',
         )
         .map((v) => ({
           id: v.id,

@@ -291,19 +291,34 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     expect(emailBody).toMatch(/test-token-uuid/);
   });
 
-  // ── previous PENDING requests archived on resend ───────────────────────────
+  // ── previous PENDING/REFUSED requests archived on resend ─────────────────
 
-  it('archives previous PENDING requests for same (employeeId, year, month, recipient) on resend', async () => {
+  it('archives previous PENDING and REFUSED requests for same (employeeId, year, month, recipient) on resend', async () => {
     await service.sendMonthlyReport(makeDto({ recipients: ['ESN'] }), EMPLOYEE_ID);
 
     expect(mockPrisma.reportValidationRequest.updateMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          status: 'PENDING',
+          status: { in: ['PENDING', 'REFUSED'] },
         }),
         data: { status: 'ARCHIVED' },
       }),
     );
+  });
+
+  it('regression: resend after REFUSED archives the old REFUSED record so only PENDING remains', async () => {
+    // Simulate a previous call having left a REFUSED record in the DB.
+    // The mock always resolves; we only care that updateMany is called with the
+    // correct filter so the DB driver would archive both PENDING and REFUSED rows.
+    await service.sendMonthlyReport(makeDto({ recipients: ['ESN'] }), EMPLOYEE_ID);
+
+    const call = mockPrisma.reportValidationRequest.updateMany.mock.calls[0] as [
+      { where: { status: unknown; employeeId: string; year: number; month: number; reportType: string } }
+    ];
+    expect(call[0].where.status).toEqual({ in: ['PENDING', 'REFUSED'] });
+    expect(call[0].where.employeeId).toBe(EMPLOYEE_ID);
+    expect(call[0].where.year).toBe(2026);
+    expect(call[0].where.month).toBe(3);
   });
 
   // ── T4 — auto-submit CRA when DRAFT + entries ─────────────────────────────

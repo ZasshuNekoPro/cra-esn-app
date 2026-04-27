@@ -170,14 +170,14 @@ export class ReportsSendService {
     const s3Key = `reports/${employeeId}/${year}/${month}/${reportType}-${ts}.pdf`;
     const pdfS3Key = await this.storage.uploadFile(pdfBuffer, s3Key, 'application/pdf', pdfBuffer.length);
 
-    // ── 7. Archive previous PENDING validation requests for same period ──
+    // ── 7. Archive previous PENDING/REFUSED validation requests for same period ──
     await this.prisma.reportValidationRequest.updateMany({
       where: {
         employeeId,
         year,
         month,
         reportType,
-        status: 'PENDING',
+        status: { in: ['PENDING', 'REFUSED'] },
         recipient: { in: sentTo },
       },
       data: { status: 'ARCHIVED' },
