@@ -5,20 +5,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import type { SendReportRequest, SendReportResponse } from '@esn/shared-types';
 
-// Break the next-auth/react → next/server import chain
-vi.mock('next-auth/react', () => ({
-  getSession: vi.fn().mockResolvedValue(null),
-}));
-
-// useSendReport uses clientApiClient.post directly (not reportsApi)
-const { mockPost } = vi.hoisted(() => ({ mockPost: vi.fn() }));
-vi.mock('../lib/api/clientFetch', () => ({
-  clientApiClient: {
-    post: mockPost,
-    get: vi.fn(),
-    patch: vi.fn(),
-    delete: vi.fn(),
-  },
+const { mockSendAction } = vi.hoisted(() => ({ mockSendAction: vi.fn() }));
+vi.mock('../app/(dashboard)/reports/actions', () => ({
+  sendMonthlyReportAction: mockSendAction,
 }));
 
 import { useSendReport } from './useSendReport';
@@ -38,7 +27,7 @@ describe('useSendReport', () => {
     });
   });
 
-  it('calls clientApiClient.post with correct path and payload on mutate', async () => {
+  it('calls sendMonthlyReportAction with the full payload', async () => {
     const mockResponse: SendReportResponse = {
       success: true,
       sentTo: ['ESN'],
@@ -46,7 +35,7 @@ describe('useSendReport', () => {
       auditLogId: 'audit-1',
       skippedRecipients: [],
     };
-    mockPost.mockResolvedValueOnce(mockResponse);
+    mockSendAction.mockResolvedValueOnce(mockResponse);
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),
@@ -65,7 +54,7 @@ describe('useSendReport', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockPost).toHaveBeenCalledWith('/reports/monthly/2026/3/send', payload);
+    expect(mockSendAction).toHaveBeenCalledWith(payload);
     expect(result.current.data).toEqual(mockResponse);
   });
 
@@ -74,7 +63,7 @@ describe('useSendReport', () => {
     const pendingPromise = new Promise<SendReportResponse>((res) => {
       resolvePromise = res;
     });
-    mockPost.mockReturnValueOnce(pendingPromise);
+    mockSendAction.mockReturnValueOnce(pendingPromise);
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),
@@ -106,7 +95,7 @@ describe('useSendReport', () => {
       auditLogId: 'audit-1',
       skippedRecipients: [],
     };
-    mockPost.mockResolvedValueOnce(mockResponse);
+    mockSendAction.mockResolvedValueOnce(mockResponse);
 
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -124,7 +113,7 @@ describe('useSendReport', () => {
   });
 
   it('exposes error when the mutation fails', async () => {
-    mockPost.mockRejectedValueOnce(new Error('network error'));
+    mockSendAction.mockRejectedValueOnce(new Error('network error'));
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),
