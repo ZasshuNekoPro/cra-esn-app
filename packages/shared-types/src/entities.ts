@@ -13,6 +13,7 @@ import {
   ProjectStatus,
   CommentVisibility,
   MilestoneStatus,
+  ClientContactType,
 } from './enums';
 
 // ── Base ──────────────────────────────────────────────────────────────────────
@@ -42,10 +43,27 @@ export interface User extends BaseEntity {
   avatarUrl?: string | null;
   esnId?: string | null;
   deletedAt?: Date | null;
+  clientCompanyId?: string | null;
+  clientContactType?: ClientContactType | null;
 }
 
 /** User without sensitive fields — safe to expose via API */
 export type PublicUser = Omit<User, 'deletedAt'>;
+
+// ── Client Company ─────────────────────────────────────────────────────────────
+
+export interface ClientCompany extends BaseEntity {
+  name: string;
+  siren?: string | null;
+  address?: string | null;
+  website?: string | null;
+  notes?: string | null;
+  esnId: string;
+}
+
+export interface ClientCompanyWithContacts extends ClientCompany {
+  contacts: PublicUser[];
+}
 
 // ── Mission ───────────────────────────────────────────────────────────────────
 

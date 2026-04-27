@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import { clientApiClient } from './clientFetch';
-import { Role } from '@esn/shared-types';
+import { Role, ClientContactType } from '@esn/shared-types';
 import type { CreateUserRequest } from '@esn/shared-types';
 
 export interface PublicUser {
@@ -11,6 +11,8 @@ export interface PublicUser {
   role: Role;
   phone: string | null;
   company: string | null;
+  clientCompanyId: string | null;
+  clientContactType: ClientContactType | null;
   createdAt: string;
 }
 

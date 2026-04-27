@@ -106,6 +106,14 @@ export enum NotificationChannel {
   IN_APP = 'IN_APP',
 }
 
+export enum ClientContactType {
+  RESPONSABLE = 'RESPONSABLE',
+  RH          = 'RH',
+  FINANCIER   = 'FINANCIER',
+  TECHNIQUE   = 'TECHNIQUE',
+  AUTRE       = 'AUTRE',
+}
+
 export enum AuditAction {
   CONSENT_ACCESS = 'CONSENT_ACCESS',
   CONSENT_GRANTED = 'CONSENT_GRANTED',

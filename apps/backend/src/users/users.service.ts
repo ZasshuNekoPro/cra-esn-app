@@ -22,6 +22,8 @@ type PublicUser = {
   company: string | null;
   avatarUrl: string | null;
   esnId: string | null;
+  clientCompanyId: string | null;
+  clientContactType: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -36,6 +38,8 @@ const PUBLIC_SELECT = {
   company: true,
   avatarUrl: true,
   esnId: true,
+  clientCompanyId: true,
+  clientContactType: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -83,6 +87,14 @@ export class UsersService {
         ? callerEsnId
         : (dto.esnId ?? null);
 
+    if (dto.clientCompanyId && resolvedEsnId) {
+      const company = await this.prisma.clientCompany.findFirst({
+        where: { id: dto.clientCompanyId, esnId: resolvedEsnId },
+        select: { id: true },
+      });
+      if (!company) throw new ForbiddenException('clientCompanyId does not belong to this ESN');
+    }
+
     return this.prisma.user.create({
       data: {
         email: dto.email,
@@ -93,6 +105,8 @@ export class UsersService {
         phone: dto.phone ?? null,
         company: dto.company ?? null,
         esnId: resolvedEsnId,
+        clientCompanyId: dto.clientCompanyId ?? null,
+        clientContactType: dto.clientContactType ?? null,
       },
       select: PUBLIC_SELECT,
     });

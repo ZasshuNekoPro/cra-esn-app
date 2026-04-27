@@ -113,6 +113,14 @@ enum NotificationChannel {
   IN_APP
 }
 
+enum ClientContactType {
+  RESPONSABLE
+  RH
+  FINANCIER
+  TECHNIQUE
+  AUTRE
+}
+
 // ─── ESN (Entreprise de Services du Numérique) ────────────────────────────────
 
 model Esn {
@@ -124,9 +132,28 @@ model Esn {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users User[]
+  users          User[]
+  clientCompanies ClientCompany[]
 
   @@map("esns")
+}
+
+model ClientCompany {
+  id        String   @id @default(uuid())
+  name      String
+  siren     String?
+  address   String?
+  website   String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  esnId     String   @map("esn_id")
+  esn       Esn      @relation(fields: [esnId], references: [id])
+
+  contacts  User[]   @relation("CompanyContacts")
+
+  @@map("client_companies")
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -138,12 +165,15 @@ model User {
   firstName String    @map("first_name")
   lastName  String    @map("last_name")
   role      Role      @default(EMPLOYEE)
-  phone     String?
-  company   String?
-  avatarUrl String?   @map("avatar_url")
-  esnId     String?   @map("esn_id")
-  esn       Esn?      @relation(fields: [esnId], references: [id])
-  deletedAt DateTime? @map("deleted_at")
+  phone              String?
+  company            String?
+  avatarUrl          String?            @map("avatar_url")
+  esnId              String?            @map("esn_id")
+  esn                Esn?               @relation(fields: [esnId], references: [id])
+  deletedAt          DateTime?          @map("deleted_at")
+  clientCompanyId    String?            @map("client_company_id")
+  clientCompany      ClientCompany?     @relation("CompanyContacts", fields: [clientCompanyId], references: [id])
+  clientContactType  ClientContactType? @map("client_contact_type")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 

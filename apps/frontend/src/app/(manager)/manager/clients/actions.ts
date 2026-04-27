@@ -1,10 +1,10 @@
 'use server';
 
-import { usersApi } from '../../../../../lib/api/users';
-import { clientCompaniesApi } from '../../../../../lib/api/clientCompanies';
+import { usersApi } from '../../../../lib/api/users';
+import { clientCompaniesApi } from '../../../../lib/api/clientCompanies';
 import { Role } from '@esn/shared-types';
-import type { PublicUser } from '../../../../../lib/api/users';
-import type { ClientCompany, CreateClientCompanyPayload } from '../../../../../lib/api/clientCompanies';
+import type { PublicUser } from '../../../../lib/api/users';
+import type { ClientCompany, CreateClientCompanyPayload } from '../../../../lib/api/clientCompanies';
 
 interface CreatePersonClientInput {
   email: string;

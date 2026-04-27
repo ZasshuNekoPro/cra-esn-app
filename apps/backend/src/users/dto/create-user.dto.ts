@@ -1,5 +1,5 @@
 import { IsEmail, IsString, IsNotEmpty, MinLength, IsEnum, IsOptional, IsUUID } from 'class-validator';
-import { Role } from '@esn/shared-types';
+import { Role, ClientContactType } from '@esn/shared-types';
 
 export class CreateUserDto {
   @IsEmail()
@@ -31,4 +31,12 @@ export class CreateUserDto {
   @IsOptional()
   @IsUUID()
   esnId?: string;
+
+  @IsOptional()
+  @IsEnum(ClientContactType)
+  clientContactType?: ClientContactType;
+
+  @IsOptional()
+  @IsUUID()
+  clientCompanyId?: string;
 }
