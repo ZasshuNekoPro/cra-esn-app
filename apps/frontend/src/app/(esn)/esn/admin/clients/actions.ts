@@ -1,10 +1,12 @@
 'use server';
 
 import { usersApi } from '../../../../../lib/api/users';
+import { clientCompaniesApi } from '../../../../../lib/api/clientCompanies';
 import { Role } from '@esn/shared-types';
 import type { PublicUser } from '../../../../../lib/api/users';
+import type { ClientCompany, CreateClientCompanyPayload } from '../../../../../lib/api/clientCompanies';
 
-interface CreateClientInput {
+interface CreatePersonClientInput {
   email: string;
   password: string;
   firstName: string;
@@ -12,17 +14,32 @@ interface CreateClientInput {
   phone?: string;
 }
 
-export async function listClientsAction(): Promise<PublicUser[]> {
+export async function listPersonClientsAction(): Promise<PublicUser[]> {
   const users = await usersApi.list();
-  return users.filter((u) => u.role === Role.CLIENT);
+  return users.filter((u) => u.role === Role.CLIENT && !u.clientCompanyId);
 }
 
-export async function createClientAction(
-  data: CreateClientInput,
+export async function listClientCompaniesAction(): Promise<ClientCompany[]> {
+  return clientCompaniesApi.list();
+}
+
+export async function createPersonClientAction(
+  data: CreatePersonClientInput,
 ): Promise<{ user?: PublicUser; error?: string }> {
   try {
     const user = await usersApi.create({ ...data, role: Role.CLIENT });
     return { user };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la création' };
+  }
+}
+
+export async function createClientCompanyAction(
+  data: CreateClientCompanyPayload,
+): Promise<{ company?: ClientCompany; error?: string }> {
+  try {
+    const company = await clientCompaniesApi.create(data);
+    return { company };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Erreur lors de la création' };
   }
