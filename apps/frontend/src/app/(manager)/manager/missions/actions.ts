@@ -1,9 +1,8 @@
 'use server';
 
-import { usersApi } from '../../../../../lib/api/users';
-import { missionsApi, type Mission } from '../../../../../lib/api/missions';
+import { missionsApi, type Mission } from '../../../../lib/api/missions';
+import { usersApi, type PublicUser } from '../../../../lib/api/users';
 import { Role } from '@esn/shared-types';
-import type { PublicUser } from '../../../../../lib/api/users';
 import type { CreateMissionRequest } from '@esn/shared-types';
 
 export async function listMissionsAndUsersAction(): Promise<{

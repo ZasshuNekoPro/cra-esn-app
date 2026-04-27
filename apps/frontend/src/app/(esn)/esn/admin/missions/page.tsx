@@ -2,9 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import type { PublicUser } from '../../../../../lib/api/users';
-import { missionsClientApi, type Mission } from '../../../../../lib/api/missions';
-import { ApiClientError } from '../../../../../lib/api/client';
-import { listMissionsAndUsersAction } from './actions';
+import type { Mission } from '../../../../../lib/api/missions';
+import { listMissionsAndUsersAction, createMissionAction } from './actions';
 
 export default function AdminMissionsPage(): JSX.Element {
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -44,7 +43,7 @@ export default function AdminMissionsPage(): JSX.Element {
     setError(null);
     setSubmitting(true);
     try {
-      await missionsClientApi.create({
+      const result = await createMissionAction({
         title: form.title,
         description: form.description || undefined,
         startDate: form.startDate,
@@ -53,11 +52,13 @@ export default function AdminMissionsPage(): JSX.Element {
         employeeId: form.employeeId,
         clientId: form.clientId || undefined,
       });
-      setForm({ title: '', description: '', startDate: '', endDate: '', dailyRate: '', employeeId: '', clientId: '' });
-      setShowForm(false);
-      void loadData();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Erreur lors de la création');
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setForm({ title: '', description: '', startDate: '', endDate: '', dailyRate: '', employeeId: '', clientId: '' });
+        setShowForm(false);
+        void loadData();
+      }
     } finally {
       setSubmitting(false);
     }

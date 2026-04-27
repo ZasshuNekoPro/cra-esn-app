@@ -37,6 +37,7 @@ export interface UpdateMissionRequest {
 export const missionsApi = {
   list: (): Promise<Mission[]> => apiClient.get<Mission[]>('/missions'),
   findOne: (id: string): Promise<Mission> => apiClient.get<Mission>(`/missions/${id}`),
+  create: (data: CreateMissionRequest): Promise<Mission> => apiClient.post<Mission>('/missions', data),
 };
 
 // Client-side
