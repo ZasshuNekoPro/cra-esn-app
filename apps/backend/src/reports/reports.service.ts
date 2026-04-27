@@ -406,10 +406,18 @@ export class ReportsService {
       const month = parseInt(parts[3] ?? '0', 10);
       const reportType = meta.reportType ?? 'CRA_ONLY';
 
-      // validationRows is sorted asc by createdAt: last .set() per recipient wins → latest record
+      // validationRows sorted asc: last .set() wins = latest record.
+      // Filter createdAt <= log.createdAt so that a later resend's PENDING does not
+      // overwrite the REFUSED shown on the original send's history entry.
       const latestByRecipient = new Map<string, typeof validationRows[0]>();
       for (const v of validationRows) {
-        if (v.year === year && v.month === month && v.reportType === reportType && v.status !== 'ARCHIVED') {
+        if (
+          v.year === year &&
+          v.month === month &&
+          v.reportType === reportType &&
+          v.status !== 'ARCHIVED' &&
+          v.createdAt <= log.createdAt
+        ) {
           latestByRecipient.set(v.recipient, v);
         }
       }

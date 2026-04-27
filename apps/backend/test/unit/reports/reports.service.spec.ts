@@ -430,7 +430,42 @@ describe('ReportsService', () => {
       };
     }
 
-    it('returns only the PENDING when both REFUSED and PENDING exist for the same period', async () => {
+    it('latest send shows PENDING, earlier send shows REFUSED (createdAt-bounded dedup)', async () => {
+      // 25/04 send → was refused later; 27/04 resend → new PENDING.
+      // The 25/04 history entry must show REFUSED, not the 27/04 PENDING.
+      mockPrisma.auditLog.findMany.mockResolvedValue([
+        {
+          id: 'log-25',
+          createdAt: new Date('2026-04-25T18:32:15Z'), // audit log created just after the validation request
+          resource: `report:${employeeId}:2026:4`,
+          metadata: { reportType: 'CRA_ONLY', sentTo: ['ESN'], skippedRecipients: [], pdfS3Key: 'k1' },
+        },
+        {
+          id: 'log-27',
+          createdAt: new Date('2026-04-27T15:38:20Z'),
+          resource: `report:${employeeId}:2026:4`,
+          metadata: { reportType: 'CRA_ONLY', sentTo: ['ESN'], skippedRecipients: [], pdfS3Key: 'k2' },
+        },
+      ]);
+      // asc order: REFUSED (25/04), PENDING (27/04)
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeValidationRow('REFUSED', new Date('2026-04-25T18:32:14Z'), 'rvr-refused'),
+        makeValidationRow('PENDING', new Date('2026-04-27T15:38:16Z'), 'rvr-pending'),
+      ]);
+
+      const result = await service.getSentReportHistory(employeeId);
+
+      expect(result).toHaveLength(2);
+      // 25/04 entry (desc order → index 0 is most recent, but auditLog.findMany is desc… let's check by id)
+      const entry25 = result.find((r) => r.id === 'log-25')!;
+      const entry27 = result.find((r) => r.id === 'log-27')!;
+      expect(entry25.validations[0].status).toBe('REFUSED');
+      expect(entry25.validations[0].id).toBe('rvr-refused');
+      expect(entry27.validations[0].status).toBe('PENDING');
+      expect(entry27.validations[0].id).toBe('rvr-pending');
+    });
+
+    it('single send shows PENDING when only PENDING exists', async () => {
       mockPrisma.auditLog.findMany.mockResolvedValue([
         {
           id: 'log-1',
@@ -439,9 +474,7 @@ describe('ReportsService', () => {
           metadata: { reportType: 'CRA_ONLY', sentTo: ['ESN'], skippedRecipients: [], pdfS3Key: 'k' },
         },
       ]);
-      // asc order: REFUSED older, PENDING newer → last .set() wins
       mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
-        makeValidationRow('REFUSED', new Date('2026-04-25T18:00:00Z'), 'rvr-refused'),
         makeValidationRow('PENDING', new Date('2026-04-27T15:38:00Z'), 'rvr-pending'),
       ]);
 
