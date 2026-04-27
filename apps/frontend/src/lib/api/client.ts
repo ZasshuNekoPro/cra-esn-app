@@ -37,6 +37,7 @@ export async function apiFetch<T>(
 
   const res = await fetch(`${BACKEND_URL}/api${path}`, {
     ...options,
+    cache: 'no-store',
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
