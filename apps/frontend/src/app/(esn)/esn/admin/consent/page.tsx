@@ -1,9 +1,15 @@
 import { consentApi } from '../../../../../lib/api/consent';
+import { usersApi } from '../../../../../lib/api/users';
+import { Role } from '@esn/shared-types';
 import { ConsentList } from '../../../../../components/consent/ConsentList';
 import { RequestConsentForm } from '../../../../../components/consent/RequestConsentForm';
 
 export default async function AdminConsentPage(): Promise<JSX.Element> {
-  const consents = await consentApi.listSent().catch(() => []);
+  const [consents, users] = await Promise.all([
+    consentApi.listSent().catch(() => []),
+    usersApi.list().catch(() => []),
+  ]);
+  const employees = users.filter((u) => u.role === Role.EMPLOYEE);
 
   return (
     <div className="max-w-3xl mx-auto space-y-8">
@@ -18,7 +24,7 @@ export default async function AdminConsentPage(): Promise<JSX.Element> {
         <h2 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
           Nouvelle demande d'accès
         </h2>
-        <RequestConsentForm />
+        <RequestConsentForm employees={employees} />
       </section>
 
       <section className="space-y-3">

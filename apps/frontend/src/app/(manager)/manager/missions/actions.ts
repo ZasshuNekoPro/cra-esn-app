@@ -1,6 +1,6 @@
 'use server';
 
-import { missionsApi, type Mission } from '../../../../lib/api/missions';
+import { missionsApi, type Mission, type UpdateMissionRequest } from '../../../../lib/api/missions';
 import { usersApi, type PublicUser } from '../../../../lib/api/users';
 import { Role } from '@esn/shared-types';
 import type { CreateMissionRequest } from '@esn/shared-types';
@@ -26,5 +26,28 @@ export async function createMissionAction(
     return { mission };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Erreur lors de la création' };
+  }
+}
+
+export async function updateMissionAction(
+  id: string,
+  data: UpdateMissionRequest,
+): Promise<{ mission?: Mission; error?: string }> {
+  try {
+    const mission = await missionsApi.update(id, data);
+    return { mission };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour' };
+  }
+}
+
+export async function deactivateMissionAction(
+  id: string,
+): Promise<{ error?: string }> {
+  try {
+    await missionsApi.deactivate(id);
+    return {};
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la désactivation' };
   }
 }

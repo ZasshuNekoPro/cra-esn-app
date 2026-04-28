@@ -38,12 +38,15 @@ export const missionsApi = {
   list: (): Promise<Mission[]> => apiClient.get<Mission[]>('/missions'),
   findOne: (id: string): Promise<Mission> => apiClient.get<Mission>(`/missions/${id}`),
   create: (data: CreateMissionRequest): Promise<Mission> => apiClient.post<Mission>('/missions', data),
+  update: (id: string, data: UpdateMissionRequest): Promise<Mission> =>
+    apiClient.put<Mission>(`/missions/${id}`, data),
+  deactivate: (id: string): Promise<void> => apiClient.delete<void>(`/missions/${id}`),
 };
 
 // Client-side
 export const missionsClientApi = {
   list: (): Promise<Mission[]> => clientApiClient.get<Mission[]>('/missions'),
   create: (data: CreateMissionRequest): Promise<Mission> => clientApiClient.post<Mission>('/missions', data),
-  update: (id: string, data: UpdateMissionRequest): Promise<Mission> => clientApiClient.patch<Mission>(`/missions/${id}`, data),
+  update: (id: string, data: UpdateMissionRequest): Promise<Mission> => clientApiClient.put<Mission>(`/missions/${id}`, data),
   deactivate: (id: string): Promise<void> => clientApiClient.delete<void>(`/missions/${id}`),
 };

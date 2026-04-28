@@ -71,6 +71,19 @@ export class UsersController {
   }
 
   /**
+   * PATCH /users/:id — update employee/client profile (ESN_ADMIN / ESN_MANAGER)
+   */
+  @Patch(':id')
+  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER, Role.PLATFORM_ADMIN)
+  updateUser(
+    @Param('id') id: string,
+    @Body() dto: UpdateProfileDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.usersService.updateUser(id, dto, user.role, user.esnId ?? null);
+  }
+
+  /**
    * DELETE /users/:id — soft delete (PLATFORM_ADMIN only)
    */
   @Delete(':id')

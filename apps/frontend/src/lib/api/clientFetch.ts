@@ -54,6 +54,9 @@ export const clientApiClient = {
   patch: <T>(path: string, body?: unknown): Promise<T> =>
     clientApiFetch<T>(path, { method: 'PATCH', body }),
 
+  put: <T>(path: string, body?: unknown): Promise<T> =>
+    clientApiFetch<T>(path, { method: 'PUT', body }),
+
   delete: <T>(path: string): Promise<T> =>
     clientApiFetch<T>(path, { method: 'DELETE' }),
 };

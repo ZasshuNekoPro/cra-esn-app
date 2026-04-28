@@ -64,6 +64,9 @@ export const apiClient = {
   patch: <T>(path: string, body?: unknown, options?: Omit<FetchOptions, 'method' | 'body'>): Promise<T> =>
     apiFetch<T>(path, { ...options, method: 'PATCH', body }),
 
+  put: <T>(path: string, body?: unknown, options?: Omit<FetchOptions, 'method' | 'body'>): Promise<T> =>
+    apiFetch<T>(path, { ...options, method: 'PUT', body }),
+
   delete: <T>(path: string, options?: Omit<FetchOptions, 'method' | 'body'>): Promise<T> =>
     apiFetch<T>(path, { ...options, method: 'DELETE' }),
 };

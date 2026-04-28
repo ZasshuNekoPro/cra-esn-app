@@ -154,6 +154,33 @@ export class UsersService {
     });
   }
 
+  async updateUser(
+    targetId: string,
+    dto: UpdateProfileDto,
+    callerRole: Role,
+    callerEsnId: string | null,
+  ): Promise<PublicUser> {
+    const target = await this.prisma.user.findUnique({ where: { id: targetId, deletedAt: null } });
+    if (!target) throw new NotFoundException(`User ${targetId} not found`);
+
+    if (target.role !== Role.EMPLOYEE && target.role !== Role.CLIENT) {
+      throw new ForbiddenException('ESN staff can only edit EMPLOYEE or CLIENT accounts');
+    }
+    if (callerRole !== Role.PLATFORM_ADMIN && target.esnId !== callerEsnId) {
+      throw new ForbiddenException('User does not belong to your ESN');
+    }
+
+    return this.prisma.user.update({
+      where: { id: targetId },
+      data: {
+        ...(dto.firstName !== undefined && { firstName: dto.firstName }),
+        ...(dto.lastName !== undefined && { lastName: dto.lastName }),
+        ...(dto.phone !== undefined && { phone: dto.phone || null }),
+      },
+      select: PUBLIC_SELECT,
+    });
+  }
+
   async updateMe(userId: string, dto: UpdateProfileDto): Promise<PublicUser> {
     const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
     if (!user) throw new NotFoundException(`User ${userId} not found`);

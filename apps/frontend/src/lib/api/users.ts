@@ -21,12 +21,18 @@ export const usersApi = {
   list: (): Promise<PublicUser[]> => apiClient.get<PublicUser[]>('/users'),
   findOne: (id: string): Promise<PublicUser> => apiClient.get<PublicUser>(`/users/${id}`),
   create: (data: CreateUserRequest): Promise<PublicUser> => apiClient.post<PublicUser>('/users', data),
+  update: (
+    id: string,
+    data: { firstName?: string; lastName?: string; phone?: string },
+  ): Promise<PublicUser> => apiClient.patch<PublicUser>(`/users/${id}`, data),
 };
 
 // Client-side (Client Components / 'use client')
 export const usersClientApi = {
   list: (): Promise<PublicUser[]> => clientApiClient.get<PublicUser[]>('/users'),
   create: (data: CreateUserRequest): Promise<PublicUser> => clientApiClient.post<PublicUser>('/users', data),
+  update: (id: string, data: { firstName?: string; lastName?: string; phone?: string }): Promise<PublicUser> =>
+    clientApiClient.patch<PublicUser>(`/users/${id}`, data),
   delete: (id: string): Promise<void> => clientApiClient.delete<void>(`/users/${id}`),
   updateProfile: (data: { firstName?: string; lastName?: string; phone?: string }): Promise<PublicUser> =>
     clientApiClient.patch<PublicUser>('/users/me', data),

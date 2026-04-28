@@ -3,7 +3,12 @@
 import { useState, useEffect } from 'react';
 import type { PublicUser } from '../../../../../lib/api/users';
 import type { Mission } from '../../../../../lib/api/missions';
-import { listMissionsAndUsersAction, createMissionAction } from './actions';
+import {
+  listMissionsAndUsersAction,
+  createMissionAction,
+  updateMissionAction,
+  deactivateMissionAction,
+} from './actions';
 
 export default function AdminMissionsPage(): JSX.Element {
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -22,6 +27,11 @@ export default function AdminMissionsPage(): JSX.Element {
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', description: '', endDate: '', dailyRate: '' });
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const loadData = async (): Promise<void> => {
     try {
@@ -63,6 +73,58 @@ export default function AdminMissionsPage(): JSX.Element {
       setSubmitting(false);
     }
   };
+
+  const startEdit = (mission: Mission): void => {
+    setEditingId(mission.id);
+    setEditForm({
+      title: mission.title,
+      description: mission.description ?? '',
+      endDate: mission.endDate ? mission.endDate.slice(0, 10) : '',
+      dailyRate: mission.dailyRate !== null ? String(mission.dailyRate) : '',
+    });
+    setEditError(null);
+  };
+
+  const cancelEdit = (): void => {
+    setEditingId(null);
+    setEditError(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!editingId) return;
+    setEditError(null);
+    setEditSubmitting(true);
+    try {
+      const result = await updateMissionAction(editingId, {
+        title: editForm.title,
+        description: editForm.description || undefined,
+        endDate: editForm.endDate || undefined,
+        dailyRate: editForm.dailyRate ? parseFloat(editForm.dailyRate) : undefined,
+      });
+      if (result.error) {
+        setEditError(result.error);
+      } else {
+        setEditingId(null);
+        void loadData();
+      }
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDeactivate = async (id: string): Promise<void> => {
+    if (!confirm('Désactiver cette mission ?')) return;
+    const result = await deactivateMissionAction(id);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      void loadData();
+    }
+  };
+
+  const employeeMap = new Map(employees.map((e) => [e.id, e]));
+  const clientMap = new Map(clients.map((c) => [c.id, c]));
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -178,8 +240,8 @@ export default function AdminMissionsPage(): JSX.Element {
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="px-6 py-4 border-b">
           <h2 className="font-semibold text-gray-900">
-            Missions actives
-            {!loadingList && <span className="ml-2 text-sm font-normal text-gray-500">({missions.filter((m) => m.isActive).length})</span>}
+            Missions
+            {!loadingList && <span className="ml-2 text-sm font-normal text-gray-500">({missions.length})</span>}
           </h2>
         </div>
         {loadingList ? (
@@ -196,21 +258,110 @@ export default function AdminMissionsPage(): JSX.Element {
           </div>
         ) : (
           <ul className="divide-y">
-            {missions.map((mission) => (
-              <li key={mission.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">{mission.title}</p>
-                  <p className="text-sm text-gray-500">
-                    Début : {new Date(mission.startDate).toLocaleDateString('fr-FR')}
-                    {mission.endDate && ` — Fin : ${new Date(mission.endDate).toLocaleDateString('fr-FR')}`}
-                    {mission.dailyRate !== null && ` · ${mission.dailyRate} €/j`}
-                  </p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded ${mission.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {mission.isActive ? 'Active' : 'Terminée'}
-                </span>
-              </li>
-            ))}
+            {missions.map((mission) => {
+              const emp = employeeMap.get(mission.employeeId) ?? mission.employee;
+              const client = mission.clientId ? (clientMap.get(mission.clientId) ?? mission.client) : null;
+              return (
+                <li key={mission.id} className="px-6 py-4">
+                  {editingId === mission.id ? (
+                    <form onSubmit={(e) => { void handleEditSubmit(e); }} className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Titre</label>
+                        <input
+                          type="text"
+                          required
+                          value={editForm.title}
+                          onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Description (optionnel)</label>
+                        <textarea
+                          value={editForm.description}
+                          onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                          rows={2}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Date de fin (optionnel)</label>
+                          <input
+                            type="date"
+                            value={editForm.endDate}
+                            onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">TJM en € (optionnel)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editForm.dailyRate}
+                            onChange={(e) => setEditForm((f) => ({ ...f, dailyRate: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      {editError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={editSubmitting}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {editSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{mission.title}</p>
+                        <p className="text-sm text-gray-500">
+                          {emp ? `${emp.firstName} ${emp.lastName}` : ''}
+                          {client ? ` · Client : ${client.firstName} ${client.lastName}` : ''}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Début : {new Date(mission.startDate).toLocaleDateString('fr-FR')}
+                          {mission.endDate && ` — Fin : ${new Date(mission.endDate).toLocaleDateString('fr-FR')}`}
+                          {mission.dailyRate !== null && ` · ${mission.dailyRate} €/j`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4 shrink-0">
+                        <span className={`text-xs px-2 py-1 rounded ${mission.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {mission.isActive ? 'Active' : 'Terminée'}
+                        </span>
+                        <button
+                          onClick={() => startEdit(mission)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Modifier
+                        </button>
+                        {mission.isActive && (
+                          <button
+                            onClick={() => { void handleDeactivate(mission.id); }}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium"
+                          >
+                            Désactiver
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

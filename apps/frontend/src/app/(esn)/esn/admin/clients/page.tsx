@@ -10,6 +10,7 @@ import {
   listClientCompaniesAction,
   createPersonClientAction,
   createClientCompanyAction,
+  updateClientAction,
 } from './actions';
 
 // ── Person form state ─────────────────────────────────────────────────────────
@@ -61,6 +62,11 @@ export default function AdminClientsPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  const [editingClientId, setEditingClientId] = useState<string | null>(null);
+  const [editClientForm, setEditClientForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [editClientError, setEditClientError] = useState<string | null>(null);
+  const [editClientSubmitting, setEditClientSubmitting] = useState(false);
 
   const loadData = async (): Promise<void> => {
     try {
@@ -162,6 +168,39 @@ export default function AdminClientsPage(): JSX.Element {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEditClient = (client: PublicUser): void => {
+    setEditingClientId(client.id);
+    setEditClientForm({ firstName: client.firstName, lastName: client.lastName, phone: client.phone ?? '' });
+    setEditClientError(null);
+  };
+
+  const cancelEditClient = (): void => {
+    setEditingClientId(null);
+    setEditClientError(null);
+  };
+
+  const handleEditClientSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!editingClientId) return;
+    setEditClientError(null);
+    setEditClientSubmitting(true);
+    try {
+      const result = await updateClientAction(editingClientId, {
+        firstName: editClientForm.firstName,
+        lastName: editClientForm.lastName,
+        phone: editClientForm.phone || undefined,
+      });
+      if (result.error) {
+        setEditClientError(result.error);
+      } else {
+        setEditingClientId(null);
+        void loadData();
+      }
+    } finally {
+      setEditClientSubmitting(false);
     }
   };
 
@@ -521,12 +560,76 @@ export default function AdminClientsPage(): JSX.Element {
           ) : (
             <ul className="divide-y">
               {personClients.map((client) => (
-                <li key={client.id} className="px-6 py-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">{client.firstName} {client.lastName}</p>
-                    <p className="text-sm text-gray-500">{client.email}</p>
-                  </div>
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Client</span>
+                <li key={client.id} className="px-6 py-4">
+                  {editingClientId === client.id ? (
+                    <form onSubmit={(e) => { void handleEditClientSubmit(e); }} className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+                          <input
+                            type="text"
+                            required
+                            value={editClientForm.firstName}
+                            onChange={(e) => setEditClientForm((f) => ({ ...f, firstName: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+                          <input
+                            type="text"
+                            required
+                            value={editClientForm.lastName}
+                            onChange={(e) => setEditClientForm((f) => ({ ...f, lastName: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Téléphone (optionnel)</label>
+                        <input
+                          type="tel"
+                          value={editClientForm.phone}
+                          onChange={(e) => setEditClientForm((f) => ({ ...f, phone: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      {editClientError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editClientError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={editClientSubmitting}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {editClientSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditClient}
+                          className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{client.firstName} {client.lastName}</p>
+                        <p className="text-sm text-gray-500">{client.email}</p>
+                        {client.phone && <p className="text-xs text-gray-400">{client.phone}</p>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Client</span>
+                        <button
+                          onClick={() => startEditClient(client)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Modifier
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
