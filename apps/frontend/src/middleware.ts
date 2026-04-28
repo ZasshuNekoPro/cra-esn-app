@@ -9,6 +9,7 @@ const ESN_PATHS = ['/esn'];
 const PLATFORM_PATHS = ['/platform'];
 const MANAGER_PATHS = ['/manager'];
 const CLIENT_PATHS = ['/client'];
+const EMPLOYEE_PATHS = ['/dashboard', '/cra', '/reports', '/documents', '/projects', '/settings', '/assistant', '/consent'];
 
 function roleDefaultPath(role: Role | undefined): string {
   if (role === Role.PLATFORM_ADMIN) return '/platform/admin/dashboard';
@@ -62,6 +63,11 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
 
   // Client routes — only CLIENT
   if (CLIENT_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.CLIENT) {
+    return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
+  }
+
+  // Employee routes — only EMPLOYEE
+  if (EMPLOYEE_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.EMPLOYEE) {
     return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
   }
 

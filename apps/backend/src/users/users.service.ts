@@ -166,8 +166,13 @@ export class UsersService {
     if (target.role !== Role.EMPLOYEE && target.role !== Role.CLIENT) {
       throw new ForbiddenException('ESN staff can only edit EMPLOYEE or CLIENT accounts');
     }
-    if (callerRole !== Role.PLATFORM_ADMIN && target.esnId !== callerEsnId) {
-      throw new ForbiddenException('User does not belong to your ESN');
+    if (callerRole !== Role.PLATFORM_ADMIN) {
+      if (callerEsnId === null) {
+        throw new ForbiddenException('Your account is not scoped to an ESN');
+      }
+      if (target.esnId !== callerEsnId) {
+        throw new ForbiddenException('User does not belong to your ESN');
+      }
     }
 
     return this.prisma.user.update({
