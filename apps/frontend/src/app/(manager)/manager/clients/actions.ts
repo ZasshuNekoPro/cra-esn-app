@@ -34,6 +34,18 @@ export async function createPersonClientAction(
   }
 }
 
+export async function updateClientAction(
+  id: string,
+  data: { firstName?: string; lastName?: string; phone?: string },
+): Promise<{ user?: PublicUser; error?: string }> {
+  try {
+    const user = await usersApi.update(id, data);
+    return { user };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour' };
+  }
+}
+
 export async function createClientCompanyAction(
   data: CreateClientCompanyPayload,
 ): Promise<{ company?: ClientCompany; error?: string }> {

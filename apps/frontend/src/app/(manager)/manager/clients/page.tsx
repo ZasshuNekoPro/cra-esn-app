@@ -10,6 +10,7 @@ import {
   listClientCompaniesAction,
   createPersonClientAction,
   createClientCompanyAction,
+  updateClientAction,
 } from './actions';
 
 // ── Person form state ─────────────────────────────────────────────────────────
@@ -61,6 +62,18 @@ export default function ManagerClientsPage(): JSX.Element {
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  // Edit person client
+  const [editingPersonId, setEditingPersonId] = useState<string | null>(null);
+  const [editPersonForm, setEditPersonForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [editPersonError, setEditPersonError] = useState<string | null>(null);
+  const [editPersonSubmitting, setEditPersonSubmitting] = useState(false);
+
+  // Edit company contact
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [editContactForm, setEditContactForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [editContactError, setEditContactError] = useState<string | null>(null);
+  const [editContactSubmitting, setEditContactSubmitting] = useState(false);
 
   const loadData = async (): Promise<void> => {
     try {
@@ -162,6 +175,76 @@ export default function ManagerClientsPage(): JSX.Element {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  // ── Edit person client ─────────────────────────────────────────────────────
+
+  const startEditPerson = (client: PublicUser): void => {
+    setEditingPersonId(client.id);
+    setEditPersonForm({ firstName: client.firstName, lastName: client.lastName, phone: client.phone ?? '' });
+    setEditPersonError(null);
+  };
+
+  const cancelEditPerson = (): void => {
+    setEditingPersonId(null);
+    setEditPersonError(null);
+  };
+
+  const handleEditPersonSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!editingPersonId) return;
+    setEditPersonError(null);
+    setEditPersonSubmitting(true);
+    try {
+      const result = await updateClientAction(editingPersonId, {
+        firstName: editPersonForm.firstName,
+        lastName: editPersonForm.lastName,
+        phone: editPersonForm.phone || undefined,
+      });
+      if (result.error) {
+        setEditPersonError(result.error);
+      } else {
+        setEditingPersonId(null);
+        void loadData();
+      }
+    } finally {
+      setEditPersonSubmitting(false);
+    }
+  };
+
+  // ── Edit company contact ───────────────────────────────────────────────────
+
+  const startEditContact = (contact: { id: string; firstName: string; lastName: string; phone: string | null }): void => {
+    setEditingContactId(contact.id);
+    setEditContactForm({ firstName: contact.firstName, lastName: contact.lastName, phone: contact.phone ?? '' });
+    setEditContactError(null);
+  };
+
+  const cancelEditContact = (): void => {
+    setEditingContactId(null);
+    setEditContactError(null);
+  };
+
+  const handleEditContactSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!editingContactId) return;
+    setEditContactError(null);
+    setEditContactSubmitting(true);
+    try {
+      const result = await updateClientAction(editingContactId, {
+        firstName: editContactForm.firstName,
+        lastName: editContactForm.lastName,
+        phone: editContactForm.phone || undefined,
+      });
+      if (result.error) {
+        setEditContactError(result.error);
+      } else {
+        setEditingContactId(null);
+        void loadData();
+      }
+    } finally {
+      setEditContactSubmitting(false);
     }
   };
 
@@ -480,16 +563,77 @@ export default function ManagerClientsPage(): JSX.Element {
                       </span>
                     </div>
                     {company.contacts.length > 0 && (
-                      <div className="mt-3 space-y-1.5 pl-3 border-l-2 border-gray-100">
+                      <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-100">
                         {company.contacts.map((contact) => (
-                          <div key={contact.id} className="flex items-center gap-2">
-                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
-                              {contact.clientContactType
-                                ? CONTACT_TYPE_LABELS[contact.clientContactType]
-                                : 'Contact'}
-                            </span>
-                            <span className="text-sm text-gray-700">{contact.firstName} {contact.lastName}</span>
-                            <span className="text-xs text-gray-400">{contact.email}</span>
+                          <div key={contact.id}>
+                            {editingContactId === contact.id ? (
+                              <form onSubmit={(e) => { void handleEditContactSubmit(e); }} className="space-y-2 py-1">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={editContactForm.firstName}
+                                      onChange={(e) => setEditContactForm((f) => ({ ...f, firstName: e.target.value }))}
+                                      className="w-full border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={editContactForm.lastName}
+                                      onChange={(e) => setEditContactForm((f) => ({ ...f, lastName: e.target.value }))}
+                                      className="w-full border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Téléphone (optionnel)</label>
+                                  <input
+                                    type="tel"
+                                    value={editContactForm.phone}
+                                    onChange={(e) => setEditContactForm((f) => ({ ...f, phone: e.target.value }))}
+                                    className="w-full border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                                {editContactError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editContactError}</p>}
+                                <div className="flex gap-2">
+                                  <button
+                                    type="submit"
+                                    disabled={editContactSubmitting}
+                                    className="px-3 py-1 bg-blue-600 text-white rounded text-xs font-medium hover:bg-blue-700 disabled:opacity-50"
+                                  >
+                                    {editContactSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={cancelEditContact}
+                                    className="px-3 py-1 border border-gray-300 text-gray-700 rounded text-xs font-medium hover:bg-gray-50"
+                                  >
+                                    Annuler
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
+                                  {contact.clientContactType
+                                    ? CONTACT_TYPE_LABELS[contact.clientContactType]
+                                    : 'Contact'}
+                                </span>
+                                <span className="text-sm text-gray-700">{contact.firstName} {contact.lastName}</span>
+                                <span className="text-xs text-gray-400">{contact.email}</span>
+                                <button
+                                  onClick={() => startEditContact(contact)}
+                                  className="ml-auto text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2 py-0.5 rounded shrink-0"
+                                >
+                                  Modifier
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -521,12 +665,76 @@ export default function ManagerClientsPage(): JSX.Element {
           ) : (
             <ul className="divide-y">
               {personClients.map((client) => (
-                <li key={client.id} className="px-6 py-4 flex items-center justify-between">
-                  <div>
-                    <p className="font-medium text-gray-900">{client.firstName} {client.lastName}</p>
-                    <p className="text-sm text-gray-500">{client.email}</p>
-                  </div>
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Client</span>
+                <li key={client.id} className="px-6 py-4">
+                  {editingPersonId === client.id ? (
+                    <form onSubmit={(e) => { void handleEditPersonSubmit(e); }} className="space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+                          <input
+                            type="text"
+                            required
+                            value={editPersonForm.firstName}
+                            onChange={(e) => setEditPersonForm((f) => ({ ...f, firstName: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+                          <input
+                            type="text"
+                            required
+                            value={editPersonForm.lastName}
+                            onChange={(e) => setEditPersonForm((f) => ({ ...f, lastName: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Téléphone (optionnel)</label>
+                        <input
+                          type="tel"
+                          value={editPersonForm.phone}
+                          onChange={(e) => setEditPersonForm((f) => ({ ...f, phone: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      {editPersonError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editPersonError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={editPersonSubmitting}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {editPersonSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEditPerson}
+                          className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{client.firstName} {client.lastName}</p>
+                        <p className="text-sm text-gray-500">{client.email}</p>
+                        {client.phone && <p className="text-xs text-gray-400">{client.phone}</p>}
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Client</span>
+                        <button
+                          onClick={() => startEditPerson(client)}
+                          className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded"
+                        >
+                          Modifier
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>
