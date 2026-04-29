@@ -27,3 +27,15 @@ export async function createEmployeeAction(
     return { error: err instanceof Error ? err.message : 'Erreur lors de la création' };
   }
 }
+
+export async function updateEmployeeAction(
+  id: string,
+  data: { firstName?: string; lastName?: string; phone?: string },
+): Promise<{ user?: PublicUser; error?: string }> {
+  try {
+    const user = await usersApi.update(id, data);
+    return { user };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour' };
+  }
+}

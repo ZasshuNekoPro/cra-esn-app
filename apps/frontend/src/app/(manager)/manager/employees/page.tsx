@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import type { PublicUser } from '../../../../lib/api/users';
-import { listEmployeesAction, createEmployeeAction } from './actions';
+import { listEmployeesAction, createEmployeeAction, updateEmployeeAction } from './actions';
 
 export default function ManagerEmployeesPage(): JSX.Element {
   const [employees, setEmployees] = useState<PublicUser[]>([]);
@@ -11,6 +11,11 @@ export default function ManagerEmployeesPage(): JSX.Element {
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
 
   const loadEmployees = async (): Promise<void> => {
     try {
@@ -43,6 +48,39 @@ export default function ManagerEmployeesPage(): JSX.Element {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEdit = (emp: PublicUser): void => {
+    setEditingId(emp.id);
+    setEditForm({ firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone ?? '' });
+    setEditError(null);
+  };
+
+  const cancelEdit = (): void => {
+    setEditingId(null);
+    setEditError(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!editingId) return;
+    setEditError(null);
+    setEditSubmitting(true);
+    try {
+      const result = await updateEmployeeAction(editingId, {
+        firstName: editForm.firstName,
+        lastName: editForm.lastName,
+        phone: editForm.phone || undefined,
+      });
+      if (result.error) {
+        setEditError(result.error);
+      } else {
+        setEditingId(null);
+        void loadEmployees();
+      }
+    } finally {
+      setEditSubmitting(false);
     }
   };
 
@@ -149,12 +187,76 @@ export default function ManagerEmployeesPage(): JSX.Element {
         ) : (
           <ul className="divide-y">
             {employees.map((emp) => (
-              <li key={emp.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">{emp.firstName} {emp.lastName}</p>
-                  <p className="text-sm text-gray-500">{emp.email}</p>
-                </div>
-                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Salarié</span>
+              <li key={emp.id} className="px-6 py-4">
+                {editingId === emp.id ? (
+                  <form onSubmit={(e) => { void handleEditSubmit(e); }} className="space-y-3">
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+                        <input
+                          type="text"
+                          required
+                          value={editForm.firstName}
+                          onChange={(e) => setEditForm((f) => ({ ...f, firstName: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+                        <input
+                          type="text"
+                          required
+                          value={editForm.lastName}
+                          onChange={(e) => setEditForm((f) => ({ ...f, lastName: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Téléphone (optionnel)</label>
+                      <input
+                        type="tel"
+                        value={editForm.phone}
+                        onChange={(e) => setEditForm((f) => ({ ...f, phone: e.target.value }))}
+                        className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
+                    {editError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editError}</p>}
+                    <div className="flex gap-2">
+                      <button
+                        type="submit"
+                        disabled={editSubmitting}
+                        className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        {editSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={cancelEdit}
+                        className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+                      >
+                        Annuler
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium text-gray-900">{emp.firstName} {emp.lastName}</p>
+                      <p className="text-sm text-gray-500">{emp.email}</p>
+                      {emp.phone && <p className="text-xs text-gray-400">{emp.phone}</p>}
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Salarié</span>
+                      <button
+                        onClick={() => startEdit(emp)}
+                        className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded"
+                      >
+                        Modifier
+                      </button>
+                    </div>
+                  </div>
+                )}
               </li>
             ))}
           </ul>
