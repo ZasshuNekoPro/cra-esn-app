@@ -1,10 +1,11 @@
-import { Controller, Get, Post, Param, Body, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Param, Body, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
 import type { JwtPayload } from '@esn/shared-types';
 import { ClientCompaniesService } from './client-companies.service';
 import { CreateClientCompanyDto } from './dto/create-client-company.dto';
+import { UpdateClientCompanyDto } from './dto/update-client-company.dto';
 
 @Controller('client-companies')
 export class ClientCompaniesController {
@@ -30,5 +31,12 @@ export class ClientCompaniesController {
   findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     if (!user.esnId) throw new ForbiddenException('ESN context required');
     return this.clientCompaniesService.findOne(id, user.esnId);
+  }
+
+  @Patch(':id')
+  @Roles(Role.ESN_ADMIN)
+  update(@Param('id') id: string, @Body() dto: UpdateClientCompanyDto, @CurrentUser() user: JwtPayload) {
+    if (!user.esnId) throw new ForbiddenException('ESN context required');
+    return this.clientCompaniesService.update(id, user.esnId, dto);
   }
 }

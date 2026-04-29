@@ -97,6 +97,12 @@ function LoginForm(): JSX.Element {
             {loading ? 'Connexion…' : 'Se connecter'}
           </button>
         </form>
+
+        <div className="mt-4 text-center">
+          <a href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+            Mot de passe oublié ?
+          </a>
+        </div>
       </div>
     </div>
   );
