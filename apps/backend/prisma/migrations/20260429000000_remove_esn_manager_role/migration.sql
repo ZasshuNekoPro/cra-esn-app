@@ -2,7 +2,7 @@
 UPDATE "users" SET "role" = 'ESN_ADMIN' WHERE "role" = 'ESN_MANAGER';
 
 -- Migrate any validation requests targeting ESN_MANAGER to ESN_ADMIN
-UPDATE "report_validation_requests" SET "target_role" = 'ESN_ADMIN' WHERE "target_role" = 'ESN_MANAGER';
+UPDATE "project_validation_requests" SET "target_role" = 'ESN_ADMIN' WHERE "target_role" = 'ESN_MANAGER';
 
 -- Recreate Role enum without ESN_MANAGER (PostgreSQL cannot drop enum values directly)
 CREATE TYPE "Role_new" AS ENUM ('PLATFORM_ADMIN', 'ESN_ADMIN', 'EMPLOYEE', 'CLIENT');
@@ -11,7 +11,7 @@ ALTER TABLE "users"
   ALTER COLUMN "role" TYPE "Role_new" USING "role"::text::"Role_new",
   ALTER COLUMN "role" SET DEFAULT 'EMPLOYEE'::"Role_new";
 
-ALTER TABLE "report_validation_requests"
+ALTER TABLE "project_validation_requests"
   ALTER COLUMN "target_role" TYPE "Role_new" USING "target_role"::text::"Role_new";
 
 DROP TYPE "Role";
