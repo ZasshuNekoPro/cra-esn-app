@@ -68,6 +68,11 @@ export default function AdminClientsPage(): JSX.Element {
   const [editClientError, setEditClientError] = useState<string | null>(null);
   const [editClientSubmitting, setEditClientSubmitting] = useState(false);
 
+  const [editingContactId, setEditingContactId] = useState<string | null>(null);
+  const [editContactForm, setEditContactForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [editContactError, setEditContactError] = useState<string | null>(null);
+  const [editContactSubmitting, setEditContactSubmitting] = useState(false);
+
   const loadData = async (): Promise<void> => {
     try {
       const [persons, comps] = await Promise.all([
@@ -168,6 +173,39 @@ export default function AdminClientsPage(): JSX.Element {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEditContact = (contact: { id: string; firstName: string; lastName: string; phone: string | null }): void => {
+    setEditingContactId(contact.id);
+    setEditContactForm({ firstName: contact.firstName, lastName: contact.lastName, phone: contact.phone ?? '' });
+    setEditContactError(null);
+  };
+
+  const cancelEditContact = (): void => {
+    setEditingContactId(null);
+    setEditContactError(null);
+  };
+
+  const handleEditContactSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!editingContactId) return;
+    setEditContactError(null);
+    setEditContactSubmitting(true);
+    try {
+      const result = await updateClientAction(editingContactId, {
+        firstName: editContactForm.firstName,
+        lastName: editContactForm.lastName,
+        phone: editContactForm.phone || undefined,
+      });
+      if (result.error) {
+        setEditContactError(result.error);
+      } else {
+        setEditingContactId(null);
+        void loadData();
+      }
+    } finally {
+      setEditContactSubmitting(false);
     }
   };
 
@@ -519,16 +557,77 @@ export default function AdminClientsPage(): JSX.Element {
                       </span>
                     </div>
                     {company.contacts.length > 0 && (
-                      <div className="mt-3 space-y-1.5 pl-3 border-l-2 border-gray-100">
+                      <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-100">
                         {company.contacts.map((contact) => (
-                          <div key={contact.id} className="flex items-center gap-2">
-                            <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
-                              {contact.clientContactType
-                                ? CONTACT_TYPE_LABELS[contact.clientContactType]
-                                : 'Contact'}
-                            </span>
-                            <span className="text-sm text-gray-700">{contact.firstName} {contact.lastName}</span>
-                            <span className="text-xs text-gray-400">{contact.email}</span>
+                          <div key={contact.id}>
+                            {editingContactId === contact.id ? (
+                              <form onSubmit={(e) => { void handleEditContactSubmit(e); }} className="space-y-2 py-1">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={editContactForm.firstName}
+                                      onChange={(e) => setEditContactForm((f) => ({ ...f, firstName: e.target.value }))}
+                                      className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs font-medium text-gray-600 mb-1">Nom</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={editContactForm.lastName}
+                                      onChange={(e) => setEditContactForm((f) => ({ ...f, lastName: e.target.value }))}
+                                      className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs font-medium text-gray-600 mb-1">Téléphone (optionnel)</label>
+                                  <input
+                                    type="tel"
+                                    value={editContactForm.phone}
+                                    onChange={(e) => setEditContactForm((f) => ({ ...f, phone: e.target.value }))}
+                                    className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                                {editContactError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editContactError}</p>}
+                                <div className="flex gap-2">
+                                  <button
+                                    type="submit"
+                                    disabled={editContactSubmitting}
+                                    className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                                  >
+                                    {editContactSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={cancelEditContact}
+                                    className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+                                  >
+                                    Annuler
+                                  </button>
+                                </div>
+                              </form>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
+                                  {contact.clientContactType
+                                    ? CONTACT_TYPE_LABELS[contact.clientContactType]
+                                    : 'Contact'}
+                                </span>
+                                <span className="text-sm text-gray-700">{contact.firstName} {contact.lastName}</span>
+                                <span className="text-xs text-gray-400 flex-1">{contact.email}</span>
+                                <button
+                                  onClick={() => startEditContact(contact)}
+                                  className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded shrink-0"
+                                >
+                                  Modifier
+                                </button>
+                              </div>
+                            )}
                           </div>
                         ))}
                       </div>
@@ -623,7 +722,7 @@ export default function AdminClientsPage(): JSX.Element {
                         <span className="text-xs bg-purple-100 text-purple-700 px-2 py-1 rounded">Client</span>
                         <button
                           onClick={() => startEditClient(client)}
-                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                          className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded"
                         >
                           Modifier
                         </button>

@@ -250,7 +250,7 @@ export default function AdminEmployeesPage(): JSX.Element {
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Salarié</span>
                       <button
                         onClick={() => startEdit(emp)}
-                        className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded"
                       >
                         Modifier
                       </button>
