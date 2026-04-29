@@ -5,16 +5,13 @@ import {
   Get,
   Body,
   Param,
-  Request,
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
+import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
+import type { JwtPayload } from '@esn/shared-types';
 import { ConsentService } from './consent.service';
 import type { RequestConsentDto } from './dto/request-consent.dto';
-
-interface RequestWithUser {
-  user: { id: string; role: Role };
-}
 
 @Controller('consent')
 export class ConsentController {
@@ -26,8 +23,8 @@ export class ConsentController {
    */
   @Post('request')
   @Roles(Role.ESN_ADMIN)
-  request(@Body() dto: RequestConsentDto, @Request() req: RequestWithUser) {
-    return this.consentService.request(dto, req.user.id);
+  request(@Body() dto: RequestConsentDto, @CurrentUser() user: JwtPayload) {
+    return this.consentService.request(dto, user.sub, user.esnId ?? null);
   }
 
   /**
@@ -36,8 +33,8 @@ export class ConsentController {
    */
   @Patch(':id/grant')
   @Roles(Role.EMPLOYEE)
-  grant(@Param('id') id: string, @Request() req: RequestWithUser) {
-    return this.consentService.grant(id, req.user.id);
+  grant(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.consentService.grant(id, user.sub);
   }
 
   /**
@@ -46,8 +43,8 @@ export class ConsentController {
    */
   @Patch(':id/revoke')
   @Roles(Role.EMPLOYEE)
-  revoke(@Param('id') id: string, @Request() req: RequestWithUser) {
-    return this.consentService.revoke(id, req.user.id);
+  revoke(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
+    return this.consentService.revoke(id, user.sub);
   }
 
   /**
@@ -56,8 +53,8 @@ export class ConsentController {
    */
   @Get('my')
   @Roles(Role.EMPLOYEE)
-  listMine(@Request() req: RequestWithUser) {
-    return this.consentService.listForEmployee(req.user.id);
+  listMine(@CurrentUser() user: JwtPayload) {
+    return this.consentService.listForEmployee(user.sub);
   }
 
   /**
@@ -66,7 +63,7 @@ export class ConsentController {
    */
   @Get('sent')
   @Roles(Role.ESN_ADMIN)
-  listSent(@Request() req: RequestWithUser) {
-    return this.consentService.listForRequester(req.user.id);
+  listSent(@CurrentUser() user: JwtPayload) {
+    return this.consentService.listForRequester(user.sub);
   }
 }
