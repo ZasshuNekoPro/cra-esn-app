@@ -85,4 +85,21 @@ export class ClientCompaniesService {
 
     return company;
   }
+
+  async update(id: string, esnId: string, dto: Partial<{ name: string; siren: string; address: string; website: string; notes: string }>) {
+    const existing = await this.prisma.clientCompany.findFirst({ where: { id, esnId }, select: { id: true } });
+    if (!existing) throw new NotFoundException(`Client company ${id} not found`);
+
+    return this.prisma.clientCompany.update({
+      where: { id },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.siren !== undefined && { siren: dto.siren || null }),
+        ...(dto.address !== undefined && { address: dto.address || null }),
+        ...(dto.website !== undefined && { website: dto.website || null }),
+        ...(dto.notes !== undefined && { notes: dto.notes || null }),
+      },
+      include: { contacts: { select: CONTACT_SELECT } },
+    });
+  }
 }

@@ -42,6 +42,14 @@ export interface CreateClientCompanyPayload {
   contacts: CreateContactPayload[];
 }
 
+export interface UpdateClientCompanyPayload {
+  name?: string;
+  siren?: string;
+  address?: string;
+  website?: string;
+  notes?: string;
+}
+
 export const clientCompaniesApi = {
   list: (): Promise<ClientCompany[]> =>
     apiClient.get<ClientCompany[]>('/client-companies'),
@@ -51,6 +59,9 @@ export const clientCompaniesApi = {
 
   create: (data: CreateClientCompanyPayload): Promise<ClientCompany> =>
     apiClient.post<ClientCompany>('/client-companies', data),
+
+  update: (id: string, data: UpdateClientCompanyPayload): Promise<ClientCompany> =>
+    apiClient.patch<ClientCompany>(`/client-companies/${id}`, data),
 };
 
 export const CONTACT_TYPE_LABELS: Record<ClientContactType, string> = {
