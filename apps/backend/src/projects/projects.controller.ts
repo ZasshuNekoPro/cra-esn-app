@@ -66,7 +66,7 @@ export class ProjectsController {
    * Project detail with weather history, milestones, pending validations.
    */
   @Get(':id')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   getProject(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.projectsService.findOne(id, user.sub, user.role);
   }
@@ -133,7 +133,7 @@ export class ProjectsController {
    * Last 30 weather entries (or filtered by month via ?yearMonth=YYYY-MM).
    */
   @Get(':id/weather')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   getWeatherHistory(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
@@ -163,7 +163,7 @@ export class ProjectsController {
    * Query: ?year=2026&month=3
    */
   @Get(':id/weather/summary')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   getWeatherSummary(
     @Param('id') id: string,
     @Query('year', ParseIntPipe) year: number,
@@ -180,7 +180,7 @@ export class ProjectsController {
    * List comments filtered by caller's visibility scope.
    */
   @Get(':id/comments')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   getComments(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.commentsService.getComments(id, user.sub, user.role);
   }
@@ -190,7 +190,7 @@ export class ProjectsController {
    * Add a comment (all roles).
    */
   @Post(':id/comments')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   @HttpCode(HttpStatus.CREATED)
   createComment(
     @Param('id') id: string,
@@ -205,7 +205,7 @@ export class ProjectsController {
    * Update own comment (content / visibility).
    */
   @Patch(':id/comments/:commentId')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   updateComment(
     @Param('commentId') commentId: string,
     @Body() dto: UpdateCommentDto,
@@ -219,7 +219,7 @@ export class ProjectsController {
    * Resolve a blocker comment (ESN_ADMIN only).
    */
   @Post(':id/comments/:commentId/resolve')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   @HttpCode(HttpStatus.OK)
   resolveBlocker(
     @Param('commentId') commentId: string,
@@ -234,7 +234,7 @@ export class ProjectsController {
    * GET /projects/:id/milestones
    */
   @Get(':id/milestones')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   getMilestones(@Param('id') id: string) {
     return this.milestonesService.getMilestones(id);
   }
@@ -286,7 +286,7 @@ export class ProjectsController {
    * GET /projects/:id/validations
    */
   @Get(':id/validations')
-  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.EMPLOYEE, Role.ESN_ADMIN, Role.CLIENT)
   getValidations(@Param('id') id: string) {
     return this.validationsService.getValidations(id);
   }
@@ -309,7 +309,7 @@ export class ProjectsController {
    * POST /projects/:id/validations/:validationId/approve
    */
   @Post(':id/validations/:validationId/approve')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.ESN_ADMIN, Role.CLIENT)
   @HttpCode(HttpStatus.OK)
   approveValidation(
     @Param('validationId') validationId: string,
@@ -323,7 +323,7 @@ export class ProjectsController {
    * POST /projects/:id/validations/:validationId/reject
    */
   @Post(':id/validations/:validationId/reject')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER, Role.CLIENT)
+  @Roles(Role.ESN_ADMIN, Role.CLIENT)
   @HttpCode(HttpStatus.OK)
   rejectValidation(
     @Param('validationId') validationId: string,

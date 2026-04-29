@@ -18,7 +18,6 @@ datasource db {
 enum Role {
   PLATFORM_ADMIN
   ESN_ADMIN
-  ESN_MANAGER
   EMPLOYEE
   CLIENT
 }

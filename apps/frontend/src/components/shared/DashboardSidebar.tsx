@@ -43,14 +43,6 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/admin/consent', label: 'Consentements' },
 ];
 
-const MANAGER_NAV: NavItem[] = [
-  { href: '/manager/dashboard', label: 'Tableau de bord' },
-  { href: '/manager/employees', label: 'Salariés' },
-  { href: '/manager/clients', label: 'Clients' },
-  { href: '/manager/missions', label: 'Missions' },
-  { href: '/manager/cra-validation', label: 'Validation CRA' },
-];
-
 const CLIENT_NAV: NavItem[] = [
   { href: '/client/dashboard', label: 'Tableau de bord' },
   { href: '/client/reports', label: 'Validation & Rapports' },
@@ -69,11 +61,9 @@ export function DashboardSidebar({ user }: Props): JSX.Element {
       ? PLATFORM_NAV
       : user.role === Role.ESN_ADMIN
         ? ESN_NAV
-        : user.role === Role.ESN_MANAGER
-          ? MANAGER_NAV
-          : user.role === Role.CLIENT
-            ? CLIENT_NAV
-            : EMPLOYEE_NAV;
+        : user.role === Role.CLIENT
+          ? CLIENT_NAV
+          : EMPLOYEE_NAV;
 
   return (
     <aside className="w-64 bg-white shadow-sm flex flex-col">

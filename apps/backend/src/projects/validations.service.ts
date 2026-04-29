@@ -69,7 +69,7 @@ export class ValidationsService {
 
     const targetRole = validation.targetRole as unknown as Role;
     const authorized =
-      (targetRole === Role.ESN_ADMIN && (callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER)) ||
+      (targetRole === Role.ESN_ADMIN && callerRole === Role.ESN_ADMIN) ||
       (targetRole === Role.CLIENT && callerRole === Role.CLIENT);
     if (!authorized) {
       throw new ForbiddenException('Vous n\'êtes pas autorisé à décider cette validation');
@@ -112,7 +112,7 @@ export class ValidationsService {
 
     const targetRole = validation.targetRole as unknown as Role;
     const authorized =
-      (targetRole === Role.ESN_ADMIN && (callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER)) ||
+      (targetRole === Role.ESN_ADMIN && callerRole === Role.ESN_ADMIN) ||
       (targetRole === Role.CLIENT && callerRole === Role.CLIENT);
     if (!authorized) {
       throw new ForbiddenException('Vous n\'êtes pas autorisé à décider cette validation');

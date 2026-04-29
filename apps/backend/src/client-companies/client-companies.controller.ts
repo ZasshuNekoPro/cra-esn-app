@@ -12,21 +12,21 @@ export class ClientCompaniesController {
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   create(@Body() dto: CreateClientCompanyDto, @CurrentUser() user: JwtPayload) {
     if (!user.esnId) throw new ForbiddenException('ESN context required');
     return this.clientCompaniesService.create(dto, user.esnId, user.role);
   }
 
   @Get()
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   findAll(@CurrentUser() user: JwtPayload) {
     if (!user.esnId) throw new ForbiddenException('ESN context required');
     return this.clientCompaniesService.findAll(user.esnId);
   }
 
   @Get(':id')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     if (!user.esnId) throw new ForbiddenException('ESN context required');
     return this.clientCompaniesService.findOne(id, user.esnId);

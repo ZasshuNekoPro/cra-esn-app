@@ -50,17 +50,17 @@ export class UsersService {
 
   /**
    * Enforce role-creation rules:
-   * - PLATFORM_ADMIN can create ESN_ADMIN or ESN_MANAGER
-   * - ESN_ADMIN and ESN_MANAGER can create EMPLOYEE or CLIENT
+   * - PLATFORM_ADMIN can create ESN_ADMIN
+   * - ESN_ADMIN can create EMPLOYEE or CLIENT
    */
   private assertCanCreate(callerRole: Role, targetRole: Role): void {
     if (callerRole === Role.PLATFORM_ADMIN) {
-      if (targetRole !== Role.ESN_ADMIN && targetRole !== Role.ESN_MANAGER) {
-        throw new ForbiddenException('Platform admin can only create ESN_ADMIN or ESN_MANAGER accounts');
+      if (targetRole !== Role.ESN_ADMIN) {
+        throw new ForbiddenException('Platform admin can only create ESN_ADMIN accounts');
       }
       return;
     }
-    if (callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER) {
+    if (callerRole === Role.ESN_ADMIN) {
       if (targetRole !== Role.EMPLOYEE && targetRole !== Role.CLIENT) {
         throw new ForbiddenException('ESN staff can only create EMPLOYEE or CLIENT accounts');
       }
@@ -80,10 +80,8 @@ export class UsersService {
     const rounds = parseInt(process.env['BCRYPT_ROUNDS'] ?? '12', 10);
     const hashed = await bcrypt.hash(dto.password, rounds);
 
-    // ESN staff pass their own esnId to scope the created user.
-    // PLATFORM_ADMIN can supply esnId explicitly (e.g. when creating ESN_MANAGER).
     const resolvedEsnId =
-      callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER
+      callerRole === Role.ESN_ADMIN
         ? callerEsnId
         : (dto.esnId ?? null);
 
@@ -121,7 +119,7 @@ export class UsersService {
       });
     }
 
-    // ESN_ADMIN and ESN_MANAGER see only EMPLOYEE+CLIENT in their own ESN
+    // ESN_ADMIN sees only EMPLOYEE+CLIENT in their own ESN
     // If caller has no esnId, return empty list (misconfigured account)
     if (callerEsnId === null) return [];
 

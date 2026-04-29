@@ -41,11 +41,11 @@ export class UsersController {
 
   /**
    * POST /users
-   * PLATFORM_ADMIN → creates ESN_ADMIN or ESN_MANAGER
-   * ESN_ADMIN / ESN_MANAGER → creates EMPLOYEE or CLIENT (scoped to their ESN)
+   * PLATFORM_ADMIN → creates ESN_ADMIN
+   * ESN_ADMIN → creates EMPLOYEE or CLIENT (scoped to their ESN)
    */
   @Post()
-  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN)
   create(@Body() dto: CreateUserDto, @CurrentUser() user: JwtPayload) {
     return this.usersService.create(dto, user.role, user.esnId ?? null);
   }
@@ -53,10 +53,10 @@ export class UsersController {
   /**
    * GET /users
    * PLATFORM_ADMIN → all users
-   * ESN_ADMIN / ESN_MANAGER → employees + clients in their ESN
+   * ESN_ADMIN → employees + clients in their ESN
    */
   @Get()
-  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN)
   findAll(@CurrentUser() user: JwtPayload) {
     return this.usersService.findAll(user.role, user.esnId ?? null);
   }
@@ -65,16 +65,16 @@ export class UsersController {
    * GET /users/:id
    */
   @Get(':id')
-  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.PLATFORM_ADMIN, Role.ESN_ADMIN)
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }
 
   /**
-   * PATCH /users/:id — update employee/client profile (ESN_ADMIN / ESN_MANAGER)
+   * PATCH /users/:id — update employee/client profile (ESN_ADMIN)
    */
   @Patch(':id')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER, Role.PLATFORM_ADMIN)
+  @Roles(Role.ESN_ADMIN, Role.PLATFORM_ADMIN)
   updateUser(
     @Param('id') id: string,
     @Body() dto: UpdateProfileDto,

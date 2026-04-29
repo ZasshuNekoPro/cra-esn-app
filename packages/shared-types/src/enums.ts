@@ -4,7 +4,6 @@
 export enum Role {
   PLATFORM_ADMIN = 'PLATFORM_ADMIN',
   ESN_ADMIN      = 'ESN_ADMIN',
-  ESN_MANAGER    = 'ESN_MANAGER',
   EMPLOYEE       = 'EMPLOYEE',
   CLIENT         = 'CLIENT',
 }

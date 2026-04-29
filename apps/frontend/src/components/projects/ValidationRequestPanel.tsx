@@ -73,7 +73,7 @@ export function ValidationRequestPanel({
 
   const canDecide = (v: ProjectValidationRequest): boolean =>
     v.status === ValidationStatus.PENDING &&
-    ((v.targetRole === Role.ESN_ADMIN && (userRole === Role.ESN_ADMIN || userRole === Role.ESN_MANAGER)) ||
+    ((v.targetRole === Role.ESN_ADMIN && userRole === Role.ESN_ADMIN) ||
       (v.targetRole === Role.CLIENT && userRole === Role.CLIENT));
 
   return (

@@ -83,16 +83,6 @@ describe('MissionsService', () => {
       );
     });
 
-    it('ESN_MANAGER sees active missions scoped to their ESN', async () => {
-      mockPrisma.mission.findMany.mockResolvedValue([MISSION]);
-      await service.findAll('mgr-1', Role.ESN_MANAGER, 'esn-uuid');
-      expect(mockPrisma.mission.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({
-          where: { isActive: true, employee: { esnId: 'esn-uuid' } },
-        }),
-      );
-    });
-
     it('EMPLOYEE sees only their missions', async () => {
       mockPrisma.mission.findMany.mockResolvedValue([]);
       await service.findAll('emp-1', Role.EMPLOYEE, null);

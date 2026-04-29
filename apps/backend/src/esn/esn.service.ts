@@ -80,7 +80,7 @@ export class EsnService {
     const [esnCount, esnAdminCount, employeeCount, clientCount, esnsWithUsers] = await Promise.all([
       this.prisma.esn.count(),
       this.prisma.user.count({
-        where: { role: { in: [Role.ESN_ADMIN, Role.ESN_MANAGER] }, deletedAt: null },
+        where: { role: Role.ESN_ADMIN, deletedAt: null },
       }),
       this.prisma.user.count({ where: { role: Role.EMPLOYEE, deletedAt: null } }),
       this.prisma.user.count({ where: { role: Role.CLIENT, deletedAt: null } }),
@@ -98,7 +98,7 @@ export class EsnService {
       id: esn.id,
       name: esn.name,
       adminCount: esn.users.filter(
-        (u) => u.role === Role.ESN_ADMIN || u.role === Role.ESN_MANAGER,
+        (u) => u.role === Role.ESN_ADMIN,
       ).length,
       employeeCount: esn.users.filter((u) => u.role === Role.EMPLOYEE).length,
       clientCount: esn.users.filter((u) => u.role === Role.CLIENT).length,

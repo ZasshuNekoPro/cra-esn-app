@@ -62,28 +62,6 @@ describe('DashboardSidebar — ESN_ADMIN', () => {
   });
 });
 
-describe('DashboardSidebar — ESN_MANAGER', () => {
-  const user = { ...baseUser, role: Role.ESN_MANAGER };
-
-  it('should link to /manager/dashboard', () => {
-    render(<DashboardSidebar user={user} />);
-    const dashLink = screen.getByRole('link', { name: 'Tableau de bord' });
-    expect(dashLink).toHaveAttribute('href', '/manager/dashboard');
-  });
-
-  it('should show Validation CRA for ESN_MANAGER', () => {
-    render(<DashboardSidebar user={user} />);
-    expect(screen.getByText('Validation CRA')).toBeInTheDocument(); // manager garde l'onglet CRA distinct
-  });
-
-  it('should show Salariés, Clients, Missions links', () => {
-    render(<DashboardSidebar user={user} />);
-    expect(screen.getByText('Salariés')).toBeInTheDocument();
-    expect(screen.getByText('Clients')).toBeInTheDocument();
-    expect(screen.getByText('Missions')).toBeInTheDocument();
-  });
-});
-
 describe('DashboardSidebar — EMPLOYEE', () => {
   const user = { ...baseUser, role: Role.EMPLOYEE };
 

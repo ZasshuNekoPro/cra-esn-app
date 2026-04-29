@@ -296,7 +296,7 @@ export class ReportsValidateService {
     return row;
   }
 
-  /** Verify the caller (ESN_ADMIN/ESN_MANAGER) belongs to the same ESN as the employee. */
+  /** Verify the caller (ESN_ADMIN) belongs to the same ESN as the employee. */
   private async assertEsnScope(employeeId: string, callerId: string): Promise<void> {
     const [employee, caller] = await Promise.all([
       this.prisma.user.findUnique({ where: { id: employeeId }, select: { esnId: true } }),
