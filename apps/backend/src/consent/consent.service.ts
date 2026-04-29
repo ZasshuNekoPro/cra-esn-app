@@ -18,9 +18,15 @@ export class ConsentService {
 
   // ── Request (ESN_ADMIN → Employee) ────────────────────────────────────────
 
-  async request(dto: RequestConsentDto, requesterId: string) {
+  async request(dto: RequestConsentDto, requesterId: string, requesterEsnId: string | null) {
+    if (!requesterEsnId) throw new ForbiddenException('ESN context required');
+
     const employee = await this.prisma.user.findUnique({ where: { id: dto.employeeId } });
     if (!employee) throw new NotFoundException('Employee not found');
+
+    if (employee.esnId !== requesterEsnId) {
+      throw new ForbiddenException('Employee does not belong to your ESN');
+    }
 
     const existing = await this.prisma.consent.findUnique({
       where: { employeeId_requestedById: { employeeId: dto.employeeId, requestedById: requesterId } },
