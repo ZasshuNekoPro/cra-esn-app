@@ -7,7 +7,6 @@ import { DashboardSidebar } from '../../components/shared/DashboardSidebar';
 function roleDefaultPath(role: Role | undefined): string {
   if (role === Role.PLATFORM_ADMIN) return '/platform/admin/dashboard';
   if (role === Role.ESN_ADMIN) return '/esn/admin/dashboard';
-  if (role === Role.ESN_MANAGER) return '/manager/dashboard';
   if (role === Role.CLIENT) return '/client/dashboard';
   return '/login';
 }

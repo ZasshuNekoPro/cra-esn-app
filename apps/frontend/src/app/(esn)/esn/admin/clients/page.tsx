@@ -11,6 +11,7 @@ import {
   createPersonClientAction,
   createClientCompanyAction,
   updateClientAction,
+  updateClientCompanyAction,
 } from './actions';
 
 // ── Person form state ─────────────────────────────────────────────────────────
@@ -72,6 +73,11 @@ export default function AdminClientsPage(): JSX.Element {
   const [editContactForm, setEditContactForm] = useState({ firstName: '', lastName: '', phone: '' });
   const [editContactError, setEditContactError] = useState<string | null>(null);
   const [editContactSubmitting, setEditContactSubmitting] = useState(false);
+
+  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
+  const [editCompanyForm, setEditCompanyForm] = useState({ name: '', siren: '', address: '', website: '', notes: '' });
+  const [editCompanyError, setEditCompanyError] = useState<string | null>(null);
+  const [editCompanySubmitting, setEditCompanySubmitting] = useState(false);
 
   const loadData = async (): Promise<void> => {
     try {
@@ -173,6 +179,47 @@ export default function AdminClientsPage(): JSX.Element {
       }
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const startEditCompany = (company: ClientCompany): void => {
+    setEditingCompanyId(company.id);
+    setEditCompanyForm({
+      name: company.name,
+      siren: company.siren ?? '',
+      address: company.address ?? '',
+      website: company.website ?? '',
+      notes: company.notes ?? '',
+    });
+    setEditCompanyError(null);
+  };
+
+  const cancelEditCompany = (): void => {
+    setEditingCompanyId(null);
+    setEditCompanyError(null);
+  };
+
+  const handleEditCompanySubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (!editingCompanyId) return;
+    setEditCompanyError(null);
+    setEditCompanySubmitting(true);
+    try {
+      const result = await updateClientCompanyAction(editingCompanyId, {
+        name: editCompanyForm.name,
+        siren: editCompanyForm.siren || undefined,
+        address: editCompanyForm.address || undefined,
+        website: editCompanyForm.website || undefined,
+        notes: editCompanyForm.notes || undefined,
+      });
+      if (result.error) {
+        setEditCompanyError(result.error);
+      } else {
+        setEditingCompanyId(null);
+        void loadData();
+      }
+    } finally {
+      setEditCompanySubmitting(false);
     }
   };
 
@@ -542,20 +589,104 @@ export default function AdminClientsPage(): JSX.Element {
               <ul className="divide-y">
                 {companies.map((company) => (
                   <li key={company.id} className="px-6 py-4">
-                    <div className="flex items-start justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900">{company.name}</p>
-                        {company.siren && (
-                          <p className="text-xs text-gray-400 mt-0.5">SIREN : {company.siren}</p>
-                        )}
-                        {company.address && (
-                          <p className="text-xs text-gray-400">{company.address}</p>
-                        )}
+                    {editingCompanyId === company.id ? (
+                      <form onSubmit={(e) => { void handleEditCompanySubmit(e); }} className="space-y-3 mb-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Raison sociale <span className="text-red-500">*</span></label>
+                          <input
+                            type="text"
+                            required
+                            value={editCompanyForm.name}
+                            onChange={(e) => setEditCompanyForm((f) => ({ ...f, name: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">SIREN (optionnel)</label>
+                            <input
+                              type="text"
+                              value={editCompanyForm.siren}
+                              onChange={(e) => setEditCompanyForm((f) => ({ ...f, siren: e.target.value }))}
+                              maxLength={9}
+                              placeholder="ex : 123456789"
+                              className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Site web (optionnel)</label>
+                            <input
+                              type="url"
+                              value={editCompanyForm.website}
+                              onChange={(e) => setEditCompanyForm((f) => ({ ...f, website: e.target.value }))}
+                              placeholder="https://..."
+                              className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Adresse (optionnel)</label>
+                          <input
+                            type="text"
+                            value={editCompanyForm.address}
+                            onChange={(e) => setEditCompanyForm((f) => ({ ...f, address: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Notes internes (optionnel)</label>
+                          <textarea
+                            value={editCompanyForm.notes}
+                            onChange={(e) => setEditCompanyForm((f) => ({ ...f, notes: e.target.value }))}
+                            rows={2}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                          />
+                        </div>
+                        {editCompanyError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editCompanyError}</p>}
+                        <div className="flex gap-2">
+                          <button
+                            type="submit"
+                            disabled={editCompanySubmitting}
+                            className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                          >
+                            {editCompanySubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={cancelEditCompany}
+                            className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+                          >
+                            Annuler
+                          </button>
+                        </div>
+                      </form>
+                    ) : (
+                      <div className="flex items-start justify-between mb-3">
+                        <div>
+                          <p className="font-medium text-gray-900">{company.name}</p>
+                          {company.siren && (
+                            <p className="text-xs text-gray-400 mt-0.5">SIREN : {company.siren}</p>
+                          )}
+                          {company.address && (
+                            <p className="text-xs text-gray-400">{company.address}</p>
+                          )}
+                          {company.website && (
+                            <p className="text-xs text-gray-400">{company.website}</p>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-2 ml-3 shrink-0">
+                          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">
+                            Entreprise
+                          </span>
+                          <button
+                            onClick={() => startEditCompany(company)}
+                            className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded"
+                          >
+                            Modifier
+                          </button>
+                        </div>
                       </div>
-                      <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded ml-3 shrink-0">
-                        Entreprise
-                      </span>
-                    </div>
+                    )}
                     {company.contacts.length > 0 && (
                       <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-100">
                         {company.contacts.map((contact) => (

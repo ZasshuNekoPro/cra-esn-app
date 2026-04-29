@@ -72,13 +72,6 @@ describe('ValidationRequestPanel', () => {
       expect(screen.getByText('Refuser')).toBeInTheDocument();
     });
 
-    it('shows Approuver/Refuser for ESN_MANAGER on ESN_ADMIN-targeted validation', () => {
-      render(
-        <ValidationRequestPanel projectId="proj-1" initialValidations={[PENDING_ESN]} userRole={Role.ESN_MANAGER} />,
-      );
-      expect(screen.getByText('Approuver')).toBeInTheDocument();
-    });
-
     it('does NOT show decide buttons for CLIENT on ESN_ADMIN-targeted validation', () => {
       render(
         <ValidationRequestPanel projectId="proj-1" initialValidations={[PENDING_ESN]} userRole={Role.CLIENT} />,

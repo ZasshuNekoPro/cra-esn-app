@@ -253,9 +253,6 @@ export class ProjectsService {
       case Role.EMPLOYEE:
         return { id: projectId, mission: { employeeId: callerId } };
       case Role.ESN_ADMIN:
-        // ConsentGuard already verified; ESN can see all projects on their managed missions
-        return { id: projectId, mission: { esnAdminId: callerId } };
-      case Role.ESN_MANAGER:
         return { id: projectId, mission: { esnAdminId: callerId } };
       case Role.CLIENT:
         return { id: projectId, mission: { clientId: callerId } };

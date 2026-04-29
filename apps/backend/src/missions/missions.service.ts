@@ -59,7 +59,7 @@ export class MissionsService {
   }
 
   async findAll(callerId: string, callerRole: Role, callerEsnId: string | null) {
-    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
+    const isEsnStaff = callerRole === Role.ESN_ADMIN;
 
     const where = isEsnStaff
       ? {
@@ -86,7 +86,7 @@ export class MissionsService {
     });
     if (!mission) throw new NotFoundException(`Mission ${id} not found`);
 
-    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
+    const isEsnStaff = callerRole === Role.ESN_ADMIN;
     const hasAccess =
       isEsnStaff ||
       mission.employeeId === callerId ||
@@ -97,7 +97,7 @@ export class MissionsService {
   }
 
   async update(id: string, dto: UpdateMissionDto, callerRole: Role) {
-    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
+    const isEsnStaff = callerRole === Role.ESN_ADMIN;
     if (!isEsnStaff) {
       throw new ForbiddenException('Only ESN staff can update missions');
     }
@@ -118,7 +118,7 @@ export class MissionsService {
   }
 
   async deactivate(id: string, callerRole: Role): Promise<void> {
-    const isEsnStaff = callerRole === Role.ESN_ADMIN || callerRole === Role.ESN_MANAGER;
+    const isEsnStaff = callerRole === Role.ESN_ADMIN;
     if (!isEsnStaff) {
       throw new ForbiddenException('Only ESN staff can deactivate missions');
     }

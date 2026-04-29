@@ -7,22 +7,35 @@ const AUTH_PATHS = ['/login'];
 const ANONYMOUS_PATHS = ['/validate-report'];
 const ESN_PATHS = ['/esn'];
 const PLATFORM_PATHS = ['/platform'];
-const MANAGER_PATHS = ['/manager'];
 const CLIENT_PATHS = ['/client'];
 const EMPLOYEE_PATHS = ['/dashboard', '/cra', '/reports', '/documents', '/projects', '/settings', '/assistant', '/consent'];
+// Paths from deleted route groups — redirect to role default instead of 404
+const DEPRECATED_PATHS = ['/manager'];
+
+const VALID_ROLES = new Set<string>(Object.values(Role));
+
+// NextAuth v5 session cookie names (dev + prod variants)
+const SESSION_COOKIE_NAMES = ['next-auth.session-token', '__Secure-next-auth.session-token'];
 
 function roleDefaultPath(role: Role | undefined): string {
   if (role === Role.PLATFORM_ADMIN) return '/platform/admin/dashboard';
   if (role === Role.ESN_ADMIN) return '/esn/admin/dashboard';
-  if (role === Role.ESN_MANAGER) return '/manager/dashboard';
   if (role === Role.CLIENT) return '/client/dashboard';
   return '/dashboard';
+}
+
+function clearSessionCookies(response: NextResponse): NextResponse {
+  SESSION_COOKIE_NAMES.forEach((name) => response.cookies.delete(name));
+  return response;
 }
 
 export default auth(function middleware(req: NextRequest & { auth: { user?: { role?: Role } } | null }) {
   const { pathname } = req.nextUrl;
   const session = req.auth;
   const isAuthenticated = !!session;
+  const role = session?.user?.role;
+  // A role value not in the current enum means a stale JWT (e.g. ESN_MANAGER after role migration)
+  const hasValidRole = role === undefined || VALID_ROLES.has(role as string);
 
   // Fully public paths — accessible with or without auth (no redirect)
   if (ANONYMOUS_PATHS.some((p) => pathname.startsWith(p))) {
@@ -32,7 +45,11 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
   // Auth-only public paths (redirect authenticated users away)
   if (AUTH_PATHS.some((p) => pathname.startsWith(p))) {
     if (isAuthenticated) {
-      return NextResponse.redirect(new URL(roleDefaultPath(session?.user?.role), req.url));
+      if (!hasValidRole) {
+        // Stale role: let user see the login form and clear the invalid cookie
+        return clearSessionCookies(NextResponse.next());
+      }
+      return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
     }
     return NextResponse.next();
   }
@@ -44,7 +61,15 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
     return NextResponse.redirect(loginUrl);
   }
 
-  const role = session?.user?.role;
+  // Stale/unknown role (e.g. ESN_MANAGER JWT from before role migration) — clear session and force re-login
+  if (!hasValidRole) {
+    return clearSessionCookies(NextResponse.redirect(new URL('/login', req.url)));
+  }
+
+  // Deprecated paths from removed route groups — redirect to the user's correct dashboard
+  if (DEPRECATED_PATHS.some((p) => pathname.startsWith(p))) {
+    return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
+  }
 
   // Platform admin routes — only PLATFORM_ADMIN
   if (PLATFORM_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.PLATFORM_ADMIN) {
@@ -53,11 +78,6 @@ export default auth(function middleware(req: NextRequest & { auth: { user?: { ro
 
   // ESN admin routes — only ESN_ADMIN
   if (ESN_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.ESN_ADMIN) {
-    return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
-  }
-
-  // ESN manager routes — only ESN_MANAGER
-  if (MANAGER_PATHS.some((p) => pathname.startsWith(p)) && role !== Role.ESN_MANAGER) {
     return NextResponse.redirect(new URL(roleDefaultPath(role), req.url));
   }
 
