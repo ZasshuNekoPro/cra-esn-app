@@ -11,7 +11,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
 import type { JwtPayload } from '@esn/shared-types';
 import { ConsentService } from './consent.service';
-import type { RequestConsentDto } from './dto/request-consent.dto';
+import { RequestConsentDto } from './dto/request-consent.dto';
 
 @Controller('consent')
 export class ConsentController {
