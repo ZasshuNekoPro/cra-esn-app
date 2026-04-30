@@ -21,7 +21,7 @@ interface NavItem {
 const EMPLOYEE_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Tableau de bord' },
   { href: '/cra', label: 'Mes CRA' },
-  { href: '/projects', label: 'Mes projets' },
+  { href: '/projects', label: 'Missions et projets' },
   { href: '/documents', label: 'Documents' },
   { href: '/assistant', label: 'Assistant IA' },
   { href: '/reports', label: 'Rapports' },

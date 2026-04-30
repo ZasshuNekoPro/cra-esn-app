@@ -112,6 +112,8 @@ export class MissionsService {
         ...(dto.endDate !== undefined && { endDate: new Date(dto.endDate) }),
         ...(dto.dailyRate !== undefined && { dailyRate: dto.dailyRate }),
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
+        ...(dto.employeeId !== undefined && { employeeId: dto.employeeId }),
+        ...(dto.clientId !== undefined && { clientId: dto.clientId ?? null }),
       },
       select: MISSION_WITH_USERS,
     });
