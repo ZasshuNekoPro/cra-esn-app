@@ -4,7 +4,7 @@ import { usersApi } from '../../../../../lib/api/users';
 import { clientCompaniesApi } from '../../../../../lib/api/clientCompanies';
 import { Role } from '@esn/shared-types';
 import type { PublicUser } from '../../../../../lib/api/users';
-import type { ClientCompany, CreateClientCompanyPayload, UpdateClientCompanyPayload } from '../../../../../lib/api/clientCompanies';
+import type { ClientCompany, ClientContact, CreateClientCompanyPayload, CreateContactPayload, UpdateClientCompanyPayload } from '../../../../../lib/api/clientCompanies';
 
 interface CreatePersonClientInput {
   email: string;
@@ -66,5 +66,17 @@ export async function updateClientCompanyAction(
     return { company };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour' };
+  }
+}
+
+export async function addContactToCompanyAction(
+  companyId: string,
+  data: CreateContactPayload,
+): Promise<{ contact?: ClientContact; error?: string }> {
+  try {
+    const contact = await clientCompaniesApi.addContact(companyId, data);
+    return { contact };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la création du contact' };
   }
 }

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { ClientContactType } from '@esn/shared-types';
 import type { PublicUser } from '../../../../../lib/api/users';
-import type { ClientCompany, CreateContactPayload } from '../../../../../lib/api/clientCompanies';
+import type { ClientCompany, ClientContact, CreateContactPayload } from '../../../../../lib/api/clientCompanies';
 import { CONTACT_TYPE_LABELS } from '../../../../../lib/api/clientCompanies';
 import {
   listPersonClientsAction,
@@ -12,6 +12,7 @@ import {
   createClientCompanyAction,
   updateClientAction,
   updateClientCompanyAction,
+  addContactToCompanyAction,
 } from './actions';
 
 // ── Person form state ─────────────────────────────────────────────────────────
@@ -26,8 +27,8 @@ const emptyPersonForm = () => ({
 
 // ── Company form state ────────────────────────────────────────────────────────
 
-const emptyContact = (): CreateContactPayload & { id: number } => ({
-  id: Date.now() + Math.random(),
+const emptyContact = (): CreateContactPayload & { uid: number } => ({
+  uid: Date.now() + Math.random(),
   firstName: '',
   lastName: '',
   email: '',
@@ -44,6 +45,16 @@ const emptyCompanyForm = () => ({
   notes: '',
 });
 
+// ── Edit state types ──────────────────────────────────────────────────────────
+
+interface EditableExistingContact {
+  id: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  contactType: ClientContactType | null;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function AdminClientsPage(): JSX.Element {
@@ -56,28 +67,27 @@ export default function AdminClientsPage(): JSX.Element {
   // Person form
   const [personForm, setPersonForm] = useState(emptyPersonForm());
 
-  // Company form
+  // Company creation form
   const [companyForm, setCompanyForm] = useState(emptyCompanyForm());
-  const [contacts, setContacts] = useState<(CreateContactPayload & { id: number })[]>([emptyContact()]);
+  const [contacts, setContacts] = useState<(CreateContactPayload & { uid: number })[]>([emptyContact()]);
 
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
+  // ── Unified company edit state ────────────────────────────────────────────
+  const [editingCompany, setEditingCompany] = useState<ClientCompany | null>(null);
+  const [editCompanyFields, setEditCompanyFields] = useState(emptyCompanyForm());
+  const [editExistingContacts, setEditExistingContacts] = useState<EditableExistingContact[]>([]);
+  const [editNewContacts, setEditNewContacts] = useState<(CreateContactPayload & { uid: number })[]>([]);
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
+  // Person edit state
   const [editingClientId, setEditingClientId] = useState<string | null>(null);
   const [editClientForm, setEditClientForm] = useState({ firstName: '', lastName: '', phone: '' });
   const [editClientError, setEditClientError] = useState<string | null>(null);
   const [editClientSubmitting, setEditClientSubmitting] = useState(false);
-
-  const [editingContactId, setEditingContactId] = useState<string | null>(null);
-  const [editContactForm, setEditContactForm] = useState({ firstName: '', lastName: '', phone: '' });
-  const [editContactError, setEditContactError] = useState<string | null>(null);
-  const [editContactSubmitting, setEditContactSubmitting] = useState(false);
-
-  const [editingCompanyId, setEditingCompanyId] = useState<string | null>(null);
-  const [editCompanyForm, setEditCompanyForm] = useState({ name: '', siren: '', address: '', website: '', notes: '' });
-  const [editCompanyError, setEditCompanyError] = useState<string | null>(null);
-  const [editCompanySubmitting, setEditCompanySubmitting] = useState(false);
 
   const loadData = async (): Promise<void> => {
     try {
@@ -133,23 +143,23 @@ export default function AdminClientsPage(): JSX.Element {
     }
   };
 
-  // ── Company submit ─────────────────────────────────────────────────────────
+  // ── Company creation submit ────────────────────────────────────────────────
 
-  const addContact = (): void => {
+  const addNewContact = (): void => {
     setContacts((prev) => [...prev, emptyContact()]);
   };
 
-  const removeContact = (id: number): void => {
-    setContacts((prev) => prev.filter((c) => c.id !== id));
+  const removeNewContact = (uid: number): void => {
+    setContacts((prev) => prev.filter((c) => c.uid !== uid));
   };
 
-  const updateContact = (
-    id: number,
+  const updateNewContact = (
+    uid: number,
     field: keyof Omit<CreateContactPayload, 'contactType'> | 'contactType',
     value: string,
   ): void => {
     setContacts((prev) =>
-      prev.map((c) => c.id === id ? { ...c, [field]: value } : c),
+      prev.map((c) => c.uid === uid ? { ...c, [field]: value } : c),
     );
   };
 
@@ -164,7 +174,7 @@ export default function AdminClientsPage(): JSX.Element {
         address: companyForm.address || undefined,
         website: companyForm.website || undefined,
         notes: companyForm.notes || undefined,
-        contacts: contacts.map(({ id: _id, phone, ...rest }) => ({
+        contacts: contacts.map(({ uid: _uid, phone, ...rest }) => ({
           ...rest,
           phone: phone || undefined,
         })),
@@ -182,79 +192,106 @@ export default function AdminClientsPage(): JSX.Element {
     }
   };
 
+  // ── Unified company edit ───────────────────────────────────────────────────
+
   const startEditCompany = (company: ClientCompany): void => {
-    setEditingCompanyId(company.id);
-    setEditCompanyForm({
+    setEditingCompany(company);
+    setEditCompanyFields({
       name: company.name,
       siren: company.siren ?? '',
       address: company.address ?? '',
       website: company.website ?? '',
       notes: company.notes ?? '',
     });
-    setEditCompanyError(null);
+    setEditExistingContacts(
+      company.contacts.map((c: ClientContact) => ({
+        id: c.id,
+        firstName: c.firstName,
+        lastName: c.lastName,
+        phone: c.phone ?? '',
+        contactType: c.clientContactType,
+      })),
+    );
+    setEditNewContacts([]);
+    setEditError(null);
   };
 
   const cancelEditCompany = (): void => {
-    setEditingCompanyId(null);
-    setEditCompanyError(null);
+    setEditingCompany(null);
+    setEditError(null);
+  };
+
+  const updateExistingContact = (id: string, field: keyof EditableExistingContact, value: string): void => {
+    setEditExistingContacts((prev) =>
+      prev.map((c) => c.id === id ? { ...c, [field]: value } : c),
+    );
+  };
+
+  const addEditNewContact = (): void => {
+    setEditNewContacts((prev) => [...prev, emptyContact()]);
+  };
+
+  const removeEditNewContact = (uid: number): void => {
+    setEditNewContacts((prev) => prev.filter((c) => c.uid !== uid));
+  };
+
+  const updateEditNewContact = (
+    uid: number,
+    field: keyof Omit<CreateContactPayload, 'contactType'> | 'contactType',
+    value: string,
+  ): void => {
+    setEditNewContacts((prev) =>
+      prev.map((c) => c.uid === uid ? { ...c, [field]: value } : c),
+    );
   };
 
   const handleEditCompanySubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
-    if (!editingCompanyId) return;
-    setEditCompanyError(null);
-    setEditCompanySubmitting(true);
+    if (!editingCompany) return;
+    setEditError(null);
+    setEditSubmitting(true);
     try {
-      const result = await updateClientCompanyAction(editingCompanyId, {
-        name: editCompanyForm.name,
-        siren: editCompanyForm.siren || undefined,
-        address: editCompanyForm.address || undefined,
-        website: editCompanyForm.website || undefined,
-        notes: editCompanyForm.notes || undefined,
+      // 1. Update company fields
+      const companyResult = await updateClientCompanyAction(editingCompany.id, {
+        name: editCompanyFields.name,
+        siren: editCompanyFields.siren || undefined,
+        address: editCompanyFields.address || undefined,
+        website: editCompanyFields.website || undefined,
+        notes: editCompanyFields.notes || undefined,
       });
-      if (result.error) {
-        setEditCompanyError(result.error);
-      } else {
-        setEditingCompanyId(null);
-        void loadData();
+      if (companyResult.error) { setEditError(companyResult.error); return; }
+
+      // 2. Update existing contacts
+      for (const contact of editExistingContacts) {
+        const result = await updateClientAction(contact.id, {
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          phone: contact.phone || undefined,
+        });
+        if (result.error) { setEditError(result.error); return; }
       }
+
+      // 3. Add new contacts
+      for (const contact of editNewContacts) {
+        const result = await addContactToCompanyAction(editingCompany.id, {
+          firstName: contact.firstName,
+          lastName: contact.lastName,
+          email: contact.email,
+          password: contact.password,
+          contactType: contact.contactType,
+          phone: contact.phone || undefined,
+        });
+        if (result.error) { setEditError(result.error); return; }
+      }
+
+      setEditingCompany(null);
+      void loadData();
     } finally {
-      setEditCompanySubmitting(false);
+      setEditSubmitting(false);
     }
   };
 
-  const startEditContact = (contact: { id: string; firstName: string; lastName: string; phone: string | null }): void => {
-    setEditingContactId(contact.id);
-    setEditContactForm({ firstName: contact.firstName, lastName: contact.lastName, phone: contact.phone ?? '' });
-    setEditContactError(null);
-  };
-
-  const cancelEditContact = (): void => {
-    setEditingContactId(null);
-    setEditContactError(null);
-  };
-
-  const handleEditContactSubmit = async (e: React.FormEvent): Promise<void> => {
-    e.preventDefault();
-    if (!editingContactId) return;
-    setEditContactError(null);
-    setEditContactSubmitting(true);
-    try {
-      const result = await updateClientAction(editingContactId, {
-        firstName: editContactForm.firstName,
-        lastName: editContactForm.lastName,
-        phone: editContactForm.phone || undefined,
-      });
-      if (result.error) {
-        setEditContactError(result.error);
-      } else {
-        setEditingContactId(null);
-        void loadData();
-      }
-    } finally {
-      setEditContactSubmitting(false);
-    }
-  };
+  // ── Person edit ───────────────────────────────────────────────────────────
 
   const startEditClient = (client: PublicUser): void => {
     setEditingClientId(client.id);
@@ -401,173 +438,18 @@ export default function AdminClientsPage(): JSX.Element {
 
           {/* ── Entreprise form ───────────────────────────────────── */}
           {clientType === 'company' && (
-            <form onSubmit={(e) => { void handleCompanySubmit(e); }} className="space-y-5">
-              {/* Infos société */}
-              <div className="space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Informations société</h3>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Raison sociale <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={companyForm.name}
-                    onChange={(e) => setCompanyForm((f) => ({ ...f, name: e.target.value }))}
-                    placeholder="ex : Acme Corporation"
-                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">SIREN (optionnel)</label>
-                    <input
-                      type="text"
-                      value={companyForm.siren}
-                      onChange={(e) => setCompanyForm((f) => ({ ...f, siren: e.target.value }))}
-                      placeholder="ex : 123 456 789"
-                      maxLength={9}
-                      className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Site web (optionnel)</label>
-                    <input
-                      type="url"
-                      value={companyForm.website}
-                      onChange={(e) => setCompanyForm((f) => ({ ...f, website: e.target.value }))}
-                      placeholder="https://..."
-                      className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Adresse (optionnel)</label>
-                  <input
-                    type="text"
-                    value={companyForm.address}
-                    onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))}
-                    placeholder="ex : 10 rue de la Paix, 75001 Paris"
-                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes internes (optionnel)</label>
-                  <textarea
-                    value={companyForm.notes}
-                    onChange={(e) => setCompanyForm((f) => ({ ...f, notes: e.target.value }))}
-                    rows={2}
-                    className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                  />
-                </div>
-              </div>
-
-              {/* Contacts */}
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
-                    Contacts <span className="text-red-500">*</span>
-                  </h3>
-                  <button
-                    type="button"
-                    onClick={addContact}
-                    className="text-blue-600 hover:underline text-xs font-medium"
-                  >
-                    + Ajouter un contact
-                  </button>
-                </div>
-
-                {contacts.map((contact) => (
-                  <div key={contact.id} className="border rounded-lg p-4 space-y-3 relative">
-                    {contacts.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeContact(contact.id)}
-                        className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-xs"
-                      >
-                        Supprimer
-                      </button>
-                    )}
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Fonction</label>
-                      <select
-                        value={contact.contactType}
-                        onChange={(e) => updateContact(contact.id, 'contactType', e.target.value)}
-                        className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        {Object.values(ClientContactType).map((type) => (
-                          <option key={type} value={type}>{CONTACT_TYPE_LABELS[type]}</option>
-                        ))}
-                      </select>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Prénom</label>
-                        <input
-                          type="text"
-                          required
-                          value={contact.firstName}
-                          onChange={(e) => updateContact(contact.id, 'firstName', e.target.value)}
-                          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Nom</label>
-                        <input
-                          type="text"
-                          required
-                          value={contact.lastName}
-                          onChange={(e) => updateContact(contact.id, 'lastName', e.target.value)}
-                          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-3">
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Email</label>
-                        <input
-                          type="email"
-                          required
-                          value={contact.email}
-                          onChange={(e) => updateContact(contact.id, 'email', e.target.value)}
-                          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs text-gray-600 mb-1">Téléphone (optionnel)</label>
-                        <input
-                          type="tel"
-                          value={contact.phone ?? ''}
-                          onChange={(e) => updateContact(contact.id, 'phone', e.target.value)}
-                          className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-xs text-gray-600 mb-1">Mot de passe provisoire (min. 8 caractères)</label>
-                      <input
-                        type="password"
-                        required
-                        minLength={8}
-                        value={contact.password}
-                        onChange={(e) => updateContact(contact.id, 'password', e.target.value)}
-                        className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</p>}
-
-              <button
-                type="submit"
-                disabled={submitting}
-                className="w-full bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-              >
-                {submitting ? 'Création en cours...' : `Créer la société et ${contacts.length} contact${contacts.length > 1 ? 's' : ''}`}
-              </button>
-            </form>
+            <CompanyForm
+              companyForm={companyForm}
+              setCompanyForm={setCompanyForm}
+              contacts={contacts}
+              onAddContact={addNewContact}
+              onRemoveContact={removeNewContact}
+              onUpdateContact={updateNewContact}
+              error={error}
+              submitting={submitting}
+              onSubmit={(e) => { void handleCompanySubmit(e); }}
+              submitLabel={submitting ? 'Création en cours...' : `Créer la société et ${contacts.length} contact${contacts.length > 1 ? 's' : ''}`}
+            />
           )}
         </div>
       )}
@@ -589,67 +471,207 @@ export default function AdminClientsPage(): JSX.Element {
               <ul className="divide-y">
                 {companies.map((company) => (
                   <li key={company.id} className="px-6 py-4">
-                    {editingCompanyId === company.id ? (
-                      <form onSubmit={(e) => { void handleEditCompanySubmit(e); }} className="space-y-3 mb-3">
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Raison sociale <span className="text-red-500">*</span></label>
-                          <input
-                            type="text"
-                            required
-                            value={editCompanyForm.name}
-                            onChange={(e) => setEditCompanyForm((f) => ({ ...f, name: e.target.value }))}
-                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
-                        </div>
-                        <div className="grid grid-cols-2 gap-3">
+                    {editingCompany?.id === company.id ? (
+                      /* ── Formulaire d'édition unifié ── */
+                      <form onSubmit={(e) => { void handleEditCompanySubmit(e); }} className="space-y-5">
+                        <h3 className="font-medium text-gray-900 text-sm">Modifier la société</h3>
+
+                        {/* Infos société */}
+                        <div className="space-y-3">
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">SIREN (optionnel)</label>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Raison sociale <span className="text-red-500">*</span></label>
                             <input
                               type="text"
-                              value={editCompanyForm.siren}
-                              onChange={(e) => setEditCompanyForm((f) => ({ ...f, siren: e.target.value }))}
-                              maxLength={9}
-                              placeholder="ex : 123456789"
+                              required
+                              value={editCompanyFields.name}
+                              onChange={(e) => setEditCompanyFields((f) => ({ ...f, name: e.target.value }))}
+                              className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            />
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">SIREN (optionnel)</label>
+                              <input
+                                type="text"
+                                value={editCompanyFields.siren}
+                                onChange={(e) => setEditCompanyFields((f) => ({ ...f, siren: e.target.value }))}
+                                maxLength={9}
+                                placeholder="ex : 123456789"
+                                className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                            <div>
+                              <label className="block text-xs font-medium text-gray-600 mb-1">Site web (optionnel)</label>
+                              <input
+                                type="url"
+                                value={editCompanyFields.website}
+                                onChange={(e) => setEditCompanyFields((f) => ({ ...f, website: e.target.value }))}
+                                placeholder="https://..."
+                                className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                              />
+                            </div>
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Adresse (optionnel)</label>
+                            <input
+                              type="text"
+                              value={editCompanyFields.address}
+                              onChange={(e) => setEditCompanyFields((f) => ({ ...f, address: e.target.value }))}
                               className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                             />
                           </div>
                           <div>
-                            <label className="block text-xs font-medium text-gray-600 mb-1">Site web (optionnel)</label>
-                            <input
-                              type="url"
-                              value={editCompanyForm.website}
-                              onChange={(e) => setEditCompanyForm((f) => ({ ...f, website: e.target.value }))}
-                              placeholder="https://..."
-                              className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                            <label className="block text-xs font-medium text-gray-600 mb-1">Notes internes (optionnel)</label>
+                            <textarea
+                              value={editCompanyFields.notes}
+                              onChange={(e) => setEditCompanyFields((f) => ({ ...f, notes: e.target.value }))}
+                              rows={2}
+                              className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
                             />
                           </div>
                         </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Adresse (optionnel)</label>
-                          <input
-                            type="text"
-                            value={editCompanyForm.address}
-                            onChange={(e) => setEditCompanyForm((f) => ({ ...f, address: e.target.value }))}
-                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                          />
+
+                        {/* Contacts existants */}
+                        {editExistingContacts.length > 0 && (
+                          <div className="space-y-2">
+                            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Contacts existants</p>
+                            {editExistingContacts.map((contact) => (
+                              <div key={contact.id} className="border rounded-lg p-3 space-y-2">
+                                <div className="grid grid-cols-2 gap-2">
+                                  <div>
+                                    <label className="block text-xs text-gray-600 mb-1">Prénom</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={contact.firstName}
+                                      onChange={(e) => updateExistingContact(contact.id, 'firstName', e.target.value)}
+                                      className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                  <div>
+                                    <label className="block text-xs text-gray-600 mb-1">Nom</label>
+                                    <input
+                                      type="text"
+                                      required
+                                      value={contact.lastName}
+                                      onChange={(e) => updateExistingContact(contact.id, 'lastName', e.target.value)}
+                                      className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                    />
+                                  </div>
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Téléphone (optionnel)</label>
+                                  <input
+                                    type="tel"
+                                    value={contact.phone}
+                                    onChange={(e) => updateExistingContact(contact.id, 'phone', e.target.value)}
+                                    className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Nouveaux contacts */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <p className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Ajouter des contacts</p>
+                            <button
+                              type="button"
+                              onClick={addEditNewContact}
+                              className="text-blue-600 hover:underline text-xs font-medium"
+                            >
+                              + Nouveau contact
+                            </button>
+                          </div>
+                          {editNewContacts.map((contact) => (
+                            <div key={contact.uid} className="border border-dashed rounded-lg p-3 space-y-2 relative">
+                              <button
+                                type="button"
+                                onClick={() => removeEditNewContact(contact.uid)}
+                                className="absolute top-2 right-2 text-gray-400 hover:text-red-500 text-xs"
+                              >
+                                Supprimer
+                              </button>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1">Fonction</label>
+                                <select
+                                  value={contact.contactType}
+                                  onChange={(e) => updateEditNewContact(contact.uid, 'contactType', e.target.value)}
+                                  className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                >
+                                  {Object.values(ClientContactType).map((type) => (
+                                    <option key={type} value={type}>{CONTACT_TYPE_LABELS[type]}</option>
+                                  ))}
+                                </select>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Prénom</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    value={contact.firstName}
+                                    onChange={(e) => updateEditNewContact(contact.uid, 'firstName', e.target.value)}
+                                    className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Nom</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    value={contact.lastName}
+                                    onChange={(e) => updateEditNewContact(contact.uid, 'lastName', e.target.value)}
+                                    className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-2">
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Email</label>
+                                  <input
+                                    type="email"
+                                    required
+                                    value={contact.email}
+                                    onChange={(e) => updateEditNewContact(contact.uid, 'email', e.target.value)}
+                                    className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="block text-xs text-gray-600 mb-1">Téléphone (optionnel)</label>
+                                  <input
+                                    type="tel"
+                                    value={contact.phone ?? ''}
+                                    onChange={(e) => updateEditNewContact(contact.uid, 'phone', e.target.value)}
+                                    className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                  />
+                                </div>
+                              </div>
+                              <div>
+                                <label className="block text-xs text-gray-600 mb-1">Mot de passe provisoire (min. 8 caractères)</label>
+                                <input
+                                  type="password"
+                                  required
+                                  minLength={8}
+                                  value={contact.password}
+                                  onChange={(e) => updateEditNewContact(contact.uid, 'password', e.target.value)}
+                                  className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                />
+                              </div>
+                            </div>
+                          ))}
                         </div>
-                        <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Notes internes (optionnel)</label>
-                          <textarea
-                            value={editCompanyForm.notes}
-                            onChange={(e) => setEditCompanyForm((f) => ({ ...f, notes: e.target.value }))}
-                            rows={2}
-                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
-                          />
-                        </div>
-                        {editCompanyError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editCompanyError}</p>}
+
+                        {editError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editError}</p>}
                         <div className="flex gap-2">
                           <button
                             type="submit"
-                            disabled={editCompanySubmitting}
+                            disabled={editSubmitting}
                             className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
                           >
-                            {editCompanySubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                            {editSubmitting ? 'Enregistrement...' : 'Enregistrer'}
                           </button>
                           <button
                             type="button"
@@ -661,89 +683,37 @@ export default function AdminClientsPage(): JSX.Element {
                         </div>
                       </form>
                     ) : (
-                      <div className="flex items-start justify-between mb-3">
-                        <div>
-                          <p className="font-medium text-gray-900">{company.name}</p>
-                          {company.siren && (
-                            <p className="text-xs text-gray-400 mt-0.5">SIREN : {company.siren}</p>
-                          )}
-                          {company.address && (
-                            <p className="text-xs text-gray-400">{company.address}</p>
-                          )}
-                          {company.website && (
-                            <p className="text-xs text-gray-400">{company.website}</p>
-                          )}
+                      /* ── Affichage normal de la société ── */
+                      <>
+                        <div className="flex items-start justify-between mb-3">
+                          <div>
+                            <p className="font-medium text-gray-900">{company.name}</p>
+                            {company.siren && (
+                              <p className="text-xs text-gray-400 mt-0.5">SIREN : {company.siren}</p>
+                            )}
+                            {company.address && (
+                              <p className="text-xs text-gray-400">{company.address}</p>
+                            )}
+                            {company.website && (
+                              <p className="text-xs text-gray-400">{company.website}</p>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2 ml-3 shrink-0">
+                            <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">
+                              Entreprise
+                            </span>
+                            <button
+                              onClick={() => startEditCompany(company)}
+                              className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded"
+                            >
+                              Modifier
+                            </button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2 ml-3 shrink-0">
-                          <span className="text-xs bg-indigo-100 text-indigo-700 px-2 py-1 rounded">
-                            Entreprise
-                          </span>
-                          <button
-                            onClick={() => startEditCompany(company)}
-                            className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded"
-                          >
-                            Modifier
-                          </button>
-                        </div>
-                      </div>
-                    )}
-                    {company.contacts.length > 0 && (
-                      <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-100">
-                        {company.contacts.map((contact) => (
-                          <div key={contact.id}>
-                            {editingContactId === contact.id ? (
-                              <form onSubmit={(e) => { void handleEditContactSubmit(e); }} className="space-y-2 py-1">
-                                <div className="grid grid-cols-2 gap-2">
-                                  <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">Prénom</label>
-                                    <input
-                                      type="text"
-                                      required
-                                      value={editContactForm.firstName}
-                                      onChange={(e) => setEditContactForm((f) => ({ ...f, firstName: e.target.value }))}
-                                      className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                  </div>
-                                  <div>
-                                    <label className="block text-xs font-medium text-gray-600 mb-1">Nom</label>
-                                    <input
-                                      type="text"
-                                      required
-                                      value={editContactForm.lastName}
-                                      onChange={(e) => setEditContactForm((f) => ({ ...f, lastName: e.target.value }))}
-                                      className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                    />
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="block text-xs font-medium text-gray-600 mb-1">Téléphone (optionnel)</label>
-                                  <input
-                                    type="tel"
-                                    value={editContactForm.phone}
-                                    onChange={(e) => setEditContactForm((f) => ({ ...f, phone: e.target.value }))}
-                                    className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                  />
-                                </div>
-                                {editContactError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editContactError}</p>}
-                                <div className="flex gap-2">
-                                  <button
-                                    type="submit"
-                                    disabled={editContactSubmitting}
-                                    className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
-                                  >
-                                    {editContactSubmitting ? 'Enregistrement...' : 'Enregistrer'}
-                                  </button>
-                                  <button
-                                    type="button"
-                                    onClick={cancelEditContact}
-                                    className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
-                                  >
-                                    Annuler
-                                  </button>
-                                </div>
-                              </form>
-                            ) : (
-                              <div className="flex items-center gap-2">
+                        {company.contacts.length > 0 && (
+                          <div className="mt-3 space-y-2 pl-3 border-l-2 border-gray-100">
+                            {company.contacts.map((contact) => (
+                              <div key={contact.id} className="flex items-center gap-2">
                                 <span className="text-xs bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded shrink-0">
                                   {contact.clientContactType
                                     ? CONTACT_TYPE_LABELS[contact.clientContactType]
@@ -751,17 +721,11 @@ export default function AdminClientsPage(): JSX.Element {
                                 </span>
                                 <span className="text-sm text-gray-700">{contact.firstName} {contact.lastName}</span>
                                 <span className="text-xs text-gray-400 flex-1">{contact.email}</span>
-                                <button
-                                  onClick={() => startEditContact(contact)}
-                                  className="text-xs border border-blue-300 text-blue-600 hover:bg-blue-50 font-medium px-2.5 py-1 rounded shrink-0"
-                                >
-                                  Modifier
-                                </button>
                               </div>
-                            )}
+                            ))}
                           </div>
-                        ))}
-                      </div>
+                        )}
+                      </>
                     )}
                   </li>
                 ))}
@@ -879,5 +843,192 @@ export default function AdminClientsPage(): JSX.Element {
         )}
       </div>
     </div>
+  );
+}
+
+// ── Shared company form (create & reusable) ────────────────────────────────────
+
+interface CompanyFormProps {
+  companyForm: { name: string; siren: string; address: string; website: string; notes: string };
+  setCompanyForm: React.Dispatch<React.SetStateAction<{ name: string; siren: string; address: string; website: string; notes: string }>>;
+  contacts: (CreateContactPayload & { uid: number })[];
+  onAddContact: () => void;
+  onRemoveContact: (uid: number) => void;
+  onUpdateContact: (uid: number, field: keyof Omit<CreateContactPayload, 'contactType'> | 'contactType', value: string) => void;
+  error: string | null;
+  submitting: boolean;
+  onSubmit: (e: React.FormEvent) => void;
+  submitLabel: string;
+}
+
+function CompanyForm({
+  companyForm, setCompanyForm,
+  contacts, onAddContact, onRemoveContact, onUpdateContact,
+  error, submitting, onSubmit, submitLabel,
+}: CompanyFormProps): JSX.Element {
+  return (
+    <form onSubmit={onSubmit} className="space-y-5">
+      {/* Infos société */}
+      <div className="space-y-3">
+        <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">Informations société</h3>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">
+            Raison sociale <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="text"
+            required
+            value={companyForm.name}
+            onChange={(e) => setCompanyForm((f) => ({ ...f, name: e.target.value }))}
+            placeholder="ex : Acme Corporation"
+            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">SIREN (optionnel)</label>
+            <input
+              type="text"
+              value={companyForm.siren}
+              onChange={(e) => setCompanyForm((f) => ({ ...f, siren: e.target.value }))}
+              placeholder="ex : 123 456 789"
+              maxLength={9}
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Site web (optionnel)</label>
+            <input
+              type="url"
+              value={companyForm.website}
+              onChange={(e) => setCompanyForm((f) => ({ ...f, website: e.target.value }))}
+              placeholder="https://..."
+              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            />
+          </div>
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Adresse (optionnel)</label>
+          <input
+            type="text"
+            value={companyForm.address}
+            onChange={(e) => setCompanyForm((f) => ({ ...f, address: e.target.value }))}
+            placeholder="ex : 10 rue de la Paix, 75001 Paris"
+            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-1">Notes internes (optionnel)</label>
+          <textarea
+            value={companyForm.notes}
+            onChange={(e) => setCompanyForm((f) => ({ ...f, notes: e.target.value }))}
+            rows={2}
+            className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+          />
+        </div>
+      </div>
+
+      {/* Contacts */}
+      <div className="space-y-3">
+        <div className="flex items-center justify-between">
+          <h3 className="text-sm font-semibold text-gray-700 uppercase tracking-wide">
+            Contacts <span className="text-red-500">*</span>
+          </h3>
+          <button type="button" onClick={onAddContact} className="text-blue-600 hover:underline text-xs font-medium">
+            + Ajouter un contact
+          </button>
+        </div>
+
+        {contacts.map((contact) => (
+          <div key={contact.uid} className="border rounded-lg p-4 space-y-3 relative">
+            {contacts.length > 1 && (
+              <button
+                type="button"
+                onClick={() => onRemoveContact(contact.uid)}
+                className="absolute top-3 right-3 text-gray-400 hover:text-red-500 text-xs"
+              >
+                Supprimer
+              </button>
+            )}
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Fonction</label>
+              <select
+                value={contact.contactType}
+                onChange={(e) => onUpdateContact(contact.uid, 'contactType', e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {Object.values(ClientContactType).map((type) => (
+                  <option key={type} value={type}>{CONTACT_TYPE_LABELS[type]}</option>
+                ))}
+              </select>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Prénom</label>
+                <input
+                  type="text"
+                  required
+                  value={contact.firstName}
+                  onChange={(e) => onUpdateContact(contact.uid, 'firstName', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Nom</label>
+                <input
+                  type="text"
+                  required
+                  value={contact.lastName}
+                  onChange={(e) => onUpdateContact(contact.uid, 'lastName', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Email</label>
+                <input
+                  type="email"
+                  required
+                  value={contact.email}
+                  onChange={(e) => onUpdateContact(contact.uid, 'email', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-600 mb-1">Téléphone (optionnel)</label>
+                <input
+                  type="tel"
+                  value={contact.phone ?? ''}
+                  onChange={(e) => onUpdateContact(contact.uid, 'phone', e.target.value)}
+                  className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-600 mb-1">Mot de passe provisoire (min. 8 caractères)</label>
+              <input
+                type="password"
+                required
+                minLength={8}
+                value={contact.password}
+                onChange={(e) => onUpdateContact(contact.uid, 'password', e.target.value)}
+                className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {error && <p className="text-sm text-red-600 bg-red-50 p-3 rounded">{error}</p>}
+
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full bg-blue-600 text-white py-2 rounded-md text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+      >
+        {submitLabel}
+      </button>
+    </form>
   );
 }

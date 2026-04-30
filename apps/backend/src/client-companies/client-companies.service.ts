@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, ConflictException } from '@nestjs/common
 import { PrismaService } from '../database/prisma.service';
 import { Role } from '@esn/shared-types';
 import * as bcrypt from 'bcryptjs';
-import type { CreateClientCompanyDto } from './dto/create-client-company.dto';
+import type { CreateClientCompanyDto, CreateContactDto } from './dto/create-client-company.dto';
 
 const CONTACT_SELECT = {
   id: true,
@@ -84,6 +84,35 @@ export class ClientCompaniesService {
     }
 
     return company;
+  }
+
+  async addContact(companyId: string, esnId: string, dto: CreateContactDto) {
+    const company = await this.prisma.clientCompany.findFirst({
+      where: { id: companyId, esnId },
+      select: { id: true },
+    });
+    if (!company) throw new NotFoundException(`Client company ${companyId} not found`);
+
+    const existing = await this.prisma.user.findUnique({ where: { email: dto.email }, select: { id: true } });
+    if (existing) throw new ConflictException(`Email ${dto.email} is already in use`);
+
+    const rounds = parseInt(process.env['BCRYPT_ROUNDS'] ?? '12', 10);
+    const hashed = await bcrypt.hash(dto.password, rounds);
+
+    return this.prisma.user.create({
+      data: {
+        email: dto.email,
+        password: hashed,
+        firstName: dto.firstName,
+        lastName: dto.lastName,
+        role: Role.CLIENT,
+        phone: dto.phone ?? null,
+        esnId,
+        clientCompanyId: companyId,
+        clientContactType: dto.contactType,
+      },
+      select: CONTACT_SELECT,
+    });
   }
 
   async update(id: string, esnId: string, dto: Partial<{ name: string; siren: string; address: string; website: string; notes: string }>) {

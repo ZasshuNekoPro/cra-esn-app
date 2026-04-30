@@ -4,7 +4,7 @@ import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
 import type { JwtPayload } from '@esn/shared-types';
 import { ClientCompaniesService } from './client-companies.service';
-import { CreateClientCompanyDto } from './dto/create-client-company.dto';
+import { CreateClientCompanyDto, CreateContactDto } from './dto/create-client-company.dto';
 import { UpdateClientCompanyDto } from './dto/update-client-company.dto';
 
 @Controller('client-companies')
@@ -38,5 +38,13 @@ export class ClientCompaniesController {
   update(@Param('id') id: string, @Body() dto: UpdateClientCompanyDto, @CurrentUser() user: JwtPayload) {
     if (!user.esnId) throw new ForbiddenException('ESN context required');
     return this.clientCompaniesService.update(id, user.esnId, dto);
+  }
+
+  @Post(':id/contacts')
+  @HttpCode(HttpStatus.CREATED)
+  @Roles(Role.ESN_ADMIN)
+  addContact(@Param('id') id: string, @Body() dto: CreateContactDto, @CurrentUser() user: JwtPayload) {
+    if (!user.esnId) throw new ForbiddenException('ESN context required');
+    return this.clientCompaniesService.addContact(id, user.esnId, dto);
   }
 }
