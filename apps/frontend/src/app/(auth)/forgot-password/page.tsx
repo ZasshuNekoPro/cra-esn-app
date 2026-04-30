@@ -20,13 +20,17 @@ export default function ForgotPasswordPage(): JSX.Element {
         body: JSON.stringify({ email }),
       });
 
-      if (!res.ok && res.status !== 204) {
-        setError('Une erreur est survenue. Veuillez réessayer.');
+      if (!res.ok) {
+        const body = await res.text().catch(() => '');
+        console.error('[forgot-password] HTTP error', res.status, body);
+        setError(`Erreur serveur (${res.status.toString()}). Veuillez réessayer.`);
       } else {
         setSubmitted(true);
       }
-    } catch {
-      setError('Une erreur est survenue. Veuillez réessayer.');
+    } catch (err) {
+      console.error('[forgot-password] fetch error', err);
+      const msg = err instanceof Error ? err.message : String(err);
+      setError(`Erreur réseau : ${msg}`);
     } finally {
       setLoading(false);
     }
