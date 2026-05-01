@@ -41,7 +41,11 @@ export async function clientApiFetch<T>(path: string, options: FetchOptions = {}
     return undefined as T;
   }
 
-  return res.json() as Promise<T>;
+  try {
+    return await res.json() as T;
+  } catch (e) {
+    throw new ApiClientError(res.status, `Réponse invalide (${e instanceof Error ? e.message : String(e)})`);
+  }
 }
 
 export const clientApiClient = {

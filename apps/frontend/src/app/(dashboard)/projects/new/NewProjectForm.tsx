@@ -40,7 +40,7 @@ export function NewProjectForm({ missions }: Props): JSX.Element {
       const created = await clientApiFetch<{ id: string }>('/projects', { method: 'POST', body });
       router.push(`/projects/${created.id}`);
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Erreur lors de la création');
+      setError(err instanceof ApiClientError ? err.message : err instanceof Error ? `[${err.name}] ${err.message}` : 'Erreur inconnue');
     } finally {
       setSubmitting(false);
     }
