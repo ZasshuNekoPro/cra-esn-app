@@ -1,5 +1,5 @@
 import { apiFetch, apiClient } from './client';
-import { auth } from '../../auth';
+import { getSession } from 'next-auth/react';
 import type { Document, DocumentVersion, DocumentShare } from '@esn/shared-types';
 
 export interface DocumentWithRelations extends Document {
@@ -14,8 +14,6 @@ export interface UploadDocumentOptions {
   projectId?: string;
   file: File;
 }
-
-const BACKEND_URL = process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3001';
 
 export const documentsApi = {
   list: (params?: { missionId?: string; type?: string }): Promise<DocumentWithRelations[]> => {
@@ -36,8 +34,8 @@ export const documentsApi = {
     apiClient.get(`/documents/${id}/download`),
 
   upload: async (opts: UploadDocumentOptions): Promise<DocumentWithRelations> => {
-    const session = await auth();
-    const token = session?.accessToken ?? null;
+    const session = await getSession();
+    const token = (session as { accessToken?: string } | null)?.accessToken ?? null;
 
     const form = new FormData();
     form.append('name', opts.name);
@@ -46,7 +44,7 @@ export const documentsApi = {
     if (opts.projectId) form.append('projectId', opts.projectId);
     form.append('file', opts.file);
 
-    const res = await fetch(`${BACKEND_URL}/api/documents/upload`, {
+    const res = await fetch(`/api/proxy/documents/upload`, {
       method: 'POST',
       headers: token ? { Authorization: `Bearer ${token}` } : {},
       body: form,
