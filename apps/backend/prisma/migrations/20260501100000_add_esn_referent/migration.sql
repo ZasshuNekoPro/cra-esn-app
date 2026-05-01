@@ -1,5 +1,5 @@
 -- AddColumn: esn_referent_id on users (self-referential FK)
-ALTER TABLE "users" ADD COLUMN "esn_referent_id" UUID;
+ALTER TABLE "users" ADD COLUMN "esn_referent_id" TEXT;
 ALTER TABLE "users" ADD CONSTRAINT "users_esn_referent_id_fkey"
   FOREIGN KEY ("esn_referent_id") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
