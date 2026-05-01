@@ -114,6 +114,7 @@ export class MissionsService {
         ...(dto.isActive !== undefined && { isActive: dto.isActive }),
         ...(dto.employeeId !== undefined && { employeeId: dto.employeeId }),
         ...(dto.clientId !== undefined && { clientId: dto.clientId ?? null }),
+        ...(dto.esnAdminId !== undefined && { esnAdminId: dto.esnAdminId ?? null }),
       },
       select: MISSION_WITH_USERS,
     });

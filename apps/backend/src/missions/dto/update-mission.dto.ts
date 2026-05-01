@@ -38,4 +38,9 @@ export class UpdateMissionDto {
   @IsOptional()
   @IsUUID()
   clientId?: string | null;
+
+  // null explicitly removes the ESN admin assignment
+  @IsOptional()
+  @IsUUID()
+  esnAdminId?: string | null;
 }
