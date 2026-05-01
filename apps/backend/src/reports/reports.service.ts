@@ -574,12 +574,18 @@ export class ReportsService {
   async listReportsForEsn(callerId: string): Promise<import('@esn/shared-types').ReportValidationItemForEsn[]> {
     const caller = await this.prisma.user.findUnique({
       where: { id: callerId },
-      select: { esnId: true },
+      select: { esnId: true, canSeeAllEsnReports: true },
     });
     if (!caller?.esnId) return [];
 
+    // canSeeAllEsnReports = true → vacation-coverage mode, sees all employees in the ESN.
+    // Otherwise, only employees for whom this admin is the designated referent.
+    const employeeWhere = caller.canSeeAllEsnReports
+      ? { esnId: caller.esnId, deletedAt: null }
+      : { esnId: caller.esnId, esnReferentId: callerId, deletedAt: null };
+
     const employees = await this.prisma.user.findMany({
-      where: { esnId: caller.esnId, deletedAt: null },
+      where: employeeWhere,
       select: { id: true, firstName: true, lastName: true },
     });
     const employeeMap = new Map(

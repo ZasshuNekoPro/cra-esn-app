@@ -39,6 +39,7 @@ interface UserRow {
   firstName: string;
   lastName: string;
   email: string;
+  esnReferentId: string | null;
 }
 
 interface CraEntryRow {
@@ -97,7 +98,10 @@ export class ReportsSendService {
     const { year, month, reportType, recipients } = dto;
 
     // ── 1. Resolve employee ──────────────────────────────────────────────
-    const employee = await this.prisma.user.findUnique({ where: { id: employeeId } }) as UserRow | null;
+    const employee = await this.prisma.user.findUnique({
+      where: { id: employeeId },
+      select: { id: true, firstName: true, lastName: true, email: true, esnReferentId: true },
+    }) as UserRow | null;
     if (!employee) throw new NotFoundException(`Employee ${employeeId} not found`);
 
     // ── 2. Resolve active mission ────────────────────────────────────────
@@ -111,8 +115,9 @@ export class ReportsSendService {
     if (!mission) throw new NotFoundException(`No active mission for employee ${employeeId}`);
 
     // ── 3. Resolve recipients (skip if actor null) ───────────────────────
+    // ESN routes to the employee's designated referent admin, not the mission-level admin.
     const recipientMap: Record<ReportRecipient, string | null> = {
-      ESN: mission.esnAdminId,
+      ESN: employee.esnReferentId,
       CLIENT: mission.clientId,
     };
 

@@ -296,15 +296,20 @@ export class ReportsValidateService {
     return row;
   }
 
-  /** Verify the caller (ESN_ADMIN) belongs to the same ESN as the employee. */
+  /** Verify the caller (ESN_ADMIN) can access this employee's reports.
+   *  Rules: same ESN AND (caller is the employee's referent OR caller.canSeeAllEsnReports). */
   private async assertEsnScope(employeeId: string, callerId: string): Promise<void> {
     const [employee, caller] = await Promise.all([
-      this.prisma.user.findUnique({ where: { id: employeeId }, select: { esnId: true } }),
-      this.prisma.user.findUnique({ where: { id: callerId }, select: { esnId: true } }),
+      this.prisma.user.findUnique({ where: { id: employeeId }, select: { esnId: true, esnReferentId: true } }),
+      this.prisma.user.findUnique({ where: { id: callerId }, select: { esnId: true, canSeeAllEsnReports: true } }),
     ]);
 
     if (!employee?.esnId || !caller?.esnId || employee.esnId !== caller.esnId) {
       throw new ForbiddenException('Accès refusé : le salarié n\'appartient pas à votre ESN.');
+    }
+
+    if (!caller.canSeeAllEsnReports && employee.esnReferentId !== callerId) {
+      throw new ForbiddenException('Accès refusé : ce salarié n\'est pas sous votre responsabilité.');
     }
   }
 
