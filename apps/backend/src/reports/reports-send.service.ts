@@ -21,24 +21,27 @@ import type { SendReportDto } from './dto/send-report.dto';
 
 // ── Internal helper types ──────────────────────────────────────────────────
 
+interface MissionActorRow {
+  id: string;
+  firstName: string;
+  lastName: string;
+  email: string;
+}
+
 interface MissionRow {
   id: string;
   title: string;
   employeeId: string;
   esnAdminId: string | null;
   clientId: string | null;
-  esnAdmin: UserRow | null;
-  client: UserRow | null;
+  esnAdmin: MissionActorRow | null;
+  client: MissionActorRow | null;
   isActive: boolean;
   startDate: Date;
   endDate: Date | null;
 }
 
-interface UserRow {
-  id: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+interface UserRow extends MissionActorRow {
   esnReferentId: string | null;
 }
 
