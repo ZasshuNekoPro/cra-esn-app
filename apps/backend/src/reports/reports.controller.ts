@@ -168,6 +168,15 @@ export class ReportsController {
     return this.reportsValidateService.getValidationItem(id, user.sub);
   }
 
+  @Get('validation/:id/cra-preview')
+  @Roles(Role.ESN_ADMIN)
+  getValidationCraPreview(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportsValidateService.getValidationCraPreview(id, user.sub);
+  }
+
   @Get('validation/:id/download')
   @Roles(Role.ESN_ADMIN)
   getValidationPdfUrl(

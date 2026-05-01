@@ -12,6 +12,7 @@ import type {
   ValidateReportRequest,
   ValidateReportResponse,
   ReportValidationItemForEsn,
+  ValidationCraPreview,
 } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -130,6 +131,54 @@ export class ReportsValidateService {
       createdAt: row.createdAt.toISOString(),
       employeeId: row.employeeId,
       employeeName: `${row.employee.firstName} ${row.employee.lastName}`,
+    };
+  }
+
+  // ── GET /reports/validation/:id/cra-preview ──────────────────────────────
+
+  async getValidationCraPreview(id: string, callerId: string): Promise<ValidationCraPreview> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+
+    const craMonth = await this.prisma.craMonth.findFirst({
+      where: { employeeId: row.employeeId, year: row.year, month: row.month },
+      include: { entries: { orderBy: { date: 'asc' } } },
+    }) as { entries: Array<{ date: Date; entryType: string; dayFraction: { toNumber(): number } | number; comment: string | null }> } | null;
+
+    const craEntries = (craMonth?.entries ?? []).map((e) => ({
+      date: e.date.toISOString(),
+      entryType: e.entryType,
+      dayFraction: typeof e.dayFraction === 'object' ? e.dayFraction.toNumber() : e.dayFraction,
+      comment: e.comment,
+    }));
+
+    let weatherEntries: ValidationCraPreview['weatherEntries'] = [];
+    if (row.reportType === 'CRA_WITH_WEATHER') {
+      const startDate = new Date(row.year, row.month - 1, 1);
+      const endDate = new Date(row.year, row.month, 0);
+      const rows = await this.prisma.weatherEntry.findMany({
+        where: {
+          project: { mission: { employeeId: row.employeeId } },
+          date: { gte: startDate, lte: endDate },
+        },
+        include: { project: { select: { name: true } } },
+        orderBy: { date: 'asc' },
+      }) as Array<{ date: Date; state: string; comment: string | null; project: { name: string } }>;
+
+      weatherEntries = rows.map((w) => ({
+        date: w.date.toISOString(),
+        state: w.state,
+        projectName: w.project.name,
+        comment: w.comment,
+      }));
+    }
+
+    return {
+      year: row.year,
+      month: row.month,
+      reportType: row.reportType,
+      craEntries,
+      weatherEntries,
     };
   }
 
