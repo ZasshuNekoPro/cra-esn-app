@@ -20,13 +20,23 @@ export enum CraStatus {
 export enum CraEntryType {
   WORK_ONSITE = 'WORK_ONSITE',
   WORK_REMOTE = 'WORK_REMOTE',
+  // legacy values kept for backward compat — migrated to modifier pattern
   WORK_TRAVEL = 'WORK_TRAVEL',
   LEAVE_CP = 'LEAVE_CP',
   LEAVE_RTT = 'LEAVE_RTT',
   SICK = 'SICK',
   HOLIDAY = 'HOLIDAY',
+  // legacy values kept for backward compat
   TRAINING = 'TRAINING',
   ASTREINTE = 'ASTREINTE',
+  OVERTIME = 'OVERTIME',
+}
+
+/** Multi-select modifiers that can be stacked on top of a primary CraEntryType. */
+export enum CraEntryModifier {
+  TRAVEL = 'TRAVEL',
+  TRAINING = 'TRAINING',
+  ON_CALL = 'ON_CALL',
   OVERTIME = 'OVERTIME',
 }
 

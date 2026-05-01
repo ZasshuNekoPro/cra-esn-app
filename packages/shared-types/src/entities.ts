@@ -3,6 +3,7 @@ import {
   Role,
   CraStatus,
   CraEntryType,
+  CraEntryModifier,
   PortionType,
   WeatherState,
   LeaveType,
@@ -101,6 +102,8 @@ export interface CraEntry {
   date: Date;
   dayFraction: number; // 0.5 or 1.0
   entryType: CraEntryType;
+  modifiers: CraEntryModifier[];
+  secondHalfType: CraEntryType | null;
   comment?: string | null;
   craMonthId: string;
   createdAt: Date;

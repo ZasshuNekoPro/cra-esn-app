@@ -1,6 +1,6 @@
 // ─── API Types — request/response contracts ───────────────────────────────────
 
-import { Role, CraStatus, CraEntryType, PortionType, WeatherState, LeaveType, ProjectStatus, CommentVisibility, MilestoneStatus, ValidationStatus } from './enums';
+import { Role, CraStatus, CraEntryType, CraEntryModifier, PortionType, WeatherState, LeaveType, ProjectStatus, CommentVisibility, MilestoneStatus, ValidationStatus } from './enums';
 import { PublicUser, Mission, CraMonth, CraEntry, Project, WeatherEntry, ProjectComment, Milestone, ProjectValidationRequest } from './entities';
 
 // ── Generic wrappers ──────────────────────────────────────────────────────────
@@ -130,6 +130,8 @@ export interface CreateCraEntryRequest {
   date: string; // ISO date YYYY-MM-DD
   entryType: CraEntryType;
   dayFraction: number; // 0.5 or 1.0
+  modifiers?: CraEntryModifier[];
+  secondHalfType?: CraEntryType | null;
   comment?: string;
   projectEntries?: Array<{ projectId: string; portion: PortionType }>;
 }
@@ -137,6 +139,8 @@ export interface CreateCraEntryRequest {
 export interface UpdateCraEntryRequest {
   entryType?: CraEntryType;
   dayFraction?: number;
+  modifiers?: CraEntryModifier[];
+  secondHalfType?: CraEntryType | null;
   comment?: string;
   projectEntries?: Array<{ projectId: string; portion: PortionType }>;
 }
