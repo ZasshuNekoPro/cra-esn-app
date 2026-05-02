@@ -3,7 +3,7 @@ import { Role } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import type { CreateEsnDto } from './dto/create-esn.dto';
 import type { UpdateEsnDto } from './dto/update-esn.dto';
-import type { PlatformStats } from '@esn/shared-types';
+import type { PlatformStats, AuditLogItem, AuditLogListResponse } from '@esn/shared-types';
 
 const ESN_SELECT = {
   id: true,
@@ -120,5 +120,67 @@ export class EsnService {
     });
     if (!esn) throw new NotFoundException(`ESN ${id} not found`);
     return esn.users;
+  }
+
+  async getAuditLogs(params: {
+    action?: string;
+    initiatorId?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<AuditLogListResponse> {
+    const page = Math.max(1, params.page ?? 1);
+    const limit = Math.min(100, Math.max(1, params.limit ?? 50));
+    const skip = (page - 1) * limit;
+
+    const where = {
+      ...(params.action ? { action: params.action } : {}),
+      ...(params.initiatorId ? { initiatorId: params.initiatorId } : {}),
+      ...(params.dateFrom || params.dateTo
+        ? {
+            createdAt: {
+              ...(params.dateFrom ? { gte: new Date(params.dateFrom) } : {}),
+              ...(params.dateTo ? { lte: new Date(params.dateTo) } : {}),
+            },
+          }
+        : {}),
+    };
+
+    const [rows, total] = await Promise.all([
+      this.prisma.auditLog.findMany({
+        where,
+        include: { initiator: { select: { firstName: true, lastName: true, email: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take: limit,
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+
+    const items: AuditLogItem[] = (rows as Array<{
+      id: string;
+      action: string;
+      resource: string;
+      metadata: unknown;
+      ipAddress: string | null;
+      userAgent: string | null;
+      createdAt: Date;
+      initiatorId: string;
+      initiator: { firstName: string; lastName: string; email: string };
+    }>).map((r) => ({
+      id: r.id,
+      action: r.action,
+      resource: r.resource,
+      metadata: r.metadata as Record<string, unknown> | null,
+      ipAddress: r.ipAddress,
+      userAgent: r.userAgent,
+      createdAt: r.createdAt.toISOString(),
+      initiatorId: r.initiatorId,
+      initiatorName: `${r.initiator.firstName} ${r.initiator.lastName}`,
+      initiatorEmail: r.initiator.email,
+    }));
+
+    return { items, total, page, totalPages: Math.ceil(total / limit) };
   }
 }

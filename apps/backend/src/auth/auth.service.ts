@@ -3,6 +3,7 @@ import { JwtService } from '@nestjs/jwt';
 import { PrismaService } from '../database/prisma.service';
 import { MailerService } from '../notifications/mailer.service';
 import type { LoginRequest, LoginResponse, JwtPayload, PublicUser } from '@esn/shared-types';
+import { AuditAction } from '@esn/shared-types';
 import * as bcrypt from 'bcryptjs';
 import { randomBytes } from 'crypto';
 
@@ -64,6 +65,15 @@ export class AuthService {
       role: user.role as JwtPayload['role'],
       esnId: user.esnId ?? null,
     };
+
+    void this.prisma.auditLog.create({
+      data: {
+        action: AuditAction.USER_LOGIN,
+        resource: `user:${user.id}`,
+        initiatorId: user.id,
+        metadata: { email: user.email, role: user.role },
+      },
+    });
 
     return {
       accessToken: this.jwt.sign(payload),

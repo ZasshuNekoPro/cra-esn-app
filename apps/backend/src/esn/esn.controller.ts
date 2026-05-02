@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Put, Param, Body, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Param, Body, HttpCode, HttpStatus, Query } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { Role } from '@esn/shared-types';
 import { EsnService } from './esn.service';
@@ -25,6 +25,30 @@ export class EsnController {
   @Roles(Role.PLATFORM_ADMIN)
   getStats() {
     return this.esnService.getStats();
+  }
+
+  /**
+   * GET /esn/audit-logs — paginated audit log (PLATFORM_ADMIN only)
+   * Must be defined before :id routes to avoid param capture.
+   */
+  @Get('audit-logs')
+  @Roles(Role.PLATFORM_ADMIN)
+  getAuditLogs(
+    @Query('action') action?: string,
+    @Query('initiatorId') initiatorId?: string,
+    @Query('dateFrom') dateFrom?: string,
+    @Query('dateTo') dateTo?: string,
+    @Query('page') page?: string,
+    @Query('limit') limit?: string,
+  ) {
+    return this.esnService.getAuditLogs({
+      ...(action ? { action } : {}),
+      ...(initiatorId ? { initiatorId } : {}),
+      ...(dateFrom ? { dateFrom } : {}),
+      ...(dateTo ? { dateTo } : {}),
+      ...(page ? { page: parseInt(page, 10) } : {}),
+      ...(limit ? { limit: parseInt(limit, 10) } : {}),
+    });
   }
 
   /**

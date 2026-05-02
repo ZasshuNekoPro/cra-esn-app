@@ -389,3 +389,25 @@ export interface RagIndexEvent {
   sourceType: RagSourceType;
   sourceId: string;
 }
+
+// ── Audit Logs (PLATFORM_ADMIN) ───────────────────────────────────────────────
+
+export interface AuditLogItem {
+  id: string;
+  action: string;
+  resource: string;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;        // ISO 8601
+  initiatorId: string;
+  initiatorName: string;
+  initiatorEmail: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogItem[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
