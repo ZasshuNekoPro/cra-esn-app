@@ -2,7 +2,7 @@
 
 import { usersApi } from '../../../../../lib/api/users';
 import { Role } from '@esn/shared-types';
-import type { PublicUser } from '../../../../../lib/api/users';
+import type { PublicUser, EsnAdmin } from '../../../../../lib/api/users';
 
 interface CreateEmployeeInput {
   email: string;
@@ -43,5 +43,25 @@ export async function updateEmployeeAction(
     return { user };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour' };
+  }
+}
+
+export async function listAdminsAction(): Promise<EsnAdmin[]> {
+  try {
+    return await usersApi.listAdmins();
+  } catch {
+    return [];
+  }
+}
+
+export async function setReferentAction(
+  employeeId: string,
+  esnReferentId: string | null,
+): Promise<{ user?: PublicUser; error?: string }> {
+  try {
+    const user = await usersApi.setEsnReferent(employeeId, esnReferentId);
+    return { user };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour du référent' };
   }
 }
