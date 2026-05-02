@@ -21,6 +21,7 @@ export interface Mission {
   esnAdminId: string | null;
   clientId: string | null;
   employee?: MissionUser;
+  employees: MissionUser[];
   esnAdmin?: MissionUser | null;
   client?: MissionUser | null;
 }
@@ -31,7 +32,7 @@ export interface UpdateMissionRequest {
   endDate?: string;
   dailyRate?: number;
   isActive?: boolean;
-  employeeId?: string;
+  employeeIds?: string[];
   clientId?: string | null;
 }
 

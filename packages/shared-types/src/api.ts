@@ -109,7 +109,7 @@ export interface CreateMissionRequest {
   startDate: string; // ISO date string
   endDate?: string;
   dailyRate?: number;
-  employeeId: string;
+  employeeIds: string[];
   esnAdminId?: string;
   clientId?: string;
 }

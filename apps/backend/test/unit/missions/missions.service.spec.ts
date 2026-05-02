@@ -12,13 +12,27 @@ const mockPrisma = {
   },
 };
 
+const EMP_USER = { id: 'emp-1', firstName: 'Test', lastName: 'Employee', email: 'emp@test.com' };
+const ESN_USER = { id: 'esn-1', firstName: 'ESN', lastName: 'Admin', email: 'esn@test.com' };
+const CLIENT_USER = { id: 'client-1', firstName: 'Client', lastName: 'User', email: 'client@test.com' };
+
 const MISSION = {
   id: 'mission-1',
   title: 'Test Mission',
+  description: null,
+  startDate: new Date('2026-01-01'),
+  endDate: null,
+  dailyRate: null,
+  isActive: true,
   employeeId: 'emp-1',
   esnAdminId: 'esn-1',
   clientId: 'client-1',
-  isActive: true,
+  createdAt: new Date(),
+  updatedAt: new Date(),
+  employee: EMP_USER,
+  missionEmployees: [{ employee: EMP_USER }],
+  esnAdmin: ESN_USER,
+  client: CLIENT_USER,
 };
 
 describe('MissionsService', () => {
@@ -35,7 +49,7 @@ describe('MissionsService', () => {
     const dto = {
       title: 'New Mission',
       startDate: '2026-01-01',
-      employeeId: 'emp-1',
+      employeeIds: ['emp-1'],
     };
 
     it('ESN_ADMIN creates mission for any employee', async () => {
@@ -46,13 +60,13 @@ describe('MissionsService', () => {
 
     it('EMPLOYEE creates mission only for themselves', async () => {
       mockPrisma.mission.create.mockResolvedValue(MISSION);
-      await service.create({ ...dto, employeeId: 'emp-1' }, 'emp-1', Role.EMPLOYEE, null);
+      await service.create({ ...dto, employeeIds: ['emp-1'] }, 'emp-1', Role.EMPLOYEE, null);
       expect(mockPrisma.mission.create).toHaveBeenCalledOnce();
     });
 
     it('EMPLOYEE cannot create mission for another employee', async () => {
       await expect(
-        service.create({ ...dto, employeeId: 'other-emp' }, 'emp-1', Role.EMPLOYEE, null),
+        service.create({ ...dto, employeeIds: ['other-emp'] }, 'emp-1', Role.EMPLOYEE, null),
       ).rejects.toThrow(ForbiddenException);
     });
 
@@ -83,11 +97,13 @@ describe('MissionsService', () => {
       );
     });
 
-    it('EMPLOYEE sees only their missions', async () => {
+    it('EMPLOYEE sees only missions they are assigned to', async () => {
       mockPrisma.mission.findMany.mockResolvedValue([]);
       await service.findAll('emp-1', Role.EMPLOYEE, null);
       expect(mockPrisma.mission.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { employeeId: 'emp-1', isActive: true } }),
+        expect.objectContaining({
+          where: { isActive: true, missionEmployees: { some: { employeeId: 'emp-1' } } },
+        }),
       );
     });
 
@@ -109,12 +125,12 @@ describe('MissionsService', () => {
       expect(mockPrisma.mission.findUnique).toHaveBeenCalledOnce();
     });
 
-    it('EMPLOYEE can access own mission', async () => {
+    it('EMPLOYEE can access mission they are assigned to', async () => {
       mockPrisma.mission.findUnique.mockResolvedValue(MISSION);
       await service.findOne('mission-1', 'emp-1', Role.EMPLOYEE);
     });
 
-    it('EMPLOYEE cannot access mission they are not part of', async () => {
+    it('EMPLOYEE cannot access mission they are not assigned to', async () => {
       mockPrisma.mission.findUnique.mockResolvedValue(MISSION);
       await expect(service.findOne('mission-1', 'other-emp', Role.EMPLOYEE)).rejects.toThrow(ForbiddenException);
     });
@@ -155,6 +171,27 @@ describe('MissionsService', () => {
           data: expect.objectContaining({ esnAdminId: null }),
         }),
       );
+    });
+
+    it('ESN_ADMIN can reassign employees', async () => {
+      mockPrisma.mission.findUnique.mockResolvedValue(MISSION);
+      const updatedMission = {
+        ...MISSION,
+        employeeId: 'emp-2',
+        missionEmployees: [{ employee: { id: 'emp-2', firstName: 'New', lastName: 'Emp', email: 'emp2@test.com' } }],
+      };
+      mockPrisma.mission.update.mockResolvedValue(updatedMission);
+      const result = await service.update('mission-1', { employeeIds: ['emp-2'] }, Role.ESN_ADMIN);
+      expect(mockPrisma.mission.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            employeeId: 'emp-2',
+            missionEmployees: { deleteMany: {}, createMany: { data: [{ employeeId: 'emp-2' }] } },
+          }),
+        }),
+      );
+      expect(result.employees).toHaveLength(1);
+      expect(result.employees[0].id).toBe('emp-2');
     });
 
     it('EMPLOYEE cannot update mission', async () => {
