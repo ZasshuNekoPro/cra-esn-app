@@ -41,6 +41,10 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
   HOLIDAY: 'Fér.', TRAINING: 'Form.', ASTREINTE: 'Ast.', OVERTIME: 'Sup.',
 };
 
+const MODIFIER_ICONS: Record<string, string> = {
+  TRAVEL: '✈', TRAINING: '📚', ON_CALL: '📞', OVERTIME: '⊕',
+};
+
 const WEATHER_ICONS: Record<string, string> = {
   SUNNY: '☀️', CLOUDY: '⛅', RAINY: '🌧️', STORM: '⛈️',
   VALIDATION_PENDING: '🔶', VALIDATED: '✅',
@@ -99,6 +103,16 @@ function CraCalendar({ year, month, entries }: { year: number; month: number; en
                         <div className={`rounded text-[9px] font-medium px-0.5 leading-tight ${colorClass}`} title={entry.comment ?? undefined}>
                           {label}
                           {entry.dayFraction < 1 && <span className="opacity-60"> ½</span>}
+                          {entry.dayFraction < 1 && entry.secondHalfType && (
+                            <div className="opacity-70">+{ENTRY_TYPE_LABELS[entry.secondHalfType] ?? entry.secondHalfType}</div>
+                          )}
+                          {entry.modifiers.length > 0 && (
+                            <div className="flex justify-center gap-0.5 flex-wrap mt-0.5">
+                              {entry.modifiers.map((mod) => (
+                                <span key={mod} title={mod}>{MODIFIER_ICONS[mod] ?? mod}</span>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </>

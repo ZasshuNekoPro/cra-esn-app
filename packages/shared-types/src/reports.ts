@@ -89,6 +89,8 @@ export interface ValidationCraPreviewEntry {
   date: string;        // ISO 8601
   entryType: string;   // CraEntryType value
   dayFraction: number;
+  modifiers: string[]; // CraEntryModifier values
+  secondHalfType: string | null; // CraEntryType when dayFraction === 0.5
   comment: string | null;
 }
 
