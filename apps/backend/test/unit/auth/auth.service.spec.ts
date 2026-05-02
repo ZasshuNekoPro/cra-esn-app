@@ -33,6 +33,9 @@ const makePrisma = (user: typeof mockUser | null = mockUser) => ({
     findUnique: vi.fn().mockResolvedValue(user),
     create: vi.fn().mockResolvedValue(mockUser),
   },
+  auditLog: {
+    create: vi.fn().mockResolvedValue({}),
+  },
 } as unknown as PrismaService);
 
 const makeJwt = () => ({

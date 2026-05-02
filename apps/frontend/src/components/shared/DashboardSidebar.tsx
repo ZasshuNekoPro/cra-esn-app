@@ -32,6 +32,7 @@ const PLATFORM_NAV: NavItem[] = [
   { href: '/platform/admin/dashboard', label: 'Tableau de bord' },
   { href: '/platform/admin/esn', label: 'Entreprises ESN' },
   { href: '/platform/admin/users', label: 'Administrateurs ESN' },
+  { href: '/platform/admin/logs', label: 'Logs d\'activité' },
 ];
 
 const ESN_NAV: NavItem[] = [
