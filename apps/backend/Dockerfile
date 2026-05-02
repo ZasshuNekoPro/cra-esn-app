@@ -8,7 +8,9 @@ WORKDIR /app
 # Force NODE_ENV=development so devDependencies (prisma) are installed
 ENV NODE_ENV=development
 # Skip Puppeteer's bundled Chrome download — Chromium is installed in the runner stage
+# PUPPETEER_SKIP_DOWNLOAD is the v21+ name; keep the old one for compat
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 # Copy workspace manifests first for optimal Docker layer caching
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml ./
@@ -43,6 +45,7 @@ RUN apk add --no-cache \
 
 ENV PUPPETEER_EXECUTABLE_PATH=/usr/bin/chromium-browser
 ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true
+ENV PUPPETEER_SKIP_DOWNLOAD=true
 
 WORKDIR /app
 
