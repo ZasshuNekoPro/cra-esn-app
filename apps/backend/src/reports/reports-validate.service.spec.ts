@@ -74,8 +74,12 @@ describe('ReportsValidateService', () => {
     mockPrisma.auditLog.create.mockResolvedValue({ id: 'audit-1' });
     mockNotifications.notifyEmail.mockResolvedValue(undefined);
     mockStorage.getDownloadUrl.mockResolvedValue('https://s3.example.com/presigned-url');
-    // Default: caller and employee share the same ESN
-    mockPrisma.user.findUnique.mockResolvedValue({ esnId: ESN_ID });
+    // Default: caller and employee share the same ESN; employee's referent is the caller.
+    mockPrisma.user.findUnique.mockResolvedValue({
+      esnId: ESN_ID,
+      esnReferentId: CALLER_ID,
+      canSeeAllEsnReports: false,
+    });
 
     service = new ReportsValidateService(
       mockPrisma as never,

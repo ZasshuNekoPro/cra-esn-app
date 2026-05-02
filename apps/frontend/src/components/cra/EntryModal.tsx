@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { CraEntryType } from '@esn/shared-types';
+import { CraEntryType, CraEntryModifier } from '@esn/shared-types';
 import type { CraEntry } from '@esn/shared-types';
 import type { CreateCraEntryRequest } from '@esn/shared-types';
 
@@ -14,20 +14,35 @@ interface EntryModalProps {
   isOpen: boolean;
 }
 
-const ENTRY_TYPE_LABELS: Record<CraEntryType, string> = {
+const PRIMARY_ENTRY_TYPES: CraEntryType[] = [
+  CraEntryType.WORK_ONSITE,
+  CraEntryType.WORK_REMOTE,
+  CraEntryType.LEAVE_CP,
+  CraEntryType.LEAVE_RTT,
+  CraEntryType.SICK,
+];
+
+const PRIMARY_TYPE_LABELS: Record<CraEntryType, string> = {
   [CraEntryType.WORK_ONSITE]: 'Travail présentiel',
   [CraEntryType.WORK_REMOTE]: 'Télétravail',
-  [CraEntryType.WORK_TRAVEL]: 'Déplacement',
-  [CraEntryType.LEAVE_CP]: 'Congé payé (CP)',
+  [CraEntryType.LEAVE_CP]: 'Congé payé',
   [CraEntryType.LEAVE_RTT]: 'RTT',
   [CraEntryType.SICK]: 'Maladie',
   [CraEntryType.HOLIDAY]: 'Jour férié',
-  [CraEntryType.TRAINING]: 'Formation',
-  [CraEntryType.ASTREINTE]: 'Astreinte',
-  [CraEntryType.OVERTIME]: 'Heures supplémentaires',
+  [CraEntryType.WORK_TRAVEL]: 'Déplacement (ancien)',
+  [CraEntryType.TRAINING]: 'Formation (ancien)',
+  [CraEntryType.ASTREINTE]: 'Astreinte (ancien)',
+  [CraEntryType.OVERTIME]: 'Heures supp. (ancien)',
 };
 
-const ENTRY_TYPES = Object.values(CraEntryType);
+const MODIFIER_CONFIG: Array<{ value: CraEntryModifier; label: string; icon: string }> = [
+  { value: CraEntryModifier.TRAVEL,   label: 'Déplacement',         icon: '✈' },
+  { value: CraEntryModifier.TRAINING, label: 'Formation',            icon: '📚' },
+  { value: CraEntryModifier.ON_CALL,  label: 'Astreinte',            icon: '📞' },
+  { value: CraEntryModifier.OVERTIME, label: 'Heure supplémentaire', icon: '⊕' },
+];
+
+const WORK_TYPES = new Set<CraEntryType>([CraEntryType.WORK_ONSITE, CraEntryType.WORK_REMOTE]);
 
 function formatDateFR(date: Date): string {
   const dd = String(date.getDate()).padStart(2, '0');
@@ -57,20 +72,42 @@ export function EntryModal({
   const [dayFraction, setDayFraction] = useState<number>(
     existingEntry?.dayFraction ?? 1.0,
   );
+  const [modifiers, setModifiers] = useState<CraEntryModifier[]>(
+    existingEntry?.modifiers ?? [],
+  );
+  const [secondHalfType, setSecondHalfType] = useState<CraEntryType | null>(
+    existingEntry?.secondHalfType ?? null,
+  );
   const [comment, setComment] = useState<string>(existingEntry?.comment ?? '');
   const [isSaving, setIsSaving] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // Sync form state when existingEntry changes
   useEffect(() => {
     setEntryType(existingEntry?.entryType ?? CraEntryType.WORK_ONSITE);
     setDayFraction(existingEntry?.dayFraction ?? 1.0);
+    setModifiers(existingEntry?.modifiers ?? []);
+    setSecondHalfType(existingEntry?.secondHalfType ?? null);
     setComment(existingEntry?.comment ?? '');
   }, [existingEntry, isOpen]);
 
   if (!isOpen || !date) {
     return null;
   }
+
+  const isWorkType = WORK_TYPES.has(entryType);
+
+  const toggleModifier = (mod: CraEntryModifier): void => {
+    setModifiers((prev) =>
+      prev.includes(mod) ? prev.filter((m) => m !== mod) : [...prev, mod],
+    );
+  };
+
+  const handleFractionChange = (value: number): void => {
+    setDayFraction(value);
+    if (value === 1.0) {
+      setSecondHalfType(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -80,6 +117,8 @@ export function EntryModal({
         date: toIsoDate(date),
         entryType,
         dayFraction,
+        modifiers: isWorkType && modifiers.length > 0 ? modifiers : undefined,
+        secondHalfType: dayFraction === 0.5 ? secondHalfType : undefined,
         comment: comment.trim() || undefined,
       });
       onClose();
@@ -101,20 +140,17 @@ export function EntryModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      {/* Backdrop */}
       <div
         className="absolute inset-0 bg-black/40"
         onClick={onClose}
         aria-hidden="true"
       />
 
-      {/* Modal panel */}
       <div className="relative bg-white rounded-lg shadow-xl w-full max-w-md p-6 z-10">
         <h2 className="text-lg font-semibold text-gray-900 mb-4">
-          {existingEntry ? "Modifier l\u2019entr\u00e9e" : 'Saisir une journ\u00e9e'}
+          {existingEntry ? "Modifier l’entrée" : 'Saisir une journée'}
         </h2>
 
-        {/* Date (read-only) */}
         <div className="mb-4">
           <label className="block text-sm font-medium text-gray-700 mb-1">Date</label>
           <input
@@ -126,40 +162,76 @@ export function EntryModal({
         </div>
 
         <form onSubmit={(e) => { void handleSubmit(e); }} className="space-y-4">
-          {/* Entry type */}
+          {/* Primary type */}
           <div>
-            <label
-              htmlFor="entry-type"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="entry-type" className="block text-sm font-medium text-gray-700 mb-1">
               Type de journée
             </label>
             <select
               id="entry-type"
               value={entryType}
-              onChange={(e) => setEntryType(e.target.value as CraEntryType)}
+              onChange={(e) => {
+                const t = e.target.value as CraEntryType;
+                setEntryType(t);
+                if (!WORK_TYPES.has(t)) setModifiers([]);
+              }}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              {ENTRY_TYPES.map((type) => (
+              {PRIMARY_ENTRY_TYPES.map((type) => (
                 <option key={type} value={type}>
-                  {ENTRY_TYPE_LABELS[type]}
+                  {PRIMARY_TYPE_LABELS[type]}
                 </option>
               ))}
+              {/* Show legacy type as read-only option if existing entry uses it */}
+              {existingEntry &&
+                !PRIMARY_ENTRY_TYPES.includes(existingEntry.entryType) && (
+                  <option value={existingEntry.entryType} disabled>
+                    {PRIMARY_TYPE_LABELS[existingEntry.entryType]}
+                  </option>
+                )}
             </select>
           </div>
 
+          {/* Modifiers — only for work types */}
+          {isWorkType && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Modificateurs{' '}
+                <span className="text-gray-400 font-normal">(cumulables)</span>
+              </label>
+              <div className="grid grid-cols-2 gap-2">
+                {MODIFIER_CONFIG.map(({ value, label, icon }) => {
+                  const active = modifiers.includes(value);
+                  return (
+                    <button
+                      key={value}
+                      type="button"
+                      onClick={() => toggleModifier(value)}
+                      className={[
+                        'flex items-center gap-2 px-3 py-2 rounded-md border text-sm font-medium transition-colors',
+                        active
+                          ? 'border-blue-500 bg-blue-50 text-blue-700'
+                          : 'border-gray-200 hover:border-gray-300 text-gray-700',
+                      ].join(' ')}
+                    >
+                      <span>{icon}</span>
+                      <span>{label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Fraction */}
           <div>
-            <label
-              htmlFor="day-fraction"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="day-fraction" className="block text-sm font-medium text-gray-700 mb-1">
               Fraction
             </label>
             <select
               id="day-fraction"
               value={String(dayFraction)}
-              onChange={(e) => setDayFraction(parseFloat(e.target.value))}
+              onChange={(e) => handleFractionChange(parseFloat(e.target.value))}
               className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="1">Journée complète</option>
@@ -167,12 +239,34 @@ export function EntryModal({
             </select>
           </div>
 
+          {/* Second half type — only for half days */}
+          {dayFraction === 0.5 && (
+            <div>
+              <label htmlFor="second-half-type" className="block text-sm font-medium text-gray-700 mb-1">
+                L&apos;autre demi-journée{' '}
+                <span className="text-gray-400 font-normal">(optionnel)</span>
+              </label>
+              <select
+                id="second-half-type"
+                value={secondHalfType ?? ''}
+                onChange={(e) =>
+                  setSecondHalfType(e.target.value ? (e.target.value as CraEntryType) : null)
+                }
+                className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">— non renseigné —</option>
+                {PRIMARY_ENTRY_TYPES.map((type) => (
+                  <option key={type} value={type}>
+                    {PRIMARY_TYPE_LABELS[type]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
           {/* Comment */}
           <div>
-            <label
-              htmlFor="comment"
-              className="block text-sm font-medium text-gray-700 mb-1"
-            >
+            <label htmlFor="comment" className="block text-sm font-medium text-gray-700 mb-1">
               Commentaire{' '}
               <span className="text-gray-400 font-normal">(optionnel)</span>
             </label>

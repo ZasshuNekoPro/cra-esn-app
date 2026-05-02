@@ -62,6 +62,9 @@ export const clientCompaniesApi = {
 
   update: (id: string, data: UpdateClientCompanyPayload): Promise<ClientCompany> =>
     apiClient.patch<ClientCompany>(`/client-companies/${id}`, data),
+
+  addContact: (companyId: string, data: CreateContactPayload): Promise<ClientContact> =>
+    apiClient.post<ClientContact>(`/client-companies/${companyId}/contacts`, data),
 };
 
 export const CONTACT_TYPE_LABELS: Record<ClientContactType, string> = {

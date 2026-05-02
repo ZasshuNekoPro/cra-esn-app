@@ -31,6 +31,8 @@ export interface UpdateMissionRequest {
   endDate?: string;
   dailyRate?: number;
   isActive?: boolean;
+  employeeId?: string;
+  clientId?: string | null;
 }
 
 // Server-side

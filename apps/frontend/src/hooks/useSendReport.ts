@@ -14,7 +14,11 @@ export function useSendReport(
   const router = useRouter();
 
   return useMutation<SendReportResponse, Error, SendReportRequest>({
-    mutationFn: (payload: SendReportRequest) => sendMonthlyReportAction(payload),
+    mutationFn: async (payload: SendReportRequest) => {
+      const result = await sendMonthlyReportAction(payload);
+      if (!result.ok) throw new Error(result.error);
+      return result.data;
+    },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ['reports', year, month] });
       router.refresh();

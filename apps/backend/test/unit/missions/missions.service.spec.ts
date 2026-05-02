@@ -135,6 +135,28 @@ describe('MissionsService', () => {
       expect(mockPrisma.mission.update).toHaveBeenCalledOnce();
     });
 
+    it('ESN_ADMIN can assign esnAdminId on a mission that had none', async () => {
+      mockPrisma.mission.findUnique.mockResolvedValue({ ...MISSION, esnAdminId: null });
+      mockPrisma.mission.update.mockResolvedValue({ ...MISSION, esnAdminId: 'new-esn-admin' });
+      await service.update('mission-1', { esnAdminId: 'new-esn-admin' }, Role.ESN_ADMIN);
+      expect(mockPrisma.mission.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ esnAdminId: 'new-esn-admin' }),
+        }),
+      );
+    });
+
+    it('ESN_ADMIN can clear esnAdminId by passing null', async () => {
+      mockPrisma.mission.findUnique.mockResolvedValue(MISSION);
+      mockPrisma.mission.update.mockResolvedValue({ ...MISSION, esnAdminId: null });
+      await service.update('mission-1', { esnAdminId: null }, Role.ESN_ADMIN);
+      expect(mockPrisma.mission.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ esnAdminId: null }),
+        }),
+      );
+    });
+
     it('EMPLOYEE cannot update mission', async () => {
       await expect(service.update('mission-1', {}, Role.EMPLOYEE)).rejects.toThrow(ForbiddenException);
     });

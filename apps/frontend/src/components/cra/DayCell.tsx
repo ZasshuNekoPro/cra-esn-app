@@ -1,6 +1,6 @@
 'use client';
 
-import { CraEntryType } from '@esn/shared-types';
+import { CraEntryType, CraEntryModifier } from '@esn/shared-types';
 import type { CraEntry } from '@esn/shared-types';
 
 interface DayCellProps {
@@ -38,11 +38,50 @@ const ENTRY_TYPE_SHORT_LABELS: Record<CraEntryType, string> = {
   [CraEntryType.OVERTIME]: 'Sup',
 };
 
+const MODIFIER_ICONS: Record<CraEntryModifier, string> = {
+  [CraEntryModifier.TRAVEL]:   '✈',
+  [CraEntryModifier.TRAINING]: '📚',
+  [CraEntryModifier.ON_CALL]:  '📞',
+  [CraEntryModifier.OVERTIME]: '⊕',
+};
+
 function toIsoDate(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
   const d = String(date.getDate()).padStart(2, '0');
   return `${y}-${m}-${d}`;
+}
+
+function EntryContent({ entry }: { entry: CraEntry }): JSX.Element {
+  const hasModifiers = entry.modifiers.length > 0;
+  const hasSecondHalf = entry.dayFraction === 0.5 && entry.secondHalfType;
+
+  return (
+    <div className="mt-0.5 space-y-0.5">
+      <div className="flex items-center gap-1 flex-wrap">
+        <span className="text-xs text-gray-600">
+          {ENTRY_TYPE_SHORT_LABELS[entry.entryType]}
+        </span>
+        {entry.dayFraction === 0.5 && (
+          <span className="text-xs font-medium text-gray-500">½</span>
+        )}
+      </div>
+      {hasSecondHalf && (
+        <div className="text-xs text-gray-400">
+          +{ENTRY_TYPE_SHORT_LABELS[entry.secondHalfType!]}
+        </div>
+      )}
+      {hasModifiers && (
+        <div className="flex gap-0.5 flex-wrap">
+          {entry.modifiers.map((mod) => (
+            <span key={mod} className="text-xs" title={mod}>
+              {MODIFIER_ICONS[mod]}
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function DayCell({
@@ -56,7 +95,6 @@ export function DayCell({
   const dayNumber = date.getDate();
   const isoDate = toIsoDate(date);
 
-  // Determine background color
   let bgColor = 'bg-white';
   if (isWeekend || isHoliday) {
     bgColor = 'bg-gray-200';
@@ -83,16 +121,7 @@ export function DayCell({
         className={`relative w-full min-h-[64px] p-1.5 border border-gray-200 rounded text-left transition-colors hover:brightness-95 ${bgColor} ${cursorClass}`}
       >
         <span className="text-xs font-semibold text-gray-700">{dayNumber}</span>
-        {entry && (
-          <div className="mt-0.5">
-            <span className="text-xs text-gray-600">
-              {ENTRY_TYPE_SHORT_LABELS[entry.entryType]}
-            </span>
-            {entry.dayFraction === 0.5 && (
-              <span className="ml-1 text-xs font-medium text-gray-500">½</span>
-            )}
-          </div>
-        )}
+        {entry && <EntryContent entry={entry} />}
       </button>
     );
   }
@@ -108,16 +137,7 @@ export function DayCell({
       >
         {dayNumber}
       </span>
-      {entry && !isWeekend && !isHoliday && (
-        <div className="mt-0.5">
-          <span className="text-xs text-gray-500">
-            {ENTRY_TYPE_SHORT_LABELS[entry.entryType]}
-          </span>
-          {entry.dayFraction === 0.5 && (
-            <span className="ml-1 text-xs font-medium text-gray-400">½</span>
-          )}
-        </div>
-      )}
+      {entry && !isWeekend && !isHoliday && <EntryContent entry={entry} />}
       {isHoliday && (
         <div className="mt-0.5">
           <span className="text-xs text-gray-500">Fér</span>

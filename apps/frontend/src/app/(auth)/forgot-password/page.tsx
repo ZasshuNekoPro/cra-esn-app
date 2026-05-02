@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { forgotPasswordAction } from './actions';
 
 export default function ForgotPasswordPage(): JSX.Element {
   const [email, setEmail] = useState('');
@@ -14,19 +15,12 @@ export default function ForgotPasswordPage(): JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3001'}/api/auth/forgot-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email }),
-      });
-
-      if (!res.ok && res.status !== 204) {
-        setError('Une erreur est survenue. Veuillez réessayer.');
+      const result = await forgotPasswordAction(email);
+      if (result.error) {
+        setError(result.error);
       } else {
         setSubmitted(true);
       }
-    } catch {
-      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }

@@ -19,14 +19,19 @@ const ENTRY_TYPE_LABELS: Record<string, string> = {
   OVERTIME: 'Heures sup.',
 };
 
-const WEATHER_ICONS: Record<string, string> = {
-  SUNNY: '☀️',
-  CLOUDY: '⛅',
-  RAINY: '🌧️',
-  STORM: '⛈️',
-  VALIDATION_PENDING: '⏳',
-  VALIDATED: '✅',
+const WEATHER_COLORS: Record<string, string> = {
+  SUNNY: '#f59e0b',
+  CLOUDY: '#9ca3af',
+  RAINY: '#3b82f6',
+  STORM: '#7c3aed',
+  VALIDATION_PENDING: '#f97316',
+  VALIDATED: '#22c55e',
 };
+
+function weatherDot(state: string): string {
+  const color = WEATHER_COLORS[state] ?? '#d1d5db';
+  return `<span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${color};vertical-align:middle;"></span>`;
+}
 
 const WEATHER_LABELS: Record<string, string> = {
   SUNNY: 'Ensoleillé',
@@ -68,7 +73,7 @@ function buildWeatherCalendar(
   }
   for (let day = 1; day <= daysInMonth; day++) {
     const state = dayMap.get(day);
-    const icon = state ? (WEATHER_ICONS[state] ?? '❓') : '';
+    const icon = state ? weatherDot(state) : '';
     const stateClass = state ? ' cal-has-weather' : '';
     cells.push(`<td class="cal-cell${stateClass}">
         <div class="cal-day-num">${day}</div>
@@ -176,12 +181,12 @@ function buildWeatherSection(year: number, month: number, weatherData: ProjectWe
     const calendar = buildWeatherCalendar(year, month, pw.entries);
 
     const rows = pw.entries.map((entry) => {
-      const icon = WEATHER_ICONS[entry.state] ?? '❓';
+      const dot = weatherDot(entry.state);
       const label = WEATHER_LABELS[entry.state] ?? entry.state;
       return `
         <tr>
           <td>${formatDate(entry.date)}</td>
-          <td>${icon} ${label}</td>
+          <td>${dot} ${label}</td>
           <td>${entry.comment ?? '—'}</td>
         </tr>
       `;

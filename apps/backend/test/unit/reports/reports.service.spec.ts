@@ -507,7 +507,7 @@ describe('ReportsService', () => {
     });
   });
 
-  describe('listReportsForEsn — dedup', () => {
+  describe('listReportsForEsn', () => {
     const esnId = 'esn-org-1';
     const expiresAt = new Date('2099-01-01');
 
@@ -530,7 +530,7 @@ describe('ReportsService', () => {
     }
 
     it('returns only PENDING when both REFUSED and PENDING exist (desc order → first seen wins)', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ esnId });
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: false });
       mockPrisma.user.findMany.mockResolvedValue([
         { id: employeeId, firstName: 'Alice', lastName: 'Martin' },
       ]);
@@ -548,7 +548,7 @@ describe('ReportsService', () => {
     });
 
     it('excludes ARCHIVED records and does not deduplicate against them', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ esnId });
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: false });
       mockPrisma.user.findMany.mockResolvedValue([
         { id: employeeId, firstName: 'Alice', lastName: 'Martin' },
       ]);
@@ -564,11 +564,40 @@ describe('ReportsService', () => {
     });
 
     it('returns [] when caller has no esnId', async () => {
-      mockPrisma.user.findUnique.mockResolvedValue({ esnId: null });
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId: null, canSeeAllEsnReports: false });
 
       const result = await service.listReportsForEsn('esn-admin-1');
 
       expect(result).toEqual([]);
+    });
+
+    it('normal admin queries only employees with esnReferentId matching callerId', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: false });
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([]);
+
+      await service.listReportsForEsn('esn-admin-1');
+
+      expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ esnReferentId: 'esn-admin-1' }),
+        }),
+      );
+    });
+
+    it('admin with canSeeAllEsnReports queries all employees in the ESN (no esnReferentId filter)', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: true });
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: employeeId, firstName: 'Alice', lastName: 'Martin' },
+        { id: 'emp-2', firstName: 'Bob', lastName: 'Dupont' },
+      ]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([]);
+
+      await service.listReportsForEsn('esn-admin-1');
+
+      const call = mockPrisma.user.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
+      expect(call.where).not.toHaveProperty('esnReferentId');
+      expect(call.where).toHaveProperty('esnId', esnId);
     });
   });
 

@@ -67,8 +67,8 @@ function makeMission(overrides: Record<string, unknown> = {}) {
   };
 }
 
-function makeEmployee() {
-  return { id: EMPLOYEE_ID, firstName: 'Jean', lastName: 'Dupont', email: 'jean@esn.com' };
+function makeEmployee(overrides: Record<string, unknown> = {}) {
+  return { id: EMPLOYEE_ID, firstName: 'Jean', lastName: 'Dupont', email: 'jean@esn.com', esnReferentId: ESN_ADMIN_ID, ...overrides };
 }
 
 function makeCraMonth() {
@@ -169,12 +169,10 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
     expect(mockNotifications.notifyEmail).toHaveBeenCalledTimes(2);
   });
 
-  // ── skippedRecipients: ESN admin null → skip ESN silently ────────────────
+  // ── skippedRecipients: esnReferentId null → skip ESN silently ───────────
 
-  it('esnAdminId null → ESN skipped, CLIENT sent if present', async () => {
-    mockPrisma.mission.findFirst.mockResolvedValue(
-      makeMission({ esnAdminId: null, esnAdmin: null }),
-    );
+  it('esnReferentId null on employee → ESN skipped, CLIENT sent if present', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(makeEmployee({ esnReferentId: null }));
 
     const result = await service.sendMonthlyReport(
       makeDto({ recipients: ['ESN', 'CLIENT'] }),
@@ -194,9 +192,10 @@ describe('ReportsSendService.sendMonthlyReport()', () => {
 
   // ── all recipients skipped → BadRequestException ──────────────────────────
 
-  it('all recipients skipped (esnAdminId=null, clientId=null) → throws BadRequestException', async () => {
+  it('all recipients skipped (esnReferentId=null, clientId=null) → throws BadRequestException', async () => {
+    mockPrisma.user.findUnique.mockResolvedValue(makeEmployee({ esnReferentId: null }));
     mockPrisma.mission.findFirst.mockResolvedValue(
-      makeMission({ esnAdminId: null, esnAdmin: null, clientId: null, client: null }),
+      makeMission({ clientId: null, client: null }),
     );
 
     await expect(

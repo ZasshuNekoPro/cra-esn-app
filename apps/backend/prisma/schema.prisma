@@ -44,6 +44,13 @@ enum CraEntryType {
   OVERTIME
 }
 
+enum CraEntryModifier {
+  TRAVEL
+  TRAINING
+  ON_CALL
+  OVERTIME
+}
+
 enum PortionType {
   FULL
   HALF_AM
@@ -175,6 +182,12 @@ model User {
   clientContactType  ClientContactType? @map("client_contact_type")
   passwordResetToken   String?   @map("password_reset_token")
   passwordResetExpires DateTime? @map("password_reset_expires")
+  // Referent ESN admin for this employee (used for report email routing)
+  esnReferentId        String?   @map("esn_referent_id")
+  esnReferent          User?     @relation("EmployeeReferent", fields: [esnReferentId], references: [id])
+  referredEmployees    User[]    @relation("EmployeeReferent")
+  // Allows this ESN_ADMIN to see all reports in their ESN (vacation coverage)
+  canSeeAllEsnReports  Boolean   @default(false) @map("can_see_all_esn_reports")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
@@ -286,13 +299,15 @@ model CraMonth {
 }
 
 model CraEntry {
-  id          String       @id @default(uuid())
-  date        DateTime     @db.Date
-  dayFraction Decimal      @default(1) @map("day_fraction") @db.Decimal(3, 2) // 0.5 or 1.0
-  entryType   CraEntryType @default(WORK_ONSITE) @map("entry_type")
-  comment     String?
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  id             String             @id @default(uuid())
+  date           DateTime           @db.Date
+  dayFraction    Decimal            @default(1) @map("day_fraction") @db.Decimal(3, 2) // 0.5 or 1.0
+  entryType      CraEntryType       @default(WORK_ONSITE) @map("entry_type")
+  modifiers      CraEntryModifier[]
+  secondHalfType CraEntryType?      @map("second_half_type")
+  comment        String?
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
 
   craMonthId   String        @map("cra_month_id")
   craMonth     CraMonth      @relation(fields: [craMonthId], references: [id], onDelete: Cascade)

@@ -3,6 +3,7 @@
 import { Suspense, useState } from 'react';
 import { signIn, type SignInResponse } from 'next-auth/react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 function LoginForm(): JSX.Element {
   const router = useRouter();
@@ -99,9 +100,9 @@ function LoginForm(): JSX.Element {
         </form>
 
         <div className="mt-4 text-center">
-          <a href="/forgot-password" className="text-sm text-blue-600 hover:underline">
+          <Link href="/forgot-password" className="text-sm text-blue-600 hover:underline">
             Mot de passe oublié ?
-          </a>
+          </Link>
         </div>
       </div>
     </div>

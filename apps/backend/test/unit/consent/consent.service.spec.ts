@@ -9,6 +9,7 @@ import type { NotificationsService } from '../../../src/notifications/notificati
 
 const employeeId = 'employee-uuid-1';
 const esnAdminId = 'esn-admin-uuid-1';
+const esnAdminEsnId = 'esn-uuid-1';
 const consentId = 'consent-uuid-1';
 
 const mockConsent = {
@@ -57,13 +58,14 @@ describe('ConsentService', () => {
 
   describe('request', () => {
     it('should create a new PENDING consent and notify employee', async () => {
-      vi.mocked(mockPrisma.user.findUnique).mockResolvedValue({ id: employeeId } as never);
+      vi.mocked(mockPrisma.user.findUnique).mockResolvedValue({ id: employeeId, esnId: esnAdminEsnId } as never);
       vi.mocked(mockPrisma.consent.findUnique).mockResolvedValue(null);
       vi.mocked(mockPrisma.consent.create).mockResolvedValue(mockConsent as never);
 
       const result = await service.request(
         { employeeId, scope: ['cra', 'documents'] },
         esnAdminId,
+        esnAdminEsnId,
       );
 
       expect(mockPrisma.consent.create).toHaveBeenCalledWith(
@@ -80,16 +82,16 @@ describe('ConsentService', () => {
     });
 
     it('should throw BadRequestException if a PENDING consent already exists', async () => {
-      vi.mocked(mockPrisma.user.findUnique).mockResolvedValue({ id: employeeId } as never);
+      vi.mocked(mockPrisma.user.findUnique).mockResolvedValue({ id: employeeId, esnId: esnAdminEsnId } as never);
       vi.mocked(mockPrisma.consent.findUnique).mockResolvedValue(mockConsent as never);
 
       await expect(
-        service.request({ employeeId, scope: ['cra'] }, esnAdminId),
+        service.request({ employeeId, scope: ['cra'] }, esnAdminId, esnAdminEsnId),
       ).rejects.toThrow(BadRequestException);
     });
 
     it('should re-request (update to PENDING) if previous consent was REVOKED', async () => {
-      vi.mocked(mockPrisma.user.findUnique).mockResolvedValue({ id: employeeId } as never);
+      vi.mocked(mockPrisma.user.findUnique).mockResolvedValue({ id: employeeId, esnId: esnAdminEsnId } as never);
       vi.mocked(mockPrisma.consent.findUnique).mockResolvedValue({
         ...mockConsent,
         status: ConsentStatus.REVOKED,
@@ -97,7 +99,7 @@ describe('ConsentService', () => {
       } as never);
       vi.mocked(mockPrisma.consent.update).mockResolvedValue({ ...mockConsent } as never);
 
-      await service.request({ employeeId, scope: ['cra'] }, esnAdminId);
+      await service.request({ employeeId, scope: ['cra'] }, esnAdminId, esnAdminEsnId);
       expect(mockPrisma.consent.update).toHaveBeenCalledWith(
         expect.objectContaining({ data: expect.objectContaining({ status: ConsentStatus.PENDING }) }),
       );
@@ -107,7 +109,7 @@ describe('ConsentService', () => {
       vi.mocked(mockPrisma.user.findUnique).mockResolvedValue(null);
 
       await expect(
-        service.request({ employeeId, scope: ['cra'] }, esnAdminId),
+        service.request({ employeeId, scope: ['cra'] }, esnAdminId, esnAdminEsnId),
       ).rejects.toThrow(NotFoundException);
     });
   });

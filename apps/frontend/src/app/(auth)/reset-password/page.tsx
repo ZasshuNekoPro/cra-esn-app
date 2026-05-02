@@ -2,6 +2,7 @@
 
 import { Suspense, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { resetPasswordAction } from './actions';
 
 function ResetPasswordForm(): JSX.Element {
   const router = useRouter();
@@ -30,20 +31,12 @@ function ResetPasswordForm(): JSX.Element {
     setLoading(true);
 
     try {
-      const res = await fetch(`${process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3001'}/api/auth/reset-password`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, password }),
-      });
-
-      if (res.status === 204) {
-        router.push('/login?reset=1');
+      const result = await resetPasswordAction(token, password);
+      if (result.error) {
+        setError(result.error);
       } else {
-        const body = await res.json().catch(() => ({})) as { message?: string };
-        setError(body.message ?? 'Token invalide ou expiré. Veuillez recommencer.');
+        router.push('/login?reset=1');
       }
-    } catch {
-      setError('Une erreur est survenue. Veuillez réessayer.');
     } finally {
       setLoading(false);
     }

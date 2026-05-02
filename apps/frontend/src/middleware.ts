@@ -4,7 +4,7 @@ import type { NextRequest } from 'next/server';
 import { Role } from '@esn/shared-types';
 
 const AUTH_PATHS = ['/login'];
-const ANONYMOUS_PATHS = ['/validate-report'];
+const ANONYMOUS_PATHS = ['/validate-report', '/forgot-password', '/reset-password'];
 const ESN_PATHS = ['/esn'];
 const PLATFORM_PATHS = ['/platform'];
 const CLIENT_PATHS = ['/client'];

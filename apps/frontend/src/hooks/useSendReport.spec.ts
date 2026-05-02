@@ -5,9 +5,15 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import type { SendReportRequest, SendReportResponse } from '@esn/shared-types';
 
-const { mockSendAction } = vi.hoisted(() => ({ mockSendAction: vi.fn() }));
+const { mockSendAction, mockRouterRefresh } = vi.hoisted(() => ({
+  mockSendAction: vi.fn(),
+  mockRouterRefresh: vi.fn(),
+}));
 vi.mock('../app/(dashboard)/reports/actions', () => ({
   sendMonthlyReportAction: mockSendAction,
+}));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: mockRouterRefresh }),
 }));
 
 import { useSendReport } from './useSendReport';
@@ -35,7 +41,7 @@ describe('useSendReport', () => {
       auditLogId: 'audit-1',
       skippedRecipients: [],
     };
-    mockSendAction.mockResolvedValueOnce(mockResponse);
+    mockSendAction.mockResolvedValueOnce({ ok: true, data: mockResponse });
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),
@@ -59,8 +65,9 @@ describe('useSendReport', () => {
   });
 
   it('exposes isPending while the mutation is in flight', async () => {
-    let resolvePromise!: (v: SendReportResponse) => void;
-    const pendingPromise = new Promise<SendReportResponse>((res) => {
+    type ActionResult = { ok: true; data: SendReportResponse } | { ok: false; error: string };
+    let resolvePromise!: (v: ActionResult) => void;
+    const pendingPromise = new Promise<ActionResult>((res) => {
       resolvePromise = res;
     });
     mockSendAction.mockReturnValueOnce(pendingPromise);
@@ -76,13 +83,7 @@ describe('useSendReport', () => {
     await waitFor(() => expect(result.current.isPending).toBe(true));
 
     act(() => {
-      resolvePromise({
-        success: true,
-        sentTo: ['ESN'],
-        pdfS3Key: 'k',
-        auditLogId: 'a',
-        skippedRecipients: [],
-      });
+      resolvePromise({ ok: true, data: { success: true, sentTo: ['ESN'], pdfS3Key: 'k', auditLogId: 'a', skippedRecipients: [] } });
     });
     await waitFor(() => expect(result.current.isPending).toBe(false));
   });
@@ -95,7 +96,7 @@ describe('useSendReport', () => {
       auditLogId: 'audit-1',
       skippedRecipients: [],
     };
-    mockSendAction.mockResolvedValueOnce(mockResponse);
+    mockSendAction.mockResolvedValueOnce({ ok: true, data: mockResponse });
 
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -113,7 +114,7 @@ describe('useSendReport', () => {
   });
 
   it('exposes error when the mutation fails', async () => {
-    mockSendAction.mockRejectedValueOnce(new Error('network error'));
+    mockSendAction.mockResolvedValueOnce({ ok: false, error: 'network error' });
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),

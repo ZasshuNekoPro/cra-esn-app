@@ -17,6 +17,8 @@ import { UsersService } from './users.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { ChangePasswordDto } from './dto/change-password.dto';
+import { UpdateEsnReferentDto } from './dto/update-esn-referent.dto';
+import { UpdateEsnAdminFlagsDto } from './dto/update-esn-admin-flags.dto';
 
 @Controller('users')
 export class UsersController {
@@ -62,6 +64,15 @@ export class UsersController {
   }
 
   /**
+   * GET /users/esn-admins — list ESN_ADMIN users in the caller's ESN (for referent picker)
+   */
+  @Get('esn-admins')
+  @Roles(Role.ESN_ADMIN, Role.PLATFORM_ADMIN)
+  listEsnAdmins(@CurrentUser() user: JwtPayload) {
+    return this.usersService.listEsnAdmins(user.esnId ?? null);
+  }
+
+  /**
    * GET /users/:id
    */
   @Get(':id')
@@ -81,6 +92,32 @@ export class UsersController {
     @CurrentUser() user: JwtPayload,
   ) {
     return this.usersService.updateUser(id, dto, user.role, user.esnId ?? null);
+  }
+
+  /**
+   * PATCH /users/:id/esn-referent — set the referent ESN admin for an employee (ESN_ADMIN)
+   */
+  @Patch(':id/esn-referent')
+  @Roles(Role.ESN_ADMIN, Role.PLATFORM_ADMIN)
+  setEsnReferent(
+    @Param('id') id: string,
+    @Body() dto: UpdateEsnReferentDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.usersService.setEsnReferent(id, dto.esnReferentId, user.role, user.esnId ?? null);
+  }
+
+  /**
+   * PATCH /users/:id/esn-admin-flags — grant/revoke vacation-coverage access to an ESN_ADMIN (ESN_ADMIN)
+   */
+  @Patch(':id/esn-admin-flags')
+  @Roles(Role.ESN_ADMIN, Role.PLATFORM_ADMIN)
+  setEsnAdminFlags(
+    @Param('id') id: string,
+    @Body() dto: UpdateEsnAdminFlagsDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.usersService.setCanSeeAllReports(id, dto.canSeeAllEsnReports, user.role, user.esnId ?? null);
   }
 
   /**

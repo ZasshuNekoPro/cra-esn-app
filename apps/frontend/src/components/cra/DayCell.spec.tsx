@@ -14,6 +14,8 @@ const mockEntry = (overrides: Partial<CraEntry> = {}): CraEntry => ({
   date: new Date('2026-03-10'),
   dayFraction: 1.0,
   entryType: CraEntryType.WORK_ONSITE,
+  modifiers: [],
+  secondHalfType: null,
   comment: null,
   craMonthId: 'month-1',
   createdAt: new Date(),

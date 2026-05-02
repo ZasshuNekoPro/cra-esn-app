@@ -24,6 +24,8 @@ type PublicUser = {
   esnId: string | null;
   clientCompanyId: string | null;
   clientContactType: string | null;
+  esnReferentId: string | null;
+  canSeeAllEsnReports: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -40,6 +42,8 @@ const PUBLIC_SELECT = {
   esnId: true,
   clientCompanyId: true,
   clientContactType: true,
+  esnReferentId: true,
+  canSeeAllEsnReports: true,
   createdAt: true,
   updatedAt: true,
 } as const;
@@ -196,6 +200,69 @@ export class UsersService {
         ...(dto.phone !== undefined && { phone: dto.phone || null }),
       },
       select: PUBLIC_SELECT,
+    });
+  }
+
+  async setEsnReferent(
+    employeeId: string,
+    referentId: string | null,
+    callerRole: Role,
+    callerEsnId: string | null,
+  ): Promise<PublicUser> {
+    const employee = await this.prisma.user.findUnique({ where: { id: employeeId, deletedAt: null } });
+    if (!employee) throw new NotFoundException(`User ${employeeId} not found`);
+    if (employee.role !== Role.EMPLOYEE) {
+      throw new ForbiddenException('esnReferentId can only be set on EMPLOYEE accounts');
+    }
+    if (callerRole !== Role.PLATFORM_ADMIN && employee.esnId !== callerEsnId) {
+      throw new ForbiddenException('User does not belong to your ESN');
+    }
+
+    if (referentId !== null) {
+      const referent = await this.prisma.user.findUnique({ where: { id: referentId, deletedAt: null } });
+      if (!referent || referent.role !== Role.ESN_ADMIN) {
+        throw new NotFoundException(`ESN admin ${referentId} not found`);
+      }
+      if (callerRole !== Role.PLATFORM_ADMIN && referent.esnId !== callerEsnId) {
+        throw new ForbiddenException('Referent does not belong to your ESN');
+      }
+    }
+
+    return this.prisma.user.update({
+      where: { id: employeeId },
+      data: { esnReferentId: referentId },
+      select: PUBLIC_SELECT,
+    });
+  }
+
+  async setCanSeeAllReports(
+    targetAdminId: string,
+    value: boolean,
+    callerRole: Role,
+    callerEsnId: string | null,
+  ): Promise<PublicUser> {
+    const target = await this.prisma.user.findUnique({ where: { id: targetAdminId, deletedAt: null } });
+    if (!target) throw new NotFoundException(`User ${targetAdminId} not found`);
+    if (target.role !== Role.ESN_ADMIN) {
+      throw new ForbiddenException('canSeeAllEsnReports can only be set on ESN_ADMIN accounts');
+    }
+    if (callerRole !== Role.PLATFORM_ADMIN && target.esnId !== callerEsnId) {
+      throw new ForbiddenException('Admin does not belong to your ESN');
+    }
+
+    return this.prisma.user.update({
+      where: { id: targetAdminId },
+      data: { canSeeAllEsnReports: value },
+      select: PUBLIC_SELECT,
+    });
+  }
+
+  async listEsnAdmins(callerEsnId: string | null): Promise<{ id: string; firstName: string; lastName: string }[]> {
+    if (callerEsnId === null) return [];
+    return this.prisma.user.findMany({
+      where: { deletedAt: null, esnId: callerEsnId, role: Role.ESN_ADMIN },
+      select: { id: true, firstName: true, lastName: true },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
     });
   }
 

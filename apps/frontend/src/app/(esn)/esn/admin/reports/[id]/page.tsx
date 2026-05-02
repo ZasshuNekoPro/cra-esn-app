@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation';
 import { auth } from '../../../../../../auth';
 import { reportsApi } from '../../../../../../lib/api/reports';
 import { ApiClientError } from '../../../../../../lib/api/client';
+import type { ValidationCraPreview, ValidationCraPreviewEntry } from '@esn/shared-types';
 
 const MONTH_NAMES = [
   'Janvier', 'Février', 'Mars', 'Avril', 'Mai', 'Juin',
@@ -21,17 +22,115 @@ const STATUS_LABELS: Record<string, { label: string; className: string }> = {
   ARCHIVED: { label: 'Archivé', className: 'bg-gray-100 text-gray-600' },
 };
 
+const ENTRY_TYPE_COLORS: Record<string, string> = {
+  WORK_ONSITE: 'bg-blue-100 text-blue-800',
+  WORK_REMOTE: 'bg-cyan-100 text-cyan-800',
+  WORK_TRAVEL: 'bg-sky-100 text-sky-800',
+  LEAVE_CP: 'bg-yellow-100 text-yellow-800',
+  LEAVE_RTT: 'bg-amber-100 text-amber-800',
+  SICK: 'bg-orange-100 text-orange-800',
+  HOLIDAY: 'bg-gray-200 text-gray-600',
+  TRAINING: 'bg-indigo-100 text-indigo-800',
+  ASTREINTE: 'bg-rose-100 text-rose-800',
+  OVERTIME: 'bg-red-100 text-red-800',
+};
+
+const ENTRY_TYPE_LABELS: Record<string, string> = {
+  WORK_ONSITE: 'Prés.', WORK_REMOTE: 'TT', WORK_TRAVEL: 'Dépl.',
+  LEAVE_CP: 'CP', LEAVE_RTT: 'RTT', SICK: 'Mal.',
+  HOLIDAY: 'Fér.', TRAINING: 'Form.', ASTREINTE: 'Ast.', OVERTIME: 'Sup.',
+};
+
+const WEATHER_ICONS: Record<string, string> = {
+  SUNNY: '☀️', CLOUDY: '⛅', RAINY: '🌧️', STORM: '⛈️',
+  VALIDATION_PENDING: '🔶', VALIDATED: '✅',
+};
+
+const WEATHER_LABELS: Record<string, string> = {
+  SUNNY: 'Ensoleillé', CLOUDY: 'Nuageux', RAINY: 'Pluvieux',
+  STORM: 'Orageux', VALIDATION_PENDING: 'En attente', VALIDATED: 'Validé',
+};
+
 interface Props {
   params: { id: string };
+}
+
+function CraCalendar({ year, month, entries }: { year: number; month: number; entries: ValidationCraPreviewEntry[] }) {
+  const dayMap = new Map<number, ValidationCraPreviewEntry>();
+  for (const e of entries) {
+    dayMap.set(new Date(e.date).getUTCDate(), e);
+  }
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const firstDow = (new Date(year, month - 1, 1).getDay() + 6) % 7; // Mon=0
+
+  const blanks = Array.from({ length: firstDow });
+  const days = Array.from({ length: daysInMonth }, (_, i) => i + 1);
+
+  const DOW = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+
+  return (
+    <table className="w-full border-collapse text-xs">
+      <thead>
+        <tr>
+          {DOW.map((d) => (
+            <th key={d} className="text-center py-1 px-0.5 text-gray-500 font-medium bg-gray-50 border border-gray-100 w-[14.28%]">
+              {d}
+            </th>
+          ))}
+        </tr>
+      </thead>
+      <tbody>
+        {chunkWeeks([...blanks.map(() => null), ...days]).map((week, wi) => (
+          <tr key={wi}>
+            {week.map((day, di) => {
+              const entry = day !== null ? dayMap.get(day) : undefined;
+              const colorClass = entry ? (ENTRY_TYPE_COLORS[entry.entryType] ?? 'bg-gray-100 text-gray-600') : '';
+              const label = entry ? (ENTRY_TYPE_LABELS[entry.entryType] ?? entry.entryType) : '';
+              return (
+                <td
+                  key={di}
+                  className={`border border-gray-100 text-center align-top p-0.5 min-h-[32px] ${day === null ? 'bg-gray-50' : ''}`}
+                >
+                  {day !== null && (
+                    <>
+                      <div className="text-gray-400 text-[9px] leading-none mb-0.5">{day}</div>
+                      {entry && (
+                        <div className={`rounded text-[9px] font-medium px-0.5 leading-tight ${colorClass}`} title={entry.comment ?? undefined}>
+                          {label}
+                          {entry.dayFraction < 1 && <span className="opacity-60"> ½</span>}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </td>
+              );
+            })}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
+function chunkWeeks<T>(items: (T | null)[]): (T | null)[][] {
+  const weeks: (T | null)[][] = [];
+  for (let i = 0; i < items.length; i += 7) {
+    const week = items.slice(i, i + 7);
+    while (week.length < 7) week.push(null);
+    weeks.push(week);
+  }
+  return weeks;
 }
 
 export default async function ValidationDetailPage({ params }: Props): Promise<JSX.Element> {
   const session = await auth();
   if (!session) redirect('/login');
 
-  let report;
-  // Proxy through Next.js to avoid mixed-content blocking on HTTPS pages
   const pdfUrl = `/api/reports/validation/${params.id}/pdf`;
+
+  let report;
+  let preview: ValidationCraPreview | null = null;
 
   try {
     report = await reportsApi.getValidation(params.id);
@@ -39,10 +138,13 @@ export default async function ValidationDetailPage({ params }: Props): Promise<J
     if (err instanceof ApiClientError && (err.statusCode === 401 || err.statusCode === 403)) {
       redirect('/login');
     }
-    if (err instanceof ApiClientError && err.statusCode === 404) {
-      redirect('/esn/admin/reports');
-    }
     redirect('/esn/admin/reports');
+  }
+
+  try {
+    preview = await reportsApi.getValidationCraPreview(params.id);
+  } catch {
+    // Non-blocking — page still works without preview data
   }
 
   const isExpired = new Date(report.expiresAt) < new Date();
@@ -130,6 +232,64 @@ export default async function ValidationDetailPage({ params }: Props): Promise<J
           )}
         </div>
       </div>
+
+      {/* CRA Calendar Preview */}
+      {preview && (
+        <div className="mt-6 bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Activité CRA</h2>
+          {preview.craEntries.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">Aucune activité enregistrée ce mois.</p>
+          ) : (
+            <>
+              <CraCalendar year={preview.year} month={preview.month} entries={preview.craEntries} />
+              {/* Legend */}
+              <div className="mt-3 flex flex-wrap gap-2">
+                {Object.entries(ENTRY_TYPE_LABELS).map(([type, label]) => {
+                  const hasEntries = preview.craEntries.some((e) => e.entryType === type);
+                  if (!hasEntries) return null;
+                  return (
+                    <span key={type} className={`text-xs px-1.5 py-0.5 rounded ${ENTRY_TYPE_COLORS[type] ?? 'bg-gray-100 text-gray-600'}`}>
+                      {label}
+                    </span>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Shared Weather Entries */}
+      {preview && preview.reportType === 'CRA_WITH_WEATHER' && (
+        <div className="mt-4 bg-white border border-gray-200 rounded-lg p-6">
+          <h2 className="text-base font-semibold text-gray-900 mb-4">Météo projets partagée</h2>
+          {preview.weatherEntries.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">Aucune météo partagée ce mois.</p>
+          ) : (
+            <div className="divide-y divide-gray-100">
+              {preview.weatherEntries.map((w, i) => (
+                <div key={i} className="flex items-start gap-3 py-2.5 text-sm">
+                  <span className="text-lg leading-none" aria-hidden="true">
+                    {WEATHER_ICONS[w.state] ?? '—'}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-baseline gap-2">
+                      <span className="font-medium text-gray-900">{w.projectName}</span>
+                      <span className="text-gray-500 text-xs">
+                        {new Date(w.date).toLocaleDateString('fr-FR')}
+                      </span>
+                      <span className="text-gray-600 text-xs">{WEATHER_LABELS[w.state] ?? w.state}</span>
+                    </div>
+                    {w.comment && (
+                      <p className="text-gray-500 text-xs mt-0.5 truncate">{w.comment}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

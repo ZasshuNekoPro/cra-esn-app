@@ -29,7 +29,7 @@ export default function AdminMissionsPage(): JSX.Element {
   const [submitting, setSubmitting] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', description: '', endDate: '', dailyRate: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', endDate: '', dailyRate: '', employeeId: '', clientId: '' });
   const [editError, setEditError] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
@@ -81,6 +81,8 @@ export default function AdminMissionsPage(): JSX.Element {
       description: mission.description ?? '',
       endDate: mission.endDate ? mission.endDate.slice(0, 10) : '',
       dailyRate: mission.dailyRate !== null ? String(mission.dailyRate) : '',
+      employeeId: mission.employeeId,
+      clientId: mission.clientId ?? '',
     });
     setEditError(null);
   };
@@ -101,6 +103,8 @@ export default function AdminMissionsPage(): JSX.Element {
         description: editForm.description || undefined,
         endDate: editForm.endDate || undefined,
         dailyRate: editForm.dailyRate ? parseFloat(editForm.dailyRate) : undefined,
+        employeeId: editForm.employeeId || undefined,
+        clientId: editForm.clientId === '' ? null : editForm.clientId,
       });
       if (result.error) {
         setEditError(result.error);
@@ -305,6 +309,37 @@ export default function AdminMissionsPage(): JSX.Element {
                             className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                           />
                         </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Salarié</label>
+                        <select
+                          required
+                          value={editForm.employeeId}
+                          onChange={(e) => setEditForm((f) => ({ ...f, employeeId: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">— Sélectionner un salarié —</option>
+                          {employees.map((emp) => (
+                            <option key={emp.id} value={emp.id}>
+                              {emp.firstName} {emp.lastName} ({emp.email})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Client (optionnel)</label>
+                        <select
+                          value={editForm.clientId}
+                          onChange={(e) => setEditForm((f) => ({ ...f, clientId: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">— Aucun client —</option>
+                          {clients.map((client) => (
+                            <option key={client.id} value={client.id}>
+                              {client.firstName} {client.lastName} ({client.email})
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       {editError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editError}</p>}
                       <div className="flex gap-2">

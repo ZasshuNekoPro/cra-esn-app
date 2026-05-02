@@ -4,8 +4,6 @@ import { getSession } from 'next-auth/react';
 import type { ApiError } from '@esn/shared-types';
 import { ApiClientError } from './client';
 
-const BACKEND_URL = process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3001';
-
 interface FetchOptions extends Omit<RequestInit, 'body'> {
   body?: unknown;
 }
@@ -20,7 +18,7 @@ export async function clientApiFetch<T>(path: string, options: FetchOptions = {}
     ...options.headers,
   };
 
-  const res = await fetch(`${BACKEND_URL}/api${path}`, {
+  const res = await fetch(`/api/proxy${path}`, {
     ...options,
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
@@ -41,7 +39,11 @@ export async function clientApiFetch<T>(path: string, options: FetchOptions = {}
     return undefined as T;
   }
 
-  return res.json() as Promise<T>;
+  try {
+    return await res.json() as T;
+  } catch (e) {
+    throw new ApiClientError(res.status, `Réponse invalide (${e instanceof Error ? e.message : String(e)})`);
+  }
 }
 
 export const clientApiClient = {

@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import type { PublicUser } from '../../../../../lib/api/users';
-import { listEmployeesAction, createEmployeeAction, updateEmployeeAction } from './actions';
+import type { PublicUser, EsnAdmin } from '../../../../../lib/api/users';
+import { listEmployeesAction, createEmployeeAction, updateEmployeeAction, listAdminsAction, setReferentAction } from './actions';
 
 export default function AdminEmployeesPage(): JSX.Element {
   const [employees, setEmployees] = useState<PublicUser[]>([]);
+  const [admins, setAdmins] = useState<EsnAdmin[]>([]);
   const [loadingList, setLoadingList] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({ firstName: '', lastName: '', email: '', password: '', phone: '' });
@@ -13,7 +14,7 @@ export default function AdminEmployeesPage(): JSX.Element {
   const [submitting, setSubmitting] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phone: '' });
+  const [editForm, setEditForm] = useState({ firstName: '', lastName: '', phone: '', referentId: '' });
   const [editError, setEditError] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
@@ -28,7 +29,10 @@ export default function AdminEmployeesPage(): JSX.Element {
     }
   };
 
-  useEffect(() => { void loadEmployees(); }, []);
+  useEffect(() => {
+    void loadEmployees();
+    void listAdminsAction().then(setAdmins);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
@@ -53,7 +57,7 @@ export default function AdminEmployeesPage(): JSX.Element {
 
   const startEdit = (emp: PublicUser): void => {
     setEditingId(emp.id);
-    setEditForm({ firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone ?? '' });
+    setEditForm({ firstName: emp.firstName, lastName: emp.lastName, phone: emp.phone ?? '', referentId: emp.esnReferentId ?? '' });
     setEditError(null);
   };
 
@@ -68,17 +72,29 @@ export default function AdminEmployeesPage(): JSX.Element {
     setEditError(null);
     setEditSubmitting(true);
     try {
-      const result = await updateEmployeeAction(editingId, {
+      const emp = employees.find((u) => u.id === editingId);
+      const profileResult = await updateEmployeeAction(editingId, {
         firstName: editForm.firstName,
         lastName: editForm.lastName,
         phone: editForm.phone || undefined,
       });
-      if (result.error) {
-        setEditError(result.error);
-      } else {
-        setEditingId(null);
-        void loadEmployees();
+      if (profileResult.error) {
+        setEditError(profileResult.error);
+        return;
       }
+
+      const newReferentId = editForm.referentId || null;
+      const oldReferentId = emp?.esnReferentId ?? null;
+      if (newReferentId !== oldReferentId) {
+        const referentResult = await setReferentAction(editingId, newReferentId);
+        if (referentResult.error) {
+          setEditError(referentResult.error);
+          return;
+        }
+      }
+
+      setEditingId(null);
+      void loadEmployees();
     } finally {
       setEditSubmitting(false);
     }
@@ -221,6 +237,19 @@ export default function AdminEmployeesPage(): JSX.Element {
                         className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                       />
                     </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">Référent ESN</label>
+                      <select
+                        value={editForm.referentId}
+                        onChange={(e) => setEditForm((f) => ({ ...f, referentId: e.target.value }))}
+                        className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="">— Aucun référent —</option>
+                        {admins.map((a) => (
+                          <option key={a.id} value={a.id}>{a.firstName} {a.lastName}</option>
+                        ))}
+                      </select>
+                    </div>
                     {editError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editError}</p>}
                     <div className="flex gap-2">
                       <button
@@ -245,6 +274,13 @@ export default function AdminEmployeesPage(): JSX.Element {
                       <p className="font-medium text-gray-900">{emp.firstName} {emp.lastName}</p>
                       <p className="text-sm text-gray-500">{emp.email}</p>
                       {emp.phone && <p className="text-xs text-gray-400">{emp.phone}</p>}
+                      {emp.esnReferentId ? (
+                        <p className="text-xs text-indigo-600 mt-0.5">
+                          Référent : {admins.find((a) => a.id === emp.esnReferentId)?.firstName ?? ''} {admins.find((a) => a.id === emp.esnReferentId)?.lastName ?? ''}
+                        </p>
+                      ) : (
+                        <p className="text-xs text-gray-400 mt-0.5">Sans référent</p>
+                      )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded">Salarié</span>

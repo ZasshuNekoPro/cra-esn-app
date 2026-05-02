@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
+import type { Request, Response, NextFunction } from 'express';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
@@ -15,6 +16,15 @@ async function bootstrap(): Promise<void> {
       transform: true,
     }),
   );
+
+  // Chrome 94+ Private Network Access: browser blocks public-origin → private-IP
+  // requests unless the server explicitly opts in via this header in the preflight.
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    if (req.headers['access-control-request-private-network']) {
+      res.setHeader('Access-Control-Allow-Private-Network', 'true');
+    }
+    next();
+  });
 
   // Parse CORS_ORIGIN as comma-separated list to support multiple origins
   const corsOriginEnv = process.env['CORS_ORIGIN'] ?? 'http://localhost:3000';
