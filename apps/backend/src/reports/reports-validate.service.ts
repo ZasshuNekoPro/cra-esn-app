@@ -143,12 +143,14 @@ export class ReportsValidateService {
     const craMonth = await this.prisma.craMonth.findFirst({
       where: { employeeId: row.employeeId, year: row.year, month: row.month },
       include: { entries: { orderBy: { date: 'asc' } } },
-    }) as { entries: Array<{ date: Date; entryType: string; dayFraction: { toNumber(): number } | number; comment: string | null }> } | null;
+    }) as { entries: Array<{ date: Date; entryType: string; dayFraction: { toNumber(): number } | number; modifiers: string[]; secondHalfType: string | null; comment: string | null }> } | null;
 
     const craEntries = (craMonth?.entries ?? []).map((e) => ({
       date: e.date.toISOString(),
       entryType: e.entryType,
       dayFraction: typeof e.dayFraction === 'object' ? e.dayFraction.toNumber() : e.dayFraction,
+      modifiers: e.modifiers ?? [],
+      secondHalfType: e.secondHalfType ?? null,
       comment: e.comment,
     }));
 
