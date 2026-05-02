@@ -257,6 +257,15 @@ export class UsersService {
     });
   }
 
+  async listEsnAdmins(callerEsnId: string | null): Promise<{ id: string; firstName: string; lastName: string }[]> {
+    if (callerEsnId === null) return [];
+    return this.prisma.user.findMany({
+      where: { deletedAt: null, esnId: callerEsnId, role: Role.ESN_ADMIN },
+      select: { id: true, firstName: true, lastName: true },
+      orderBy: [{ firstName: 'asc' }, { lastName: 'asc' }],
+    });
+  }
+
   async changePassword(userId: string, dto: ChangePasswordDto): Promise<void> {
     const user = await this.prisma.user.findUnique({ where: { id: userId, deletedAt: null } });
     if (!user) throw new NotFoundException(`User ${userId} not found`);

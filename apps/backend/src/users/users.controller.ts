@@ -64,6 +64,15 @@ export class UsersController {
   }
 
   /**
+   * GET /users/esn-admins — list ESN_ADMIN users in the caller's ESN (for referent picker)
+   */
+  @Get('esn-admins')
+  @Roles(Role.ESN_ADMIN, Role.PLATFORM_ADMIN)
+  listEsnAdmins(@CurrentUser() user: JwtPayload) {
+    return this.usersService.listEsnAdmins(user.esnId ?? null);
+  }
+
+  /**
    * GET /users/:id
    */
   @Get(':id')
