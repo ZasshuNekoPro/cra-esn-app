@@ -10,6 +10,39 @@ import {
   deactivateMissionAction,
 } from './actions';
 
+function EmployeeCheckboxList({
+  employees,
+  selectedIds,
+  onChange,
+}: {
+  employees: PublicUser[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}): JSX.Element {
+  const toggle = (id: string, checked: boolean): void => {
+    onChange(checked ? [...selectedIds, id] : selectedIds.filter((x) => x !== id));
+  };
+  return (
+    <div className="border rounded-md p-2 space-y-1 max-h-44 overflow-y-auto">
+      {employees.length === 0 && (
+        <p className="text-sm text-gray-400 px-2 py-1">Aucun salarié disponible</p>
+      )}
+      {employees.map((emp) => (
+        <label key={emp.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(emp.id)}
+            onChange={(e) => toggle(emp.id, e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-sm text-gray-800">{emp.firstName} {emp.lastName}</span>
+          <span className="text-xs text-gray-400">({emp.email})</span>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export default function AdminMissionsPage(): JSX.Element {
   const [missions, setMissions] = useState<Mission[]>([]);
   const [employees, setEmployees] = useState<PublicUser[]>([]);
@@ -22,23 +55,23 @@ export default function AdminMissionsPage(): JSX.Element {
     startDate: '',
     endDate: '',
     dailyRate: '',
-    employeeId: '',
+    employeeIds: [] as string[],
     clientId: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editForm, setEditForm] = useState({ title: '', description: '', endDate: '', dailyRate: '', employeeId: '', clientId: '' });
+  const [editForm, setEditForm] = useState({ title: '', description: '', endDate: '', dailyRate: '', employeeIds: [] as string[], clientId: '' });
   const [editError, setEditError] = useState<string | null>(null);
   const [editSubmitting, setEditSubmitting] = useState(false);
 
   const loadData = async (): Promise<void> => {
     try {
-      const { missions, employees, clients } = await listMissionsAndUsersAction();
-      setMissions(missions);
-      setEmployees(employees);
-      setClients(clients);
+      const data = await listMissionsAndUsersAction();
+      setMissions(data.missions);
+      setEmployees(data.employees);
+      setClients(data.clients);
     } catch {
       // silently fail
     } finally {
@@ -50,6 +83,10 @@ export default function AdminMissionsPage(): JSX.Element {
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (form.employeeIds.length === 0) {
+      setError('Sélectionner au moins un salarié');
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
@@ -59,13 +96,13 @@ export default function AdminMissionsPage(): JSX.Element {
         startDate: form.startDate,
         endDate: form.endDate || undefined,
         dailyRate: form.dailyRate ? parseFloat(form.dailyRate) : undefined,
-        employeeId: form.employeeId,
+        employeeIds: form.employeeIds,
         clientId: form.clientId || undefined,
       });
       if (result.error) {
         setError(result.error);
       } else {
-        setForm({ title: '', description: '', startDate: '', endDate: '', dailyRate: '', employeeId: '', clientId: '' });
+        setForm({ title: '', description: '', startDate: '', endDate: '', dailyRate: '', employeeIds: [], clientId: '' });
         setShowForm(false);
         void loadData();
       }
@@ -81,7 +118,7 @@ export default function AdminMissionsPage(): JSX.Element {
       description: mission.description ?? '',
       endDate: mission.endDate ? mission.endDate.slice(0, 10) : '',
       dailyRate: mission.dailyRate !== null ? String(mission.dailyRate) : '',
-      employeeId: mission.employeeId,
+      employeeIds: mission.employees.map((e) => e.id),
       clientId: mission.clientId ?? '',
     });
     setEditError(null);
@@ -94,6 +131,10 @@ export default function AdminMissionsPage(): JSX.Element {
 
   const handleEditSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (editForm.employeeIds.length === 0) {
+      setEditError('Sélectionner au moins un salarié');
+      return;
+    }
     if (!editingId) return;
     setEditError(null);
     setEditSubmitting(true);
@@ -103,7 +144,7 @@ export default function AdminMissionsPage(): JSX.Element {
         description: editForm.description || undefined,
         endDate: editForm.endDate || undefined,
         dailyRate: editForm.dailyRate ? parseFloat(editForm.dailyRate) : undefined,
-        employeeId: editForm.employeeId || undefined,
+        employeeIds: editForm.employeeIds,
         clientId: editForm.clientId === '' ? null : editForm.clientId,
       });
       if (result.error) {
@@ -127,7 +168,6 @@ export default function AdminMissionsPage(): JSX.Element {
     }
   };
 
-  const employeeMap = new Map(employees.map((e) => [e.id, e]));
   const clientMap = new Map(clients.map((c) => [c.id, c]));
 
   return (
@@ -200,20 +240,17 @@ export default function AdminMissionsPage(): JSX.Element {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Salarié</label>
-            <select
-              required
-              value={form.employeeId}
-              onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">— Sélectionner un salarié —</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.firstName} {emp.lastName} ({emp.email})
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Salariés
+              {form.employeeIds.length > 0 && (
+                <span className="ml-2 text-xs text-blue-600 font-normal">{form.employeeIds.length} sélectionné{form.employeeIds.length > 1 ? 's' : ''}</span>
+              )}
+            </label>
+            <EmployeeCheckboxList
+              employees={employees}
+              selectedIds={form.employeeIds}
+              onChange={(ids) => setForm((f) => ({ ...f, employeeIds: ids }))}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Client (optionnel)</label>
@@ -263,7 +300,6 @@ export default function AdminMissionsPage(): JSX.Element {
         ) : (
           <ul className="divide-y">
             {missions.map((mission) => {
-              const emp = employeeMap.get(mission.employeeId) ?? mission.employee;
               const client = mission.clientId ? (clientMap.get(mission.clientId) ?? mission.client) : null;
               return (
                 <li key={mission.id} className="px-6 py-4">
@@ -311,20 +347,17 @@ export default function AdminMissionsPage(): JSX.Element {
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Salarié</label>
-                        <select
-                          required
-                          value={editForm.employeeId}
-                          onChange={(e) => setEditForm((f) => ({ ...f, employeeId: e.target.value }))}
-                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        >
-                          <option value="">— Sélectionner un salarié —</option>
-                          {employees.map((emp) => (
-                            <option key={emp.id} value={emp.id}>
-                              {emp.firstName} {emp.lastName} ({emp.email})
-                            </option>
-                          ))}
-                        </select>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Salariés
+                          {editForm.employeeIds.length > 0 && (
+                            <span className="ml-2 text-blue-600 font-normal">{editForm.employeeIds.length} sélectionné{editForm.employeeIds.length > 1 ? 's' : ''}</span>
+                          )}
+                        </label>
+                        <EmployeeCheckboxList
+                          employees={employees}
+                          selectedIds={editForm.employeeIds}
+                          onChange={(ids) => setEditForm((f) => ({ ...f, employeeIds: ids }))}
+                        />
                       </div>
                       <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">Client (optionnel)</label>
@@ -334,9 +367,9 @@ export default function AdminMissionsPage(): JSX.Element {
                           className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                         >
                           <option value="">— Aucun client —</option>
-                          {clients.map((client) => (
-                            <option key={client.id} value={client.id}>
-                              {client.firstName} {client.lastName} ({client.email})
+                          {clients.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.firstName} {c.lastName} ({c.email})
                             </option>
                           ))}
                         </select>
@@ -364,7 +397,7 @@ export default function AdminMissionsPage(): JSX.Element {
                       <div>
                         <p className="font-medium text-gray-900">{mission.title}</p>
                         <p className="text-sm text-gray-500">
-                          {emp ? `${emp.firstName} ${emp.lastName}` : ''}
+                          {mission.employees.map((e) => `${e.firstName} ${e.lastName}`).join(', ')}
                           {client ? ` · Client : ${client.firstName} ${client.lastName}` : ''}
                         </p>
                         <p className="text-xs text-gray-400">

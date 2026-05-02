@@ -193,6 +193,7 @@ model User {
 
   // Relations — Employee
   missions           Mission[]          @relation("EmployeeMissions")
+  missionEmployees   MissionEmployee[]  @relation("MissionEmployees")
   craMonths          CraMonth[]         @relation("EmployeeCraMonths")
   leaveBalances      LeaveBalance[]
   projectEntries     ProjectEntry[]     @relation("EmployeeProjectEntries")
@@ -249,7 +250,7 @@ model Mission {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  // Actors
+  // Primary actor FK (kept for backward compatibility with CRA/projects/reports/RAG)
   employeeId  String    @map("employee_id")
   employee    User      @relation("EmployeeMissions", fields: [employeeId], references: [id])
 
@@ -259,12 +260,26 @@ model Mission {
   clientId    String?   @map("client_id")
   client      User?     @relation("ClientMissions", fields: [clientId], references: [id])
 
+  // All employees on this mission (including the primary employee above)
+  missionEmployees  MissionEmployee[]
+
   // Relations
   projects    Project[]
   craMonths   CraMonth[]
   documents   Document[]
 
   @@map("missions")
+}
+
+model MissionEmployee {
+  missionId  String   @map("mission_id")
+  mission    Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  employeeId String   @map("employee_id")
+  employee   User     @relation("MissionEmployees", fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@id([missionId, employeeId])
+  @@map("mission_employees")
 }
 
 // ─── CRA ──────────────────────────────────────────────────────────────────────

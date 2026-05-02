@@ -6,6 +6,7 @@ import {
   IsPositive,
   IsBoolean,
   IsUUID,
+  IsArray,
 } from 'class-validator';
 
 export class UpdateMissionDto {
@@ -31,8 +32,9 @@ export class UpdateMissionDto {
   isActive?: boolean;
 
   @IsOptional()
-  @IsUUID()
-  employeeId?: string;
+  @IsArray()
+  @IsUUID('4', { each: true })
+  employeeIds?: string[];
 
   // null explicitly removes the client assignment
   @IsOptional()
