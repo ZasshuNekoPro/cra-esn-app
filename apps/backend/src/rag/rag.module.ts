@@ -7,11 +7,14 @@ import { RagEventListenerService } from './rag-event-listener.service';
 import { RagQueryService } from './rag-query.service';
 import { RagSchedulerService } from './rag-scheduler.service';
 import { RagController } from './rag.controller';
+import { ContextNotesService } from './context-notes.service';
+import { ContextNotesController } from './context-notes.controller';
+import { RagThrottleService } from './rag-throttle.service';
 import { EmbedderService } from '@esn/rag-engine';
 
 @Module({
   imports: [PrismaModule],
-  controllers: [RagController],
+  controllers: [RagController, ContextNotesController],
   providers: [
     {
       provide: EmbedderService,
@@ -32,7 +35,9 @@ import { EmbedderService } from '@esn/rag-engine';
     RagEventListenerService,
     RagQueryService,
     RagSchedulerService,
+    ContextNotesService,
+    RagThrottleService,
   ],
-  exports: [RagIndexerService, RagQueryService],
+  exports: [RagIndexerService, RagQueryService, ContextNotesService],
 })
 export class RagModule {}

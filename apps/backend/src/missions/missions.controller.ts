@@ -3,11 +3,13 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,6 +18,8 @@ import type { JwtPayload } from '@esn/shared-types';
 import { MissionsService } from './missions.service';
 import { CreateMissionDto } from './dto/create-mission.dto';
 import { UpdateMissionDto } from './dto/update-mission.dto';
+import { ToggleRagDto } from './dto/toggle-rag.dto';
+import { MissionPrimaryGuard } from '../common/guards/mission-primary.guard';
 
 @Controller('missions')
 export class MissionsController {
@@ -75,5 +79,20 @@ export class MissionsController {
   @Roles(Role.ESN_ADMIN)
   deactivate(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.missionsService.deactivate(id, user.role);
+  }
+
+  /**
+   * PATCH /missions/:id/rag
+   * Primary employee only — toggle RAG on/off for this mission's document space.
+   */
+  @Patch(':id/rag')
+  @Roles(Role.EMPLOYEE)
+  @UseGuards(MissionPrimaryGuard)
+  toggleRag(
+    @Param('id') id: string,
+    @Body() dto: ToggleRagDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.missionsService.toggleRag(id, dto.ragEnabled, user.sub);
   }
 }
