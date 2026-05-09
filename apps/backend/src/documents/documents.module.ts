@@ -5,6 +5,8 @@ import { PrismaModule } from '../database/prisma.module';
 import { StorageModule } from '../storage/storage.module';
 import { DocumentsController } from './documents.controller';
 import { DocumentsService } from './documents.service';
+import { DocumentMetadataController } from './document-metadata.controller';
+import { DocumentMetadataService } from './document-metadata.service';
 
 @Module({
   imports: [
@@ -15,8 +17,8 @@ import { DocumentsService } from './documents.service';
       limits: { fileSize: 52_428_800 }, // 50 MB hard limit at transport layer
     }),
   ],
-  controllers: [DocumentsController],
-  providers: [DocumentsService],
-  exports: [DocumentsService],
+  controllers: [DocumentsController, DocumentMetadataController],
+  providers: [DocumentsService, DocumentMetadataService],
+  exports: [DocumentsService, DocumentMetadataService],
 })
 export class DocumentsModule {}

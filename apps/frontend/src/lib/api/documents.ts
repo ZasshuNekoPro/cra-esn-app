@@ -1,6 +1,27 @@
 import { apiFetch, apiClient } from './client';
+import { clientApiClient } from './clientFetch';
 import { getSession } from 'next-auth/react';
 import type { Document, DocumentVersion, DocumentShare } from '@esn/shared-types';
+
+export interface DocumentMetadata {
+  id: string;
+  documentId: string;
+  version: string;
+  isObsolete: boolean;
+  documentDate: string | null;
+  serviceInvolved: string | null;
+  tags: string[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertMetadataRequest {
+  version?: string;
+  isObsolete?: boolean;
+  documentDate?: string | null;
+  serviceInvolved?: string | null;
+  tags?: string[];
+}
 
 export interface DocumentWithRelations extends Document {
   versions: DocumentVersion[];
@@ -70,4 +91,13 @@ export const documentsApi = {
 
   listSharedWithMe: (): Promise<DocumentWithRelations[]> =>
     apiClient.get('/documents/shared-with-me'),
+};
+
+// Client-side metadata API
+export const documentMetadataClientApi = {
+  get: (documentId: string): Promise<DocumentMetadata> =>
+    clientApiClient.get<DocumentMetadata>(`/documents/${documentId}/metadata`),
+
+  upsert: (documentId: string, data: UpsertMetadataRequest): Promise<DocumentMetadata> =>
+    clientApiClient.patch<DocumentMetadata>(`/documents/${documentId}/metadata`, data),
 };

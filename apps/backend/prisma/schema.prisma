@@ -193,7 +193,6 @@ model User {
 
   // Relations — Employee
   missions           Mission[]          @relation("EmployeeMissions")
-  missionEmployees   MissionEmployee[]  @relation("MissionEmployees")
   craMonths          CraMonth[]         @relation("EmployeeCraMonths")
   leaveBalances      LeaveBalance[]
   projectEntries     ProjectEntry[]     @relation("EmployeeProjectEntries")
@@ -234,6 +233,9 @@ model User {
   // Relations — Report validation pipeline
   reportValidationRequests ReportValidationRequest[] @relation("ReportValidationRequests")
 
+  // Relations — Mission docspace RAG
+  contextNotes  ContextNote[] @relation("EmployeeContextNotes")
+
   @@map("users")
 }
 
@@ -250,7 +252,7 @@ model Mission {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  // Primary actor FK (kept for backward compatibility with CRA/projects/reports/RAG)
+  // Actors
   employeeId  String    @map("employee_id")
   employee    User      @relation("EmployeeMissions", fields: [employeeId], references: [id])
 
@@ -263,23 +265,14 @@ model Mission {
   // All employees on this mission (including the primary employee above)
   missionEmployees  MissionEmployee[]
 
+  ragEnabled   Boolean   @default(false) @map("rag_enabled")
   // Relations
-  projects    Project[]
-  craMonths   CraMonth[]
-  documents   Document[]
+  projects     Project[]
+  craMonths    CraMonth[]
+  documents    Document[]
+  contextNotes ContextNote[] @relation("MissionContextNotes")
 
   @@map("missions")
-}
-
-model MissionEmployee {
-  missionId  String   @map("mission_id")
-  mission    Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
-  employeeId String   @map("employee_id")
-  employee   User     @relation("MissionEmployees", fields: [employeeId], references: [id], onDelete: Cascade)
-  createdAt  DateTime @default(now()) @map("created_at")
-
-  @@id([missionId, employeeId])
-  @@map("mission_employees")
 }
 
 // ─── CRA ──────────────────────────────────────────────────────────────────────
@@ -552,6 +545,7 @@ model Document {
   validations        ValidationDocument[]
   embeddings         Embedding[]
   projectValidations ProjectValidationDocument[]
+  metadata           DocumentMetadata?
 
   @@map("documents")
 }
@@ -725,4 +719,42 @@ model Embedding {
   @@unique([employeeId, sourceType, sourceId])
   @@index([employeeId])
   @@map("embeddings")
+}
+
+// ─── Document Metadata ────────────────────────────────────────────────────────
+
+model DocumentMetadata {
+  id              String    @id @default(uuid())
+  version         String    @default("1.0")
+  isObsolete      Boolean   @default(false) @map("is_obsolete")
+  documentDate    DateTime? @map("document_date")
+  serviceInvolved String?   @map("service_involved")
+  tags            String[]  @default([])
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  documentId String   @unique @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_metadata")
+}
+
+// ─── Context Notes (RAG information mode) ─────────────────────────────────────
+
+model ContextNote {
+  id        String   @id @default(uuid())
+  content   String
+  userInput String   @map("user_input")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  missionId  String  @map("mission_id")
+  mission    Mission @relation("MissionContextNotes", fields: [missionId], references: [id], onDelete: Cascade)
+
+  // onDelete: Cascade — GDPR Art. 17 erasure path
+  employeeId String  @map("employee_id")
+  employee   User    @relation("EmployeeContextNotes", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([missionId])
+  @@index([employeeId])
+  @@map("context_notes")
 }

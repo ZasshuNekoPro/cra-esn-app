@@ -4,7 +4,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { PrismaService } from '../database/prisma.service';
-import { Role } from '@esn/shared-types';
+import { Role, AuditAction } from '@esn/shared-types';
 import type { CreateMissionDto } from './dto/create-mission.dto';
 import type { UpdateMissionDto } from './dto/update-mission.dto';
 
@@ -175,5 +175,30 @@ export class MissionsService {
     const mission = await this.prisma.mission.findUnique({ where: { id } });
     if (!mission) throw new NotFoundException(`Mission ${id} not found`);
     await this.prisma.mission.update({ where: { id }, data: { isActive: false } });
+  }
+
+  async toggleRag(id: string, ragEnabled: boolean, callerId: string) {
+    const mission = await this.prisma.mission.findUnique({
+      where: { id },
+      select: { ragEnabled: true },
+    });
+    if (!mission) throw new NotFoundException(`Mission ${id} not found`);
+
+    const updated = await this.prisma.mission.update({
+      where: { id },
+      data: { ragEnabled },
+      select: { id: true, ragEnabled: true },
+    });
+
+    void this.prisma.auditLog.create({
+      data: {
+        action: AuditAction.MISSION_RAG_TOGGLE,
+        resource: `mission:${id}`,
+        metadata: { oldValue: mission.ragEnabled, newValue: ragEnabled },
+        initiatorId: callerId,
+      },
+    });
+
+    return updated;
   }
 }
