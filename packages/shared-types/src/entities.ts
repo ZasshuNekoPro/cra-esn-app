@@ -75,6 +75,7 @@ export interface Mission extends BaseEntity {
   endDate?: Date | null;
   dailyRate?: number | null;
   isActive: boolean;
+  ragEnabled: boolean;
   employeeId: string;
   esnAdminId?: string | null;
   clientId?: string | null;
@@ -288,6 +289,31 @@ export interface AuditLog {
   userAgent?: string | null;
   initiatorId: string;
   createdAt: Date;
+}
+
+// ── Document Metadata ─────────────────────────────────────────────────────────
+
+export interface DocumentMetadata {
+  id: string;
+  version: string;
+  isObsolete: boolean;
+  documentDate: Date | null;
+  serviceInvolved: string | null;
+  tags: string[];
+  documentId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ── Context Note ──────────────────────────────────────────────────────────────
+
+export interface ContextNote {
+  id: string;
+  content: string;
+  missionId: string;
+  employeeId: string;
+  createdAt: Date;
+  // userInput intentionally omitted from entity — PII, excluded from API responses
 }
 
 // ── Notification ──────────────────────────────────────────────────────────────

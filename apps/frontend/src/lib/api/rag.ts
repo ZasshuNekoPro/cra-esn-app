@@ -3,6 +3,8 @@ import type { RagQueryRequest, RagSource } from '@esn/shared-types';
 export type RagStreamEvent =
   | { type: 'token'; content: string }
   | { type: 'sources'; sources: RagSource[] }
+  | { type: 'comparison'; content: string }
+  | { type: 'note_saved'; noteId: string }
   | { type: 'done' }
   | { type: 'error'; message: string };
 
@@ -13,9 +15,11 @@ export type RagStreamEvent =
 export async function* streamRagQuery(
   dto: RagQueryRequest,
   token: string,
+  signal?: AbortSignal,
 ): AsyncGenerator<RagStreamEvent> {
   const res = await fetch(`/api/proxy/rag/stream`, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,

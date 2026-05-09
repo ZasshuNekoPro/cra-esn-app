@@ -9,6 +9,7 @@ import {
 import type { Response } from 'express';
 import { RagQueryService } from './rag-query.service';
 import { RagQueryDto } from './dto/rag-query.dto';
+import { RagThrottleService } from './rag-throttle.service';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
 import { Role } from '@esn/shared-types';
@@ -17,7 +18,10 @@ import type { JwtPayload } from '@esn/shared-types';
 @Controller('rag')
 @Roles(Role.EMPLOYEE)
 export class RagController {
-  constructor(private readonly ragQueryService: RagQueryService) {}
+  constructor(
+    private readonly ragQueryService: RagQueryService,
+    private readonly ragThrottle: RagThrottleService,
+  ) {}
 
   /**
    * POST /rag/stream
@@ -34,6 +38,10 @@ export class RagController {
     @Res() res: Response,
     @CurrentUser() user: JwtPayload,
   ): Promise<void> {
+    if (dto.mode === 'information') {
+      await this.ragThrottle.checkInformationMode(user.sub, user.esnId);
+    }
+
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
@@ -45,7 +53,11 @@ export class RagController {
         res.write(`data: ${JSON.stringify(event)}\n\n`);
       }
     } catch (err) {
-      res.write(`data: ${JSON.stringify({ type: 'error', message: 'Internal server error' })}\n\n`);
+      const message = err instanceof Error && err.name === 'ForbiddenException'
+        ? (err as Error & { message: string }).message
+        : 'Internal server error';
+      res.write(`data: ${JSON.stringify({ type: 'error', message })}\n\n`);
+      res.write(`data: ${JSON.stringify({ type: 'done' })}\n\n`);
     } finally {
       res.end();
     }

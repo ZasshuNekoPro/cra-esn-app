@@ -51,4 +51,6 @@ export const missionsClientApi = {
   create: (data: CreateMissionRequest): Promise<Mission> => clientApiClient.post<Mission>('/missions', data),
   update: (id: string, data: UpdateMissionRequest): Promise<Mission> => clientApiClient.put<Mission>(`/missions/${id}`, data),
   deactivate: (id: string): Promise<void> => clientApiClient.delete<void>(`/missions/${id}`),
+  toggleRag: (id: string, ragEnabled: boolean): Promise<Mission> =>
+    clientApiClient.patch<Mission>(`/missions/${id}/rag`, { ragEnabled }),
 };
