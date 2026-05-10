@@ -109,7 +109,7 @@ export interface CreateMissionRequest {
   startDate: string; // ISO date string
   endDate?: string;
   dailyRate?: number;
-  employeeId: string;
+  employeeIds: string[];
   esnAdminId?: string;
   clientId?: string;
 }
@@ -432,6 +432,7 @@ export interface ContextNoteListQuery extends PaginationQuery {
   missionId: string;
   sortBy?: 'createdAt';
 }
+
 
 // ── Audit Logs (PLATFORM_ADMIN) ───────────────────────────────────────────────
 
