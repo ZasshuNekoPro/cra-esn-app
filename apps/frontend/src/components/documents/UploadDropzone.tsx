@@ -26,7 +26,7 @@ export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropz
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [name, setName] = useState('');
-  const [type, setType] = useState<DocumentType>(DocumentType.OTHER);
+  const [type, setType] = useState<DocumentType>(DocumentType.NOTE);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +65,7 @@ export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropz
       await documentsApi.upload({ name: name.trim(), type, missionId, projectId, file });
       setFile(null);
       setName('');
-      setType(DocumentType.OTHER);
+      setType(DocumentType.NOTE);
       onUploaded();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'upload');
@@ -121,10 +121,18 @@ export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropz
               onChange={(e) => setType(e.target.value as DocumentType)}
               className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
+              <optgroup label="Documents de mission">
+                <option value={DocumentType.NOTE}>Note</option>
+                <option value={DocumentType.PROCEDURE}>Procédure</option>
+                <option value={DocumentType.REPORT}>Rapport</option>
+                <option value={DocumentType.SPECIFICATION}>Spécification</option>
+              </optgroup>
+              <optgroup label="Documents officiels">
+                <option value={DocumentType.CONTRACT}>Contrat</option>
+                <option value={DocumentType.AMENDMENT}>Avenant</option>
+                <option value={DocumentType.MISSION_ORDER}>Ordre de mission</option>
+              </optgroup>
               <option value={DocumentType.OTHER}>Autre</option>
-              <option value={DocumentType.CONTRACT}>Contrat</option>
-              <option value={DocumentType.AMENDMENT}>Avenant</option>
-              <option value={DocumentType.MISSION_ORDER}>Ordre de mission</option>
             </select>
           </div>
         </div>

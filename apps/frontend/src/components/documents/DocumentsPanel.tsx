@@ -4,12 +4,13 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DocumentCard } from './DocumentCard';
 import { UploadDropzone } from './UploadDropzone';
+import { DocumentMetadataDrawer } from './DocumentMetadataDrawer';
 import { documentsApi } from '../../lib/api/documents';
 import type { DocumentWithRelations } from '../../lib/api/documents';
 
 interface DocumentsPanelProps {
   initialDocuments: DocumentWithRelations[];
-  missionId: string;
+  missionId?: string;
   projectId?: string;
 }
 
@@ -18,6 +19,9 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
   const [documents, setDocuments] = useState(initialDocuments);
   const [showUpload, setShowUpload] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metaDocId, setMetaDocId] = useState<string | null>(null);
+
+  const metaDoc = documents.find((d) => d.id === metaDocId);
 
   const refresh = useCallback(async () => {
     try {
@@ -57,15 +61,17 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-700">Documents</h2>
-        <button
-          onClick={() => setShowUpload((v) => !v)}
-          className="text-xs px-3 py-1.5 font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
-        >
-          {showUpload ? 'Annuler' : '+ Ajouter'}
-        </button>
+        {missionId && (
+          <button
+            onClick={() => setShowUpload((v) => !v)}
+            className="text-xs px-3 py-1.5 font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+          >
+            {showUpload ? 'Annuler' : '+ Ajouter'}
+          </button>
+        )}
       </div>
 
-      {showUpload && (
+      {showUpload && missionId && (
         <UploadDropzone missionId={missionId} projectId={projectId} onUploaded={handleUploaded} />
       )}
 
@@ -83,9 +89,19 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
               document={doc}
               onDownload={(id) => void handleDownload(id)}
               onDelete={(id) => void handleDelete(id)}
+              onMetadata={(id) => setMetaDocId(id)}
             />
           ))}
         </div>
+      )}
+
+      {metaDocId && metaDoc && (
+        <DocumentMetadataDrawer
+          documentId={metaDocId}
+          documentName={metaDoc.name}
+          isOpen={!!metaDocId}
+          onClose={() => setMetaDocId(null)}
+        />
       )}
     </div>
   );

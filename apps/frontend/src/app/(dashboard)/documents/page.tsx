@@ -63,7 +63,7 @@ export default async function DocumentsPage({
         )}
         <DocumentsPanel
           initialDocuments={documents}
-          missionId={params.missionId ?? ''}
+          missionId={params.missionId}
         />
       </div>
     </div>

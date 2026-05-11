@@ -5,6 +5,10 @@ const TYPE_LABELS: Record<DocumentType, string> = {
   [DocumentType.CONTRACT]: 'Contrat',
   [DocumentType.AMENDMENT]: 'Avenant',
   [DocumentType.MISSION_ORDER]: 'Ordre de mission',
+  [DocumentType.PROCEDURE]: 'Procédure',
+  [DocumentType.NOTE]: 'Note',
+  [DocumentType.REPORT]: 'Rapport',
+  [DocumentType.SPECIFICATION]: 'Spécification',
   [DocumentType.CRA_PDF]: 'CRA PDF',
   [DocumentType.OTHER]: 'Autre',
 };
