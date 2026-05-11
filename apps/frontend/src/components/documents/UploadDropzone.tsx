@@ -18,11 +18,12 @@ const ALLOWED_MIME = [
 
 interface UploadDropzoneProps {
   missionId: string;
+  missionTitle?: string;
   projectId?: string;
   onUploaded: () => void;
 }
 
-export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropzoneProps) {
+export function UploadDropzone({ missionId, missionTitle, projectId, onUploaded }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [name, setName] = useState('');
@@ -76,6 +77,11 @@ export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropz
 
   return (
     <div className="space-y-3">
+      {missionTitle && (
+        <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          Mission : <span className="font-semibold">{missionTitle}</span>
+        </p>
+      )}
       <div
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}

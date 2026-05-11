@@ -15,7 +15,7 @@ interface Props {
   missionTitle: string;
   initialDocuments: DocumentWithRelations[];
   ragEnabled: boolean;
-  isPrimaryEmployee: boolean;
+  isEmployeeOnMission: boolean;
 }
 
 export function MissionDocspacePanel({
@@ -23,7 +23,7 @@ export function MissionDocspacePanel({
   missionTitle,
   initialDocuments,
   ragEnabled: initialRagEnabled,
-  isPrimaryEmployee,
+  isEmployeeOnMission,
 }: Props): JSX.Element {
   const router = useRouter();
   const [documents, setDocuments] = useState(initialDocuments);
@@ -84,8 +84,8 @@ export function MissionDocspacePanel({
 
   return (
     <div className="space-y-8">
-      {/* RAG toggle (primary employee only) */}
-      {isPrimaryEmployee && (
+      {/* RAG toggle — any employee on this mission */}
+      {isEmployeeOnMission && (
         <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl">
           <div>
             <p className="text-sm font-semibold text-gray-900">Assistant IA sur cet espace</p>
@@ -126,7 +126,7 @@ export function MissionDocspacePanel({
         </div>
 
         {showUpload && (
-          <UploadDropzone missionId={missionId} onUploaded={handleUploaded} />
+          <UploadDropzone missionId={missionId} missionTitle={missionTitle} onUploaded={handleUploaded} />
         )}
 
         {error && (
