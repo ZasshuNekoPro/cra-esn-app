@@ -29,6 +29,12 @@ export class DocumentMetadataService {
         documentDate: dto.documentDate ? new Date(dto.documentDate) : null,
         serviceInvolved: dto.serviceInvolved ?? null,
         tags: dto.tags ?? [],
+        author: dto.author ?? null,
+        summary: dto.summary ?? null,
+        language: dto.language ?? null,
+        confidentialityLevel: dto.confidentialityLevel ?? null,
+        applicableFromDate: dto.applicableFromDate ? new Date(dto.applicableFromDate) : null,
+        applicableUntilDate: dto.applicableUntilDate ? new Date(dto.applicableUntilDate) : null,
       },
       update: {
         ...(dto.version !== undefined && { version: dto.version }),
@@ -38,6 +44,16 @@ export class DocumentMetadataService {
         }),
         ...(dto.serviceInvolved !== undefined && { serviceInvolved: dto.serviceInvolved }),
         ...(dto.tags !== undefined && { tags: dto.tags }),
+        ...(dto.author !== undefined && { author: dto.author }),
+        ...(dto.summary !== undefined && { summary: dto.summary }),
+        ...(dto.language !== undefined && { language: dto.language }),
+        ...(dto.confidentialityLevel !== undefined && { confidentialityLevel: dto.confidentialityLevel }),
+        ...(dto.applicableFromDate !== undefined && {
+          applicableFromDate: dto.applicableFromDate ? new Date(dto.applicableFromDate) : null,
+        }),
+        ...(dto.applicableUntilDate !== undefined && {
+          applicableUntilDate: dto.applicableUntilDate ? new Date(dto.applicableUntilDate) : null,
+        }),
       },
     });
 

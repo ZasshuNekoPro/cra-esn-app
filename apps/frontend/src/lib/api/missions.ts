@@ -17,6 +17,7 @@ export interface Mission {
   endDate: string | null;
   dailyRate: number | null;
   isActive: boolean;
+  ragEnabled: boolean;
   employeeId: string;
   esnAdminId: string | null;
   clientId: string | null;

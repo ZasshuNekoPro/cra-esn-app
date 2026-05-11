@@ -26,4 +26,32 @@ export class UpsertDocumentMetadataDto implements UpsertDocumentMetadataRequest 
   @IsString({ each: true })
   @ArrayMaxSize(20)
   tags?: string[];
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(150)
+  author?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(1000)
+  summary?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(10)
+  language?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  confidentialityLevel?: string | null;
+
+  @IsOptional()
+  @Transform(({ value }) => (value ? new Date(value) : null))
+  applicableFromDate?: string | null;
+
+  @IsOptional()
+  @Transform(({ value }) => (value ? new Date(value) : null))
+  applicableUntilDate?: string | null;
 }

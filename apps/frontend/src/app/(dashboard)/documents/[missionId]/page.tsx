@@ -24,7 +24,9 @@ export default async function MissionDocspacePage({ params }: PageProps): Promis
 
   if (!mission) notFound();
 
-  const isPrimaryEmployee = mission.employeeId === session.user.id;
+  const isEmployeeOnMission =
+    mission.employeeId === session.user.id ||
+    mission.employees.some((e) => e.id === session.user.id);
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -43,8 +45,8 @@ export default async function MissionDocspacePage({ params }: PageProps): Promis
         missionId={missionId}
         missionTitle={mission.title}
         initialDocuments={documents}
-        ragEnabled={(mission as { ragEnabled?: boolean }).ragEnabled ?? false}
-        isPrimaryEmployee={isPrimaryEmployee}
+        ragEnabled={mission.ragEnabled}
+        isEmployeeOnMission={isEmployeeOnMission}
       />
     </div>
   );

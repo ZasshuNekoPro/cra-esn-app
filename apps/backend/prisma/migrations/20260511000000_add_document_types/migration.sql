@@ -1,0 +1,5 @@
+-- Add mission-oriented document types to DocumentType enum
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'PROCEDURE';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'NOTE';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'REPORT';
+ALTER TYPE "DocumentType" ADD VALUE IF NOT EXISTS 'SPECIFICATION';

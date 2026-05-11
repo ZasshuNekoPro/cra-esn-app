@@ -98,6 +98,10 @@ enum DocumentType {
   CONTRACT
   AMENDMENT
   MISSION_ORDER
+  PROCEDURE
+  NOTE
+  REPORT
+  SPECIFICATION
   OTHER
 }
 
@@ -736,14 +740,20 @@ model Embedding {
 // ─── Document Metadata ────────────────────────────────────────────────────────
 
 model DocumentMetadata {
-  id              String    @id @default(uuid())
-  version         String    @default("1.0")
-  isObsolete      Boolean   @default(false) @map("is_obsolete")
-  documentDate    DateTime? @map("document_date")
-  serviceInvolved String?   @map("service_involved")
-  tags            String[]  @default([])
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id                   String    @id @default(uuid())
+  version              String    @default("1.0")
+  isObsolete           Boolean   @default(false) @map("is_obsolete")
+  documentDate         DateTime? @map("document_date")
+  serviceInvolved      String?   @map("service_involved")
+  tags                 String[]  @default([])
+  author               String?
+  summary              String?
+  language             String?
+  confidentialityLevel String?   @map("confidentiality_level")
+  applicableFromDate   DateTime? @map("applicable_from_date")
+  applicableUntilDate  DateTime? @map("applicable_until_date")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   documentId String   @unique @map("document_id")
   document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)

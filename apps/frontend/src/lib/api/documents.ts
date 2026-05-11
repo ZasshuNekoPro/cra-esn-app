@@ -11,6 +11,12 @@ export interface DocumentMetadata {
   documentDate: string | null;
   serviceInvolved: string | null;
   tags: string[];
+  author: string | null;
+  summary: string | null;
+  language: string | null;
+  confidentialityLevel: string | null;
+  applicableFromDate: string | null;
+  applicableUntilDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +27,12 @@ export interface UpsertMetadataRequest {
   documentDate?: string | null;
   serviceInvolved?: string | null;
   tags?: string[];
+  author?: string | null;
+  summary?: string | null;
+  language?: string | null;
+  confidentialityLevel?: string | null;
+  applicableFromDate?: string | null;
+  applicableUntilDate?: string | null;
 }
 
 export interface DocumentWithRelations extends Document {
