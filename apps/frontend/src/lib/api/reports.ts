@@ -11,6 +11,7 @@ import type {
   ReportDownloadResponse,
   ReportValidationItem,
   ReportValidationItemForEsn,
+  ValidationCraPreview,
 } from '@esn/shared-types';
 
 export const reportsApi = {
@@ -70,6 +71,15 @@ export const reportsApi = {
 
   listForEsn: (): Promise<ReportValidationItemForEsn[]> =>
     apiClient.get<ReportValidationItemForEsn[]>('/reports/for-esn'),
+
+  getValidation: (id: string): Promise<ReportValidationItemForEsn> =>
+    apiClient.get<ReportValidationItemForEsn>(`/reports/validation/${id}`),
+
+  getValidationCraPreview: (id: string): Promise<ValidationCraPreview> =>
+    apiClient.get<ValidationCraPreview>(`/reports/validation/${id}/cra-preview`),
+
+  getValidationPdfUrl: (id: string): Promise<{ url: string }> =>
+    apiClient.get<{ url: string }>(`/reports/validation/${id}/download`),
 
   archiveValidation: (id: string): Promise<void> =>
     apiClient.patch<void>(`/reports/validation/${id}/archive`),

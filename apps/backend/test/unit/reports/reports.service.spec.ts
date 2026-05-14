@@ -71,8 +71,8 @@ const mockProject = {
 // ── Mock Prisma ───────────────────────────────────────────────────────────────
 
 const mockPrisma = {
-  user: { findUnique: vi.fn() },
-  mission: { findFirst: vi.fn() },
+  user: { findUnique: vi.fn(), findMany: vi.fn() },
+  mission: { findFirst: vi.fn(), findMany: vi.fn() },
   craMonth: { findFirst: vi.fn() },
   publicHoliday: { findMany: vi.fn() },
   projectEntry: { findMany: vi.fn() },
@@ -84,7 +84,7 @@ const mockPrisma = {
     findUnique: vi.fn(),
     update: vi.fn(),
   },
-  auditLog: { create: vi.fn(), findUnique: vi.fn() },
+  auditLog: { create: vi.fn(), findUnique: vi.fn(), findMany: vi.fn() },
   reportValidationRequest: { findMany: vi.fn().mockResolvedValue([]) },
 };
 
@@ -401,6 +401,261 @@ describe('ReportsService', () => {
       expect(dashboard).not.toHaveProperty('leaveBalances');
       expect(dashboard).not.toHaveProperty('privateNotes');
       expect(dashboard.expiresAt).toBeDefined();
+    });
+  });
+
+  // ── Deduplication regressions ─────────────────────────────────────────────
+  // Bug: when a report is resent after being REFUSED, both the old REFUSED and
+  // new PENDING records may coexist in DB (pre-fix data). All three list methods
+  // must return only the latest non-ARCHIVED record per (employee, year, month,
+  // reportType, recipient).
+
+  describe('getSentReportHistory — dedup', () => {
+    const expiresAt = new Date('2099-01-01');
+
+    function makeValidationRow(status: string, createdAt: Date, id: string) {
+      return {
+        id,
+        token: `token-${id}`,
+        year: 2026,
+        month: 4,
+        reportType: 'CRA_ONLY',
+        recipient: 'ESN',
+        status,
+        comment: null,
+        resolvedBy: null,
+        resolvedAt: null,
+        expiresAt,
+        createdAt,
+      };
+    }
+
+    it('latest send shows PENDING, earlier send shows REFUSED (createdAt-bounded dedup)', async () => {
+      // 25/04 send → was refused later; 27/04 resend → new PENDING.
+      // The 25/04 history entry must show REFUSED, not the 27/04 PENDING.
+      mockPrisma.auditLog.findMany.mockResolvedValue([
+        {
+          id: 'log-25',
+          createdAt: new Date('2026-04-25T18:32:15Z'), // audit log created just after the validation request
+          resource: `report:${employeeId}:2026:4`,
+          metadata: { reportType: 'CRA_ONLY', sentTo: ['ESN'], skippedRecipients: [], pdfS3Key: 'k1' },
+        },
+        {
+          id: 'log-27',
+          createdAt: new Date('2026-04-27T15:38:20Z'),
+          resource: `report:${employeeId}:2026:4`,
+          metadata: { reportType: 'CRA_ONLY', sentTo: ['ESN'], skippedRecipients: [], pdfS3Key: 'k2' },
+        },
+      ]);
+      // asc order: REFUSED (25/04), PENDING (27/04)
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeValidationRow('REFUSED', new Date('2026-04-25T18:32:14Z'), 'rvr-refused'),
+        makeValidationRow('PENDING', new Date('2026-04-27T15:38:16Z'), 'rvr-pending'),
+      ]);
+
+      const result = await service.getSentReportHistory(employeeId);
+
+      expect(result).toHaveLength(2);
+      // 25/04 entry (desc order → index 0 is most recent, but auditLog.findMany is desc… let's check by id)
+      const entry25 = result.find((r) => r.id === 'log-25')!;
+      const entry27 = result.find((r) => r.id === 'log-27')!;
+      expect(entry25.validations[0].status).toBe('REFUSED');
+      expect(entry25.validations[0].id).toBe('rvr-refused');
+      expect(entry27.validations[0].status).toBe('PENDING');
+      expect(entry27.validations[0].id).toBe('rvr-pending');
+    });
+
+    it('single send shows PENDING when only PENDING exists', async () => {
+      mockPrisma.auditLog.findMany.mockResolvedValue([
+        {
+          id: 'log-1',
+          createdAt: new Date('2026-04-27T16:00:00Z'),
+          resource: `report:${employeeId}:2026:4`,
+          metadata: { reportType: 'CRA_ONLY', sentTo: ['ESN'], skippedRecipients: [], pdfS3Key: 'k' },
+        },
+      ]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeValidationRow('PENDING', new Date('2026-04-27T15:38:00Z'), 'rvr-pending'),
+      ]);
+
+      const result = await service.getSentReportHistory(employeeId);
+
+      expect(result).toHaveLength(1);
+      expect(result[0].validations).toHaveLength(1);
+      expect(result[0].validations[0].status).toBe('PENDING');
+      expect(result[0].validations[0].id).toBe('rvr-pending');
+    });
+
+    it('excludes ARCHIVED records entirely', async () => {
+      mockPrisma.auditLog.findMany.mockResolvedValue([
+        {
+          id: 'log-1',
+          createdAt: new Date('2026-04-27T16:00:00Z'),
+          resource: `report:${employeeId}:2026:4`,
+          metadata: { reportType: 'CRA_ONLY', sentTo: ['ESN'], skippedRecipients: [], pdfS3Key: 'k' },
+        },
+      ]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeValidationRow('ARCHIVED', new Date('2026-04-25T18:00:00Z'), 'rvr-archived'),
+        makeValidationRow('PENDING', new Date('2026-04-27T15:38:00Z'), 'rvr-pending'),
+      ]);
+
+      const result = await service.getSentReportHistory(employeeId);
+
+      expect(result[0].validations).toHaveLength(1);
+      expect(result[0].validations[0].status).toBe('PENDING');
+    });
+  });
+
+  describe('listReportsForEsn', () => {
+    const esnId = 'esn-org-1';
+    const expiresAt = new Date('2099-01-01');
+
+    function makeRow(status: string, createdAt: Date, id: string) {
+      return {
+        id,
+        token: `token-${id}`,
+        year: 2026,
+        month: 4,
+        reportType: 'CRA_ONLY',
+        recipient: 'ESN',
+        status,
+        comment: null,
+        resolvedBy: null,
+        resolvedAt: null,
+        expiresAt,
+        createdAt,
+        employeeId,
+      };
+    }
+
+    it('returns only PENDING when both REFUSED and PENDING exist (desc order → first seen wins)', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: false });
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: employeeId, firstName: 'Alice', lastName: 'Martin' },
+      ]);
+      // desc order: PENDING newer first, REFUSED older second
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeRow('PENDING', new Date('2026-04-27T15:38:00Z'), 'rvr-pending'),
+        makeRow('REFUSED', new Date('2026-04-25T18:00:00Z'), 'rvr-refused'),
+      ]);
+
+      const result = await service.listReportsForEsn('esn-admin-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe('PENDING');
+      expect(result[0].id).toBe('rvr-pending');
+    });
+
+    it('excludes ARCHIVED records and does not deduplicate against them', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: false });
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: employeeId, firstName: 'Alice', lastName: 'Martin' },
+      ]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeRow('PENDING', new Date('2026-04-27T15:38:00Z'), 'rvr-pending'),
+        makeRow('ARCHIVED', new Date('2026-04-25T18:00:00Z'), 'rvr-archived'),
+      ]);
+
+      const result = await service.listReportsForEsn('esn-admin-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe('PENDING');
+    });
+
+    it('returns [] when caller has no esnId', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId: null, canSeeAllEsnReports: false });
+
+      const result = await service.listReportsForEsn('esn-admin-1');
+
+      expect(result).toEqual([]);
+    });
+
+    it('normal admin queries only employees with esnReferentId matching callerId', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: false });
+      mockPrisma.user.findMany.mockResolvedValue([]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([]);
+
+      await service.listReportsForEsn('esn-admin-1');
+
+      expect(mockPrisma.user.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ esnReferentId: 'esn-admin-1' }),
+        }),
+      );
+    });
+
+    it('admin with canSeeAllEsnReports queries all employees in the ESN (no esnReferentId filter)', async () => {
+      mockPrisma.user.findUnique.mockResolvedValue({ esnId, canSeeAllEsnReports: true });
+      mockPrisma.user.findMany.mockResolvedValue([
+        { id: employeeId, firstName: 'Alice', lastName: 'Martin' },
+        { id: 'emp-2', firstName: 'Bob', lastName: 'Dupont' },
+      ]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([]);
+
+      await service.listReportsForEsn('esn-admin-1');
+
+      const call = mockPrisma.user.findMany.mock.calls[0][0] as { where: Record<string, unknown> };
+      expect(call.where).not.toHaveProperty('esnReferentId');
+      expect(call.where).toHaveProperty('esnId', esnId);
+    });
+  });
+
+  describe('listReportsForClient — dedup', () => {
+    const expiresAt = new Date('2099-01-01');
+
+    function makeRow(status: string, createdAt: Date, id: string) {
+      return {
+        id,
+        token: `token-${id}`,
+        year: 2026,
+        month: 4,
+        reportType: 'CRA_ONLY',
+        recipient: 'CLIENT',
+        status,
+        comment: null,
+        resolvedBy: null,
+        resolvedAt: null,
+        expiresAt,
+        createdAt,
+        employeeId,
+      };
+    }
+
+    it('returns only PENDING when both REFUSED and PENDING exist (desc order → first seen wins)', async () => {
+      mockPrisma.mission.findMany.mockResolvedValue([{ employeeId }]);
+      // desc order: PENDING newer first, REFUSED older second
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeRow('PENDING', new Date('2026-04-27T15:38:00Z'), 'rvr-pending'),
+        makeRow('REFUSED', new Date('2026-04-25T18:00:00Z'), 'rvr-refused'),
+      ]);
+
+      const result = await service.listReportsForClient('client-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe('PENDING');
+      expect(result[0].id).toBe('rvr-pending');
+    });
+
+    it('excludes ARCHIVED records', async () => {
+      mockPrisma.mission.findMany.mockResolvedValue([{ employeeId }]);
+      mockPrisma.reportValidationRequest.findMany.mockResolvedValue([
+        makeRow('PENDING', new Date('2026-04-27T15:38:00Z'), 'rvr-pending'),
+        makeRow('ARCHIVED', new Date('2026-04-25T18:00:00Z'), 'rvr-archived'),
+      ]);
+
+      const result = await service.listReportsForClient('client-1');
+
+      expect(result).toHaveLength(1);
+      expect(result[0].status).toBe('PENDING');
+    });
+
+    it('returns [] when client has no missions', async () => {
+      mockPrisma.mission.findMany.mockResolvedValue([]);
+
+      const result = await service.listReportsForClient('client-1');
+
+      expect(result).toEqual([]);
     });
   });
 });

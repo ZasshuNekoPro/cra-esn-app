@@ -88,12 +88,12 @@ describe('EsnService', () => {
     it('returns platform-wide statistics', async () => {
       mockPrisma.esn.count.mockResolvedValue(2);
       mockPrisma.user.count
-        .mockResolvedValueOnce(3)  // ESN_ADMIN + ESN_MANAGER
+        .mockResolvedValueOnce(3)  // ESN_ADMIN
         .mockResolvedValueOnce(10) // EMPLOYEE
         .mockResolvedValueOnce(4); // CLIENT
       mockPrisma.esn.findMany.mockResolvedValue([
         { id: 'esn-1', name: 'Acme ESN', users: [{ role: Role.ESN_ADMIN }, { role: Role.EMPLOYEE }, { role: Role.CLIENT }] },
-        { id: 'esn-2', name: 'Beta ESN', users: [{ role: Role.ESN_MANAGER }, { role: Role.EMPLOYEE }] },
+        { id: 'esn-2', name: 'Beta ESN', users: [{ role: Role.EMPLOYEE }] },
       ]);
 
       const result = await service.getStats();
@@ -117,7 +117,6 @@ describe('EsnService', () => {
           name: 'Acme ESN',
           users: [
             { role: Role.ESN_ADMIN },
-            { role: Role.ESN_MANAGER },
             { role: Role.EMPLOYEE },
             { role: Role.EMPLOYEE },
             { role: Role.CLIENT },
@@ -128,7 +127,7 @@ describe('EsnService', () => {
       const result = await service.getStats();
       const esn = result.esnList[0];
 
-      expect(esn.adminCount).toBe(2);
+      expect(esn.adminCount).toBe(1);
       expect(esn.employeeCount).toBe(2);
       expect(esn.clientCount).toBe(1);
     });

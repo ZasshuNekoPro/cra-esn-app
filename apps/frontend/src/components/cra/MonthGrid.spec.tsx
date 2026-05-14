@@ -14,6 +14,8 @@ const makeEntry = (dateStr: string, type: CraEntryType, dayFraction = 1.0): CraE
   date: new Date(dateStr),
   dayFraction,
   entryType: type,
+  modifiers: [],
+  secondHalfType: null,
   comment: null,
   craMonthId: 'month-1',
   createdAt: new Date(),

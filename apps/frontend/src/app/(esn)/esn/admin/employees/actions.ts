@@ -2,7 +2,7 @@
 
 import { usersApi } from '../../../../../lib/api/users';
 import { Role } from '@esn/shared-types';
-import type { PublicUser } from '../../../../../lib/api/users';
+import type { PublicUser, EsnAdmin } from '../../../../../lib/api/users';
 
 interface CreateEmployeeInput {
   email: string;
@@ -10,6 +10,17 @@ interface CreateEmployeeInput {
   firstName: string;
   lastName: string;
   phone?: string;
+}
+
+interface UpdateEmployeeInput {
+  firstName?: string;
+  lastName?: string;
+  phone?: string;
+}
+
+export async function listEmployeesAction(): Promise<PublicUser[]> {
+  const users = await usersApi.list();
+  return users.filter((u) => u.role === Role.EMPLOYEE);
 }
 
 export async function createEmployeeAction(
@@ -20,5 +31,37 @@ export async function createEmployeeAction(
     return { user };
   } catch (err) {
     return { error: err instanceof Error ? err.message : 'Erreur lors de la création' };
+  }
+}
+
+export async function updateEmployeeAction(
+  id: string,
+  data: UpdateEmployeeInput,
+): Promise<{ user?: PublicUser; error?: string }> {
+  try {
+    const user = await usersApi.update(id, data);
+    return { user };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour' };
+  }
+}
+
+export async function listAdminsAction(): Promise<EsnAdmin[]> {
+  try {
+    return await usersApi.listAdmins();
+  } catch {
+    return [];
+  }
+}
+
+export async function setReferentAction(
+  employeeId: string,
+  esnReferentId: string | null,
+): Promise<{ user?: PublicUser; error?: string }> {
+  try {
+    const user = await usersApi.setEsnReferent(employeeId, esnReferentId);
+    return { user };
+  } catch (err) {
+    return { error: err instanceof Error ? err.message : 'Erreur lors de la mise à jour du référent' };
   }
 }

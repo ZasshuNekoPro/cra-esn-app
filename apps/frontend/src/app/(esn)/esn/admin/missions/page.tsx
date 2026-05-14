@@ -1,10 +1,47 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Role } from '@esn/shared-types';
-import { usersClientApi, type PublicUser } from '../../../../../lib/api/users';
-import { missionsClientApi, type Mission } from '../../../../../lib/api/missions';
-import { ApiClientError } from '../../../../../lib/api/client';
+import type { PublicUser } from '../../../../../lib/api/users';
+import type { Mission } from '../../../../../lib/api/missions';
+import {
+  listMissionsAndUsersAction,
+  createMissionAction,
+  updateMissionAction,
+  deactivateMissionAction,
+} from './actions';
+
+function EmployeeCheckboxList({
+  employees,
+  selectedIds,
+  onChange,
+}: {
+  employees: PublicUser[];
+  selectedIds: string[];
+  onChange: (ids: string[]) => void;
+}): JSX.Element {
+  const toggle = (id: string, checked: boolean): void => {
+    onChange(checked ? [...selectedIds, id] : selectedIds.filter((x) => x !== id));
+  };
+  return (
+    <div className="border rounded-md p-2 space-y-1 max-h-44 overflow-y-auto">
+      {employees.length === 0 && (
+        <p className="text-sm text-gray-400 px-2 py-1">Aucun salarié disponible</p>
+      )}
+      {employees.map((emp) => (
+        <label key={emp.id} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 px-2 py-1 rounded">
+          <input
+            type="checkbox"
+            checked={selectedIds.includes(emp.id)}
+            onChange={(e) => toggle(emp.id, e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <span className="text-sm text-gray-800">{emp.firstName} {emp.lastName}</span>
+          <span className="text-xs text-gray-400">({emp.email})</span>
+        </label>
+      ))}
+    </div>
+  );
+}
 
 export default function AdminMissionsPage(): JSX.Element {
   const [missions, setMissions] = useState<Mission[]>([]);
@@ -18,21 +55,23 @@ export default function AdminMissionsPage(): JSX.Element {
     startDate: '',
     endDate: '',
     dailyRate: '',
-    employeeId: '',
+    employeeIds: [] as string[],
     clientId: '',
   });
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editForm, setEditForm] = useState({ title: '', description: '', endDate: '', dailyRate: '', employeeIds: [] as string[], clientId: '' });
+  const [editError, setEditError] = useState<string | null>(null);
+  const [editSubmitting, setEditSubmitting] = useState(false);
+
   const loadData = async (): Promise<void> => {
     try {
-      const [missionList, userList] = await Promise.all([
-        missionsClientApi.list(),
-        usersClientApi.list(),
-      ]);
-      setMissions(missionList);
-      setEmployees(userList.filter((u) => u.role === Role.EMPLOYEE));
-      setClients(userList.filter((u) => u.role === Role.CLIENT));
+      const data = await listMissionsAndUsersAction();
+      setMissions(data.missions);
+      setEmployees(data.employees);
+      setClients(data.clients);
     } catch {
       // silently fail
     } finally {
@@ -44,27 +83,92 @@ export default function AdminMissionsPage(): JSX.Element {
 
   const handleSubmit = async (e: React.FormEvent): Promise<void> => {
     e.preventDefault();
+    if (form.employeeIds.length === 0) {
+      setError('Sélectionner au moins un salarié');
+      return;
+    }
     setError(null);
     setSubmitting(true);
     try {
-      await missionsClientApi.create({
+      const result = await createMissionAction({
         title: form.title,
         description: form.description || undefined,
         startDate: form.startDate,
         endDate: form.endDate || undefined,
         dailyRate: form.dailyRate ? parseFloat(form.dailyRate) : undefined,
-        employeeId: form.employeeId,
+        employeeIds: form.employeeIds,
         clientId: form.clientId || undefined,
       });
-      setForm({ title: '', description: '', startDate: '', endDate: '', dailyRate: '', employeeId: '', clientId: '' });
-      setShowForm(false);
-      void loadData();
-    } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Erreur lors de la création');
+      if (result.error) {
+        setError(result.error);
+      } else {
+        setForm({ title: '', description: '', startDate: '', endDate: '', dailyRate: '', employeeIds: [], clientId: '' });
+        setShowForm(false);
+        void loadData();
+      }
     } finally {
       setSubmitting(false);
     }
   };
+
+  const startEdit = (mission: Mission): void => {
+    setEditingId(mission.id);
+    setEditForm({
+      title: mission.title,
+      description: mission.description ?? '',
+      endDate: mission.endDate ? mission.endDate.slice(0, 10) : '',
+      dailyRate: mission.dailyRate !== null ? String(mission.dailyRate) : '',
+      employeeIds: mission.employees.map((e) => e.id),
+      clientId: mission.clientId ?? '',
+    });
+    setEditError(null);
+  };
+
+  const cancelEdit = (): void => {
+    setEditingId(null);
+    setEditError(null);
+  };
+
+  const handleEditSubmit = async (e: React.FormEvent): Promise<void> => {
+    e.preventDefault();
+    if (editForm.employeeIds.length === 0) {
+      setEditError('Sélectionner au moins un salarié');
+      return;
+    }
+    if (!editingId) return;
+    setEditError(null);
+    setEditSubmitting(true);
+    try {
+      const result = await updateMissionAction(editingId, {
+        title: editForm.title,
+        description: editForm.description || undefined,
+        endDate: editForm.endDate || undefined,
+        dailyRate: editForm.dailyRate ? parseFloat(editForm.dailyRate) : undefined,
+        employeeIds: editForm.employeeIds,
+        clientId: editForm.clientId === '' ? null : editForm.clientId,
+      });
+      if (result.error) {
+        setEditError(result.error);
+      } else {
+        setEditingId(null);
+        void loadData();
+      }
+    } finally {
+      setEditSubmitting(false);
+    }
+  };
+
+  const handleDeactivate = async (id: string): Promise<void> => {
+    if (!confirm('Désactiver cette mission ?')) return;
+    const result = await deactivateMissionAction(id);
+    if (result.error) {
+      alert(result.error);
+    } else {
+      void loadData();
+    }
+  };
+
+  const clientMap = new Map(clients.map((c) => [c.id, c]));
 
   return (
     <div className="max-w-4xl mx-auto">
@@ -136,20 +240,17 @@ export default function AdminMissionsPage(): JSX.Element {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Salarié</label>
-            <select
-              required
-              value={form.employeeId}
-              onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))}
-              className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">— Sélectionner un salarié —</option>
-              {employees.map((emp) => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.firstName} {emp.lastName} ({emp.email})
-                </option>
-              ))}
-            </select>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Salariés
+              {form.employeeIds.length > 0 && (
+                <span className="ml-2 text-xs text-blue-600 font-normal">{form.employeeIds.length} sélectionné{form.employeeIds.length > 1 ? 's' : ''}</span>
+              )}
+            </label>
+            <EmployeeCheckboxList
+              employees={employees}
+              selectedIds={form.employeeIds}
+              onChange={(ids) => setForm((f) => ({ ...f, employeeIds: ids }))}
+            />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Client (optionnel)</label>
@@ -180,8 +281,8 @@ export default function AdminMissionsPage(): JSX.Element {
       <div className="bg-white rounded-lg shadow-sm border">
         <div className="px-6 py-4 border-b">
           <h2 className="font-semibold text-gray-900">
-            Missions actives
-            {!loadingList && <span className="ml-2 text-sm font-normal text-gray-500">({missions.filter((m) => m.isActive).length})</span>}
+            Missions
+            {!loadingList && <span className="ml-2 text-sm font-normal text-gray-500">({missions.length})</span>}
           </h2>
         </div>
         {loadingList ? (
@@ -198,21 +299,137 @@ export default function AdminMissionsPage(): JSX.Element {
           </div>
         ) : (
           <ul className="divide-y">
-            {missions.map((mission) => (
-              <li key={mission.id} className="px-6 py-4 flex items-center justify-between">
-                <div>
-                  <p className="font-medium text-gray-900">{mission.title}</p>
-                  <p className="text-sm text-gray-500">
-                    Début : {new Date(mission.startDate).toLocaleDateString('fr-FR')}
-                    {mission.endDate && ` — Fin : ${new Date(mission.endDate).toLocaleDateString('fr-FR')}`}
-                    {mission.dailyRate !== null && ` · ${mission.dailyRate} €/j`}
-                  </p>
-                </div>
-                <span className={`text-xs px-2 py-1 rounded ${mission.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                  {mission.isActive ? 'Active' : 'Terminée'}
-                </span>
-              </li>
-            ))}
+            {missions.map((mission) => {
+              const client = mission.clientId ? (clientMap.get(mission.clientId) ?? mission.client) : null;
+              return (
+                <li key={mission.id} className="px-6 py-4">
+                  {editingId === mission.id ? (
+                    <form onSubmit={(e) => { void handleEditSubmit(e); }} className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Titre</label>
+                        <input
+                          type="text"
+                          required
+                          value={editForm.title}
+                          onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Description (optionnel)</label>
+                        <textarea
+                          value={editForm.description}
+                          onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))}
+                          rows={2}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Date de fin (optionnel)</label>
+                          <input
+                            type="date"
+                            value={editForm.endDate}
+                            onChange={(e) => setEditForm((f) => ({ ...f, endDate: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">TJM en € (optionnel)</label>
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            value={editForm.dailyRate}
+                            onChange={(e) => setEditForm((f) => ({ ...f, dailyRate: e.target.value }))}
+                            className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">
+                          Salariés
+                          {editForm.employeeIds.length > 0 && (
+                            <span className="ml-2 text-blue-600 font-normal">{editForm.employeeIds.length} sélectionné{editForm.employeeIds.length > 1 ? 's' : ''}</span>
+                          )}
+                        </label>
+                        <EmployeeCheckboxList
+                          employees={employees}
+                          selectedIds={editForm.employeeIds}
+                          onChange={(ids) => setEditForm((f) => ({ ...f, employeeIds: ids }))}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">Client (optionnel)</label>
+                        <select
+                          value={editForm.clientId}
+                          onChange={(e) => setEditForm((f) => ({ ...f, clientId: e.target.value }))}
+                          className="w-full border rounded-md px-3 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        >
+                          <option value="">— Aucun client —</option>
+                          {clients.map((c) => (
+                            <option key={c.id} value={c.id}>
+                              {c.firstName} {c.lastName} ({c.email})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      {editError && <p className="text-xs text-red-600 bg-red-50 p-2 rounded">{editError}</p>}
+                      <div className="flex gap-2">
+                        <button
+                          type="submit"
+                          disabled={editSubmitting}
+                          className="px-3 py-1.5 bg-blue-600 text-white rounded text-sm font-medium hover:bg-blue-700 disabled:opacity-50"
+                        >
+                          {editSubmitting ? 'Enregistrement...' : 'Enregistrer'}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="px-3 py-1.5 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+                        >
+                          Annuler
+                        </button>
+                      </div>
+                    </form>
+                  ) : (
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900">{mission.title}</p>
+                        <p className="text-sm text-gray-500">
+                          {mission.employees.map((e) => `${e.firstName} ${e.lastName}`).join(', ')}
+                          {client ? ` · Client : ${client.firstName} ${client.lastName}` : ''}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Début : {new Date(mission.startDate).toLocaleDateString('fr-FR')}
+                          {mission.endDate && ` — Fin : ${new Date(mission.endDate).toLocaleDateString('fr-FR')}`}
+                          {mission.dailyRate !== null && ` · ${mission.dailyRate} €/j`}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-3 ml-4 shrink-0">
+                        <span className={`text-xs px-2 py-1 rounded ${mission.isActive ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {mission.isActive ? 'Active' : 'Terminée'}
+                        </span>
+                        <button
+                          onClick={() => startEdit(mission)}
+                          className="text-xs text-blue-600 hover:text-blue-800 font-medium"
+                        >
+                          Modifier
+                        </button>
+                        {mission.isActive && (
+                          <button
+                            onClick={() => { void handleDeactivate(mission.id); }}
+                            className="text-xs text-red-500 hover:text-red-700 font-medium"
+                          >
+                            Désactiver
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

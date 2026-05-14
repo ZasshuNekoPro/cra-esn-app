@@ -3,11 +3,13 @@ import {
   Get,
   Post,
   Put,
+  Patch,
   Delete,
   Param,
   Body,
   HttpCode,
   HttpStatus,
+  UseGuards,
 } from '@nestjs/common';
 import { Roles } from '../common/decorators/roles.decorator';
 import { CurrentUser } from '../common/decorators/current-user.decorator';
@@ -16,6 +18,8 @@ import type { JwtPayload } from '@esn/shared-types';
 import { MissionsService } from './missions.service';
 import { CreateMissionDto } from './dto/create-mission.dto';
 import { UpdateMissionDto } from './dto/update-mission.dto';
+import { ToggleRagDto } from './dto/toggle-rag.dto';
+import { MissionPrimaryGuard } from '../common/guards/mission-primary.guard';
 
 @Controller('missions')
 export class MissionsController {
@@ -23,24 +27,24 @@ export class MissionsController {
 
   /**
    * POST /missions
-   * ESN_ADMIN / ESN_MANAGER: creates for any employee in their ESN
+   * ESN_ADMIN: creates for any employee in their ESN
    * EMPLOYEE: creates with self as employee
    * CLIENT: creates with self as client
    */
   @Post()
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER, Role.EMPLOYEE, Role.CLIENT)
+  @Roles(Role.ESN_ADMIN, Role.EMPLOYEE, Role.CLIENT)
   create(@Body() dto: CreateMissionDto, @CurrentUser() user: JwtPayload) {
     return this.missionsService.create(dto, user.sub, user.role, user.esnId ?? null);
   }
 
   /**
    * GET /missions
-   * ESN_ADMIN / ESN_MANAGER: active missions in their ESN
+   * ESN_ADMIN: active missions in their ESN
    * EMPLOYEE: own missions
    * CLIENT: missions where they are client
    */
   @Get()
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER, Role.EMPLOYEE, Role.CLIENT)
+  @Roles(Role.ESN_ADMIN, Role.EMPLOYEE, Role.CLIENT)
   findAll(@CurrentUser() user: JwtPayload) {
     return this.missionsService.findAll(user.sub, user.role, user.esnId ?? null);
   }
@@ -49,16 +53,16 @@ export class MissionsController {
    * GET /missions/:id
    */
   @Get(':id')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER, Role.EMPLOYEE, Role.CLIENT)
+  @Roles(Role.ESN_ADMIN, Role.EMPLOYEE, Role.CLIENT)
   findOne(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.missionsService.findOne(id, user.sub, user.role);
   }
 
   /**
-   * PUT /missions/:id — ESN_ADMIN / ESN_MANAGER
+   * PUT /missions/:id — ESN_ADMIN
    */
   @Put(':id')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   update(
     @Param('id') id: string,
     @Body() dto: UpdateMissionDto,
@@ -68,12 +72,27 @@ export class MissionsController {
   }
 
   /**
-   * DELETE /missions/:id — deactivate (ESN_ADMIN / ESN_MANAGER)
+   * DELETE /missions/:id — deactivate (ESN_ADMIN)
    */
   @Delete(':id')
   @HttpCode(HttpStatus.NO_CONTENT)
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   deactivate(@Param('id') id: string, @CurrentUser() user: JwtPayload) {
     return this.missionsService.deactivate(id, user.role);
+  }
+
+  /**
+   * PATCH /missions/:id/rag
+   * Primary employee only — toggle RAG on/off for this mission's document space.
+   */
+  @Patch(':id/rag')
+  @Roles(Role.EMPLOYEE)
+  @UseGuards(MissionPrimaryGuard)
+  toggleRag(
+    @Param('id') id: string,
+    @Body() dto: ToggleRagDto,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.missionsService.toggleRag(id, dto.ragEnabled, user.sub);
   }
 }

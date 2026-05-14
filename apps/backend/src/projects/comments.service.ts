@@ -12,7 +12,6 @@ const VISIBILITY_BY_ROLE: Record<Role, CommentVisibility[]> = {
   [Role.PLATFORM_ADMIN]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN, CommentVisibility.EMPLOYEE_CLIENT],
   [Role.EMPLOYEE]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN, CommentVisibility.EMPLOYEE_CLIENT],
   [Role.ESN_ADMIN]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN],
-  [Role.ESN_MANAGER]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_ESN],
   [Role.CLIENT]: [CommentVisibility.ALL, CommentVisibility.EMPLOYEE_CLIENT],
 };
 
@@ -126,8 +125,6 @@ export class CommentsService {
       case Role.EMPLOYEE:
         return { id: projectId, mission: { employeeId: callerId } };
       case Role.ESN_ADMIN:
-        return { id: projectId, mission: { esnAdminId: callerId } };
-      case Role.ESN_MANAGER:
         return { id: projectId, mission: { esnAdminId: callerId } };
       case Role.CLIENT:
         return { id: projectId, mission: { clientId: callerId } };

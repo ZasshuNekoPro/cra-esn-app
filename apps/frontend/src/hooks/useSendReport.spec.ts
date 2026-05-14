@@ -5,17 +5,18 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { createElement } from 'react';
 import type { SendReportRequest, SendReportResponse } from '@esn/shared-types';
 
-// Mock reportsApi
-vi.mock('../lib/api/reports', () => ({
-  reportsApi: {
-    sendMonthlyReport: vi.fn(),
-  },
+const { mockSendAction, mockRouterRefresh } = vi.hoisted(() => ({
+  mockSendAction: vi.fn(),
+  mockRouterRefresh: vi.fn(),
+}));
+vi.mock('../app/(dashboard)/reports/actions', () => ({
+  sendMonthlyReportAction: mockSendAction,
+}));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: mockRouterRefresh }),
 }));
 
 import { useSendReport } from './useSendReport';
-import { reportsApi } from '../lib/api/reports';
-
-const mockedSendMonthlyReport = vi.mocked(reportsApi.sendMonthlyReport);
 
 function makeWrapper(queryClient: QueryClient): ({ children }: { children: React.ReactNode }) => React.ReactElement {
   return ({ children }: { children: React.ReactNode }) =>
@@ -32,7 +33,7 @@ describe('useSendReport', () => {
     });
   });
 
-  it('calls reportsApi.sendMonthlyReport with correct arguments on mutate', async () => {
+  it('calls sendMonthlyReportAction with the full payload', async () => {
     const mockResponse: SendReportResponse = {
       success: true,
       sentTo: ['ESN'],
@@ -40,7 +41,7 @@ describe('useSendReport', () => {
       auditLogId: 'audit-1',
       skippedRecipients: [],
     };
-    mockedSendMonthlyReport.mockResolvedValueOnce(mockResponse);
+    mockSendAction.mockResolvedValueOnce({ ok: true, data: mockResponse });
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),
@@ -59,16 +60,17 @@ describe('useSendReport', () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
 
-    expect(mockedSendMonthlyReport).toHaveBeenCalledWith(2026, 3, payload);
+    expect(mockSendAction).toHaveBeenCalledWith(payload);
     expect(result.current.data).toEqual(mockResponse);
   });
 
   it('exposes isPending while the mutation is in flight', async () => {
-    let resolvePromise!: (v: SendReportResponse) => void;
-    const pendingPromise = new Promise<SendReportResponse>((res) => {
+    type ActionResult = { ok: true; data: SendReportResponse } | { ok: false; error: string };
+    let resolvePromise!: (v: ActionResult) => void;
+    const pendingPromise = new Promise<ActionResult>((res) => {
       resolvePromise = res;
     });
-    mockedSendMonthlyReport.mockReturnValueOnce(pendingPromise);
+    mockSendAction.mockReturnValueOnce(pendingPromise);
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),
@@ -80,15 +82,8 @@ describe('useSendReport', () => {
 
     await waitFor(() => expect(result.current.isPending).toBe(true));
 
-    // Resolve and clean up
     act(() => {
-      resolvePromise({
-        success: true,
-        sentTo: ['ESN'],
-        pdfS3Key: 'k',
-        auditLogId: 'a',
-        skippedRecipients: [],
-      });
+      resolvePromise({ ok: true, data: { success: true, sentTo: ['ESN'], pdfS3Key: 'k', auditLogId: 'a', skippedRecipients: [] } });
     });
     await waitFor(() => expect(result.current.isPending).toBe(false));
   });
@@ -101,7 +96,7 @@ describe('useSendReport', () => {
       auditLogId: 'audit-1',
       skippedRecipients: [],
     };
-    mockedSendMonthlyReport.mockResolvedValueOnce(mockResponse);
+    mockSendAction.mockResolvedValueOnce({ ok: true, data: mockResponse });
 
     const invalidateSpy = vi.spyOn(queryClient, 'invalidateQueries');
 
@@ -119,7 +114,7 @@ describe('useSendReport', () => {
   });
 
   it('exposes error when the mutation fails', async () => {
-    mockedSendMonthlyReport.mockRejectedValueOnce(new Error('network error'));
+    mockSendAction.mockResolvedValueOnce({ ok: false, error: 'network error' });
 
     const { result } = renderHook(() => useSendReport(2026, 3), {
       wrapper: makeWrapper(queryClient),

@@ -4,15 +4,19 @@ import {
   GoneException,
   Injectable,
   NotFoundException,
+  StreamableFile,
 } from '@nestjs/common';
 import { AuditAction } from '@esn/shared-types';
 import type {
   ValidateReportPublicInfo,
   ValidateReportRequest,
   ValidateReportResponse,
+  ReportValidationItemForEsn,
+  ValidationCraPreview,
 } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { StorageService } from '../storage/storage.service';
 
 interface ValidationRequestRow {
   id: string;
@@ -37,6 +41,7 @@ export class ReportsValidateService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly storage: StorageService,
   ) {}
 
   // ── GET /reports/validate/:token ──────────────────────────────────────────
@@ -104,6 +109,100 @@ export class ReportsValidateService {
     await this.notifyEmployee(updated.employeeId, row, newStatus, employeeName, body, allValidated);
 
     return this.buildResponse({ ...row, status: newStatus }, allValidated);
+  }
+
+  // ── GET /reports/validation/:id ──────────────────────────────────────────
+
+  async getValidationItem(id: string, callerId: string): Promise<ReportValidationItemForEsn> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+    return {
+      id: row.id,
+      token: row.token,
+      year: row.year,
+      month: row.month,
+      reportType: row.reportType as ReportValidationItemForEsn['reportType'],
+      recipient: row.recipient as ReportValidationItemForEsn['recipient'],
+      status: row.status as ReportValidationItemForEsn['status'],
+      comment: row.comment,
+      resolvedBy: row.resolvedBy,
+      resolvedAt: row.resolvedAt ? row.resolvedAt.toISOString() : null,
+      expiresAt: row.expiresAt.toISOString(),
+      createdAt: row.createdAt.toISOString(),
+      employeeId: row.employeeId,
+      employeeName: `${row.employee.firstName} ${row.employee.lastName}`,
+    };
+  }
+
+  // ── GET /reports/validation/:id/cra-preview ──────────────────────────────
+
+  async getValidationCraPreview(id: string, callerId: string): Promise<ValidationCraPreview> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+
+    const craMonth = await this.prisma.craMonth.findFirst({
+      where: { employeeId: row.employeeId, year: row.year, month: row.month },
+      include: { entries: { orderBy: { date: 'asc' } } },
+    }) as { entries: Array<{ date: Date; entryType: string; dayFraction: { toNumber(): number } | number; modifiers: string[]; secondHalfType: string | null; comment: string | null }> } | null;
+
+    const craEntries = (craMonth?.entries ?? []).map((e) => ({
+      date: e.date.toISOString(),
+      entryType: e.entryType,
+      dayFraction: typeof e.dayFraction === 'object' ? e.dayFraction.toNumber() : e.dayFraction,
+      modifiers: e.modifiers ?? [],
+      secondHalfType: e.secondHalfType ?? null,
+      comment: e.comment,
+    }));
+
+    let weatherEntries: ValidationCraPreview['weatherEntries'] = [];
+    if (row.reportType === 'CRA_WITH_WEATHER') {
+      const startDate = new Date(row.year, row.month - 1, 1);
+      const endDate = new Date(row.year, row.month, 0);
+      const rows = await this.prisma.weatherEntry.findMany({
+        where: {
+          project: { mission: { employeeId: row.employeeId } },
+          date: { gte: startDate, lte: endDate },
+        },
+        include: { project: { select: { name: true } } },
+        orderBy: { date: 'asc' },
+      }) as Array<{ date: Date; state: string; comment: string | null; project: { name: string } }>;
+
+      weatherEntries = rows.map((w) => ({
+        date: w.date.toISOString(),
+        state: w.state,
+        projectName: w.project.name,
+        comment: w.comment,
+      }));
+    }
+
+    return {
+      year: row.year,
+      month: row.month,
+      reportType: row.reportType,
+      craEntries,
+      weatherEntries,
+    };
+  }
+
+  // ── GET /reports/validation/:id/download ─────────────────────────────────
+
+  async getValidationPdfUrl(id: string, callerId: string): Promise<{ url: string }> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+    const url = await this.storage.getDownloadUrl(row.pdfS3Key, 300);
+    return { url };
+  }
+
+  // ── GET /reports/validation/:id/pdf (streaming — no presigned URL) ────────
+
+  async streamValidationPdf(id: string, callerId: string): Promise<StreamableFile> {
+    const row = await this.findAnyRequestById(id);
+    await this.assertEsnScope(row.employeeId, callerId);
+    const stream = await this.storage.getObjectStream(row.pdfS3Key);
+    return new StreamableFile(stream, {
+      type: 'application/pdf',
+      disposition: 'inline; filename="rapport.pdf"',
+    });
   }
 
   // ── PATCH /reports/validation/:id/archive ────────────────────────────────
@@ -232,25 +331,36 @@ export class ReportsValidateService {
 
   /** Find a validation request by its primary key (no status/expiry check). */
   private async findRequestById(id: string): Promise<ValidationRequestRow> {
+    const row = await this.findAnyRequestById(id);
+    if (row.status === 'ARCHIVED') throw new GoneException('Cette demande a déjà été archivée.');
+    return row;
+  }
+
+  /** Find a validation request by its primary key without any status/expiry guard. */
+  private async findAnyRequestById(id: string): Promise<ValidationRequestRow> {
     const row = await this.prisma.reportValidationRequest.findUnique({
       where: { id },
       include: { employee: { select: { firstName: true, lastName: true } } },
     }) as ValidationRequestRow | null;
 
     if (!row) throw new NotFoundException('Demande de validation introuvable.');
-    if (row.status === 'ARCHIVED') throw new GoneException('Cette demande a déjà été archivée.');
     return row;
   }
 
-  /** Verify the caller (ESN_ADMIN/ESN_MANAGER) belongs to the same ESN as the employee. */
+  /** Verify the caller (ESN_ADMIN) can access this employee's reports.
+   *  Rules: same ESN AND (caller is the employee's referent OR caller.canSeeAllEsnReports). */
   private async assertEsnScope(employeeId: string, callerId: string): Promise<void> {
     const [employee, caller] = await Promise.all([
-      this.prisma.user.findUnique({ where: { id: employeeId }, select: { esnId: true } }),
-      this.prisma.user.findUnique({ where: { id: callerId }, select: { esnId: true } }),
+      this.prisma.user.findUnique({ where: { id: employeeId }, select: { esnId: true, esnReferentId: true } }),
+      this.prisma.user.findUnique({ where: { id: callerId }, select: { esnId: true, canSeeAllEsnReports: true } }),
     ]);
 
     if (!employee?.esnId || !caller?.esnId || employee.esnId !== caller.esnId) {
       throw new ForbiddenException('Accès refusé : le salarié n\'appartient pas à votre ESN.');
+    }
+
+    if (!caller.canSeeAllEsnReports && employee.esnReferentId !== callerId) {
+      throw new ForbiddenException('Accès refusé : ce salarié n\'est pas sous votre responsabilité.');
     }
   }
 

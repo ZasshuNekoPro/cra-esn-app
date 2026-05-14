@@ -1,8 +1,10 @@
+import Link from 'next/link';
 import { reportsApi } from '../../../../../lib/api/reports';
 import { auth } from '../../../../../auth';
 import { redirect } from 'next/navigation';
 import { ApiClientError } from '../../../../../lib/api/client';
 import { ValidationActions } from './ValidationActions';
+import { PdfDownloadButton } from './PdfDownloadButton';
 import type { ReportValidationItemForEsn } from '@esn/shared-types';
 
 const MONTH_NAMES = [
@@ -74,7 +76,11 @@ export default async function EsnReportsPage(): Promise<JSX.Element> {
                       const isExpired = new Date(r.expiresAt) < new Date();
                       return (
                         <tr key={r.id} className="text-gray-700">
-                          <td className="px-6 py-4 font-medium">{r.employeeName}</td>
+                          <td className="px-6 py-4 font-medium">
+                            <Link href={`/esn/admin/reports/${r.id}`} className="hover:underline text-blue-700">
+                              {r.employeeName}
+                            </Link>
+                          </td>
                           <td className="px-6 py-4">
                             {MONTH_NAMES[(r.month - 1)] ?? r.month} {r.year}
                           </td>
@@ -91,18 +97,21 @@ export default async function EsnReportsPage(): Promise<JSX.Element> {
                             </span>
                           </td>
                           <td className="px-6 py-4">
-                            {isExpired ? (
-                              <ValidationActions id={r.id} />
-                            ) : (
-                              <a
-                                href={`/reports/validate/${r.token}`}
-                                target="_blank"
-                                rel="noreferrer"
-                                className="text-sm text-blue-600 hover:underline font-medium"
-                              >
-                                Valider →
-                              </a>
-                            )}
+                            <div className="flex items-center gap-3">
+                              {isExpired ? (
+                                <ValidationActions id={r.id} />
+                              ) : (
+                                <a
+                                  href={`/validate-report/${r.token}`}
+                                  target="_blank"
+                                  rel="noreferrer"
+                                  className="text-sm text-blue-600 hover:underline font-medium"
+                                >
+                                  Valider →
+                                </a>
+                              )}
+                              <PdfDownloadButton id={r.id} />
+                            </div>
                           </td>
                         </tr>
                       );

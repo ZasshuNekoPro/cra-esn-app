@@ -37,6 +37,7 @@ export async function apiFetch<T>(
 
   const res = await fetch(`${BACKEND_URL}/api${path}`, {
     ...options,
+    cache: 'no-store',
     headers,
     body: options.body !== undefined ? JSON.stringify(options.body) : undefined,
   });
@@ -62,6 +63,9 @@ export const apiClient = {
 
   patch: <T>(path: string, body?: unknown, options?: Omit<FetchOptions, 'method' | 'body'>): Promise<T> =>
     apiFetch<T>(path, { ...options, method: 'PATCH', body }),
+
+  put: <T>(path: string, body?: unknown, options?: Omit<FetchOptions, 'method' | 'body'>): Promise<T> =>
+    apiFetch<T>(path, { ...options, method: 'PUT', body }),
 
   delete: <T>(path: string, options?: Omit<FetchOptions, 'method' | 'body'>): Promise<T> =>
     apiFetch<T>(path, { ...options, method: 'DELETE' }),

@@ -406,21 +406,32 @@ export class ReportsService {
       const month = parseInt(parts[3] ?? '0', 10);
       const reportType = meta.reportType ?? 'CRA_ONLY';
 
-      const validations: ReportValidationItem[] = validationRows
-        .filter(
-          (v) => v.year === year && v.month === month && v.reportType === reportType,
-        )
-        .map((v) => ({
-          id: v.id,
-          token: v.token,
-          recipient: v.recipient as ReportValidationItem['recipient'],
-          status: v.status as ReportValidationItem['status'],
-          comment: v.comment,
-          resolvedBy: v.resolvedBy,
-          resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
-          expiresAt: v.expiresAt.toISOString(),
-          createdAt: v.createdAt.toISOString(),
-        }));
+      // validationRows sorted asc: last .set() wins = latest record.
+      // Filter createdAt <= log.createdAt so that a later resend's PENDING does not
+      // overwrite the REFUSED shown on the original send's history entry.
+      const latestByRecipient = new Map<string, typeof validationRows[0]>();
+      for (const v of validationRows) {
+        if (
+          v.year === year &&
+          v.month === month &&
+          v.reportType === reportType &&
+          v.status !== 'ARCHIVED' &&
+          v.createdAt <= log.createdAt
+        ) {
+          latestByRecipient.set(v.recipient, v);
+        }
+      }
+      const validations: ReportValidationItem[] = Array.from(latestByRecipient.values()).map((v) => ({
+        id: v.id,
+        token: v.token,
+        recipient: v.recipient as ReportValidationItem['recipient'],
+        status: v.status as ReportValidationItem['status'],
+        comment: v.comment,
+        resolvedBy: v.resolvedBy,
+        resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
+        expiresAt: v.expiresAt.toISOString(),
+        createdAt: v.createdAt.toISOString(),
+      }));
 
       return {
         id: log.id,
@@ -563,12 +574,18 @@ export class ReportsService {
   async listReportsForEsn(callerId: string): Promise<import('@esn/shared-types').ReportValidationItemForEsn[]> {
     const caller = await this.prisma.user.findUnique({
       where: { id: callerId },
-      select: { esnId: true },
+      select: { esnId: true, canSeeAllEsnReports: true },
     });
     if (!caller?.esnId) return [];
 
+    // canSeeAllEsnReports = true → vacation-coverage mode, sees all employees in the ESN.
+    // Otherwise, only employees for whom this admin is the designated referent.
+    const employeeWhere = caller.canSeeAllEsnReports
+      ? { esnId: caller.esnId, deletedAt: null }
+      : { esnId: caller.esnId, esnReferentId: callerId, deletedAt: null };
+
     const employees = await this.prisma.user.findMany({
-      where: { esnId: caller.esnId, deletedAt: null },
+      where: employeeWhere,
       select: { id: true, firstName: true, lastName: true },
     });
     const employeeMap = new Map(
@@ -600,22 +617,32 @@ export class ReportsService {
       employeeId: string;
     }>;
 
-    return rows.map((v) => ({
-      id: v.id,
-      token: v.token,
-      year: v.year,
-      month: v.month,
-      reportType: v.reportType as import('@esn/shared-types').ReportType,
-      recipient: v.recipient as import('@esn/shared-types').ReportRecipient,
-      status: v.status as import('@esn/shared-types').ReportValidationStatus,
-      comment: v.comment,
-      resolvedBy: v.resolvedBy,
-      resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
-      expiresAt: v.expiresAt.toISOString(),
-      createdAt: v.createdAt.toISOString(),
-      employeeId: v.employeeId,
-      employeeName: employeeMap.get(v.employeeId) ?? 'Inconnu',
-    }));
+    // rows sorted desc by createdAt: first seen per key = latest record for that period
+    const seenEsn = new Set<string>();
+    return rows
+      .filter((v) => {
+        if (v.status === 'ARCHIVED') return false;
+        const key = `${v.employeeId}|${v.year}|${v.month}|${v.reportType}`;
+        if (seenEsn.has(key)) return false;
+        seenEsn.add(key);
+        return true;
+      })
+      .map((v) => ({
+        id: v.id,
+        token: v.token,
+        year: v.year,
+        month: v.month,
+        reportType: v.reportType as import('@esn/shared-types').ReportType,
+        recipient: v.recipient as import('@esn/shared-types').ReportRecipient,
+        status: v.status as import('@esn/shared-types').ReportValidationStatus,
+        comment: v.comment,
+        resolvedBy: v.resolvedBy,
+        resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
+        expiresAt: v.expiresAt.toISOString(),
+        createdAt: v.createdAt.toISOString(),
+        employeeId: v.employeeId,
+        employeeName: employeeMap.get(v.employeeId) ?? 'Inconnu',
+      }));
   }
 
   // ── listReportsForClient ──────────────────────────────────────────────────
@@ -652,19 +679,30 @@ export class ReportsService {
       resolvedAt: Date | null;
       expiresAt: Date;
       createdAt: Date;
+      employeeId: string;
     }>;
 
-    return rows.map((v) => ({
-      id: v.id,
-      token: v.token,
-      recipient: v.recipient as ReportValidationItem['recipient'],
-      status: v.status as ReportValidationItem['status'],
-      comment: v.comment,
-      resolvedBy: v.resolvedBy,
-      resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
-      expiresAt: v.expiresAt.toISOString(),
-      createdAt: v.createdAt.toISOString(),
-    }));
+    // rows sorted desc: first seen per (employeeId, year, month, reportType) = latest record
+    const seenClient = new Set<string>();
+    return rows
+      .filter((v) => {
+        if (v.status === 'ARCHIVED') return false;
+        const key = `${v.employeeId}|${v.year}|${v.month}|${v.reportType}`;
+        if (seenClient.has(key)) return false;
+        seenClient.add(key);
+        return true;
+      })
+      .map((v) => ({
+        id: v.id,
+        token: v.token,
+        recipient: v.recipient as ReportValidationItem['recipient'],
+        status: v.status as ReportValidationItem['status'],
+        comment: v.comment,
+        resolvedBy: v.resolvedBy,
+        resolvedAt: v.resolvedAt ? v.resolvedAt.toISOString() : null,
+        expiresAt: v.expiresAt.toISOString(),
+        createdAt: v.createdAt.toISOString(),
+      }));
   }
 }
 

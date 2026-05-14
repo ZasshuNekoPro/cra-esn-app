@@ -18,7 +18,6 @@ datasource db {
 enum Role {
   PLATFORM_ADMIN
   ESN_ADMIN
-  ESN_MANAGER
   EMPLOYEE
   CLIENT
 }
@@ -42,6 +41,13 @@ enum CraEntryType {
   HOLIDAY
   TRAINING
   ASTREINTE
+  OVERTIME
+}
+
+enum CraEntryModifier {
+  TRAVEL
+  TRAINING
+  ON_CALL
   OVERTIME
 }
 
@@ -92,6 +98,10 @@ enum DocumentType {
   CONTRACT
   AMENDMENT
   MISSION_ORDER
+  PROCEDURE
+  NOTE
+  REPORT
+  SPECIFICATION
   OTHER
 }
 
@@ -113,6 +123,14 @@ enum NotificationChannel {
   IN_APP
 }
 
+enum ClientContactType {
+  RESPONSABLE
+  RH
+  FINANCIER
+  TECHNIQUE
+  AUTRE
+}
+
 // ─── ESN (Entreprise de Services du Numérique) ────────────────────────────────
 
 model Esn {
@@ -124,9 +142,28 @@ model Esn {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  users User[]
+  users          User[]
+  clientCompanies ClientCompany[]
 
   @@map("esns")
+}
+
+model ClientCompany {
+  id        String   @id @default(uuid())
+  name      String
+  siren     String?
+  address   String?
+  website   String?
+  notes     String?
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  esnId     String   @map("esn_id")
+  esn       Esn      @relation(fields: [esnId], references: [id])
+
+  contacts  User[]   @relation("CompanyContacts")
+
+  @@map("client_companies")
 }
 
 // ─── User ─────────────────────────────────────────────────────────────────────
@@ -138,17 +175,29 @@ model User {
   firstName String    @map("first_name")
   lastName  String    @map("last_name")
   role      Role      @default(EMPLOYEE)
-  phone     String?
-  company   String?
-  avatarUrl String?   @map("avatar_url")
-  esnId     String?   @map("esn_id")
-  esn       Esn?      @relation(fields: [esnId], references: [id])
-  deletedAt DateTime? @map("deleted_at")
+  phone              String?
+  company            String?
+  avatarUrl          String?            @map("avatar_url")
+  esnId              String?            @map("esn_id")
+  esn                Esn?               @relation(fields: [esnId], references: [id])
+  deletedAt          DateTime?          @map("deleted_at")
+  clientCompanyId    String?            @map("client_company_id")
+  clientCompany      ClientCompany?     @relation("CompanyContacts", fields: [clientCompanyId], references: [id])
+  clientContactType  ClientContactType? @map("client_contact_type")
+  passwordResetToken   String?   @map("password_reset_token")
+  passwordResetExpires DateTime? @map("password_reset_expires")
+  // Referent ESN admin for this employee (used for report email routing)
+  esnReferentId        String?   @map("esn_referent_id")
+  esnReferent          User?     @relation("EmployeeReferent", fields: [esnReferentId], references: [id])
+  referredEmployees    User[]    @relation("EmployeeReferent")
+  // Allows this ESN_ADMIN to see all reports in their ESN (vacation coverage)
+  canSeeAllEsnReports  Boolean   @default(false) @map("can_see_all_esn_reports")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   // Relations — Employee
   missions           Mission[]          @relation("EmployeeMissions")
+  missionEmployees   MissionEmployee[]  @relation("MissionEmployees")
   craMonths          CraMonth[]         @relation("EmployeeCraMonths")
   leaveBalances      LeaveBalance[]
   projectEntries     ProjectEntry[]     @relation("EmployeeProjectEntries")
@@ -189,6 +238,9 @@ model User {
   // Relations — Report validation pipeline
   reportValidationRequests ReportValidationRequest[] @relation("ReportValidationRequests")
 
+  // Relations — Mission docspace RAG
+  contextNotes  ContextNote[] @relation("EmployeeContextNotes")
+
   @@map("users")
 }
 
@@ -205,7 +257,7 @@ model Mission {
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  // Actors
+  // Primary actor FK (kept for backward compatibility with CRA/projects/reports/RAG)
   employeeId  String    @map("employee_id")
   employee    User      @relation("EmployeeMissions", fields: [employeeId], references: [id])
 
@@ -215,12 +267,28 @@ model Mission {
   clientId    String?   @map("client_id")
   client      User?     @relation("ClientMissions", fields: [clientId], references: [id])
 
+  // All employees on this mission (including the primary employee above)
+  missionEmployees  MissionEmployee[]
+
+  ragEnabled   Boolean   @default(false) @map("rag_enabled")
   // Relations
-  projects    Project[]
-  craMonths   CraMonth[]
-  documents   Document[]
+  projects     Project[]
+  craMonths    CraMonth[]
+  documents    Document[]
+  contextNotes ContextNote[] @relation("MissionContextNotes")
 
   @@map("missions")
+}
+
+model MissionEmployee {
+  missionId  String   @map("mission_id")
+  mission    Mission  @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  employeeId String   @map("employee_id")
+  employee   User     @relation("MissionEmployees", fields: [employeeId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@id([missionId, employeeId])
+  @@map("mission_employees")
 }
 
 // ─── CRA ──────────────────────────────────────────────────────────────────────
@@ -255,13 +323,15 @@ model CraMonth {
 }
 
 model CraEntry {
-  id          String       @id @default(uuid())
-  date        DateTime     @db.Date
-  dayFraction Decimal      @default(1) @map("day_fraction") @db.Decimal(3, 2) // 0.5 or 1.0
-  entryType   CraEntryType @default(WORK_ONSITE) @map("entry_type")
-  comment     String?
-  createdAt   DateTime     @default(now()) @map("created_at")
-  updatedAt   DateTime     @updatedAt @map("updated_at")
+  id             String             @id @default(uuid())
+  date           DateTime           @db.Date
+  dayFraction    Decimal            @default(1) @map("day_fraction") @db.Decimal(3, 2) // 0.5 or 1.0
+  entryType      CraEntryType       @default(WORK_ONSITE) @map("entry_type")
+  modifiers      CraEntryModifier[]
+  secondHalfType CraEntryType?      @map("second_half_type")
+  comment        String?
+  createdAt      DateTime           @default(now()) @map("created_at")
+  updatedAt      DateTime           @updatedAt @map("updated_at")
 
   craMonthId   String        @map("cra_month_id")
   craMonth     CraMonth      @relation(fields: [craMonthId], references: [id], onDelete: Cascade)
@@ -491,6 +561,7 @@ model Document {
   validations        ValidationDocument[]
   embeddings         Embedding[]
   projectValidations ProjectValidationDocument[]
+  metadata           DocumentMetadata?
 
   @@map("documents")
 }
@@ -664,4 +735,48 @@ model Embedding {
   @@unique([employeeId, sourceType, sourceId])
   @@index([employeeId])
   @@map("embeddings")
+}
+
+// ─── Document Metadata ────────────────────────────────────────────────────────
+
+model DocumentMetadata {
+  id                   String    @id @default(uuid())
+  version              String    @default("1.0")
+  isObsolete           Boolean   @default(false) @map("is_obsolete")
+  documentDate         DateTime? @map("document_date")
+  serviceInvolved      String?   @map("service_involved")
+  tags                 String[]  @default([])
+  author               String?
+  summary              String?
+  language             String?
+  confidentialityLevel String?   @map("confidentiality_level")
+  applicableFromDate   DateTime? @map("applicable_from_date")
+  applicableUntilDate  DateTime? @map("applicable_until_date")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  documentId String   @unique @map("document_id")
+  document   Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@map("document_metadata")
+}
+
+// ─── Context Notes (RAG information mode) ─────────────────────────────────────
+
+model ContextNote {
+  id        String   @id @default(uuid())
+  content   String
+  userInput String   @map("user_input")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  missionId  String  @map("mission_id")
+  mission    Mission @relation("MissionContextNotes", fields: [missionId], references: [id], onDelete: Cascade)
+
+  // onDelete: Cascade — GDPR Art. 17 erasure path
+  employeeId String  @map("employee_id")
+  employee   User    @relation("EmployeeContextNotes", fields: [employeeId], references: [id], onDelete: Cascade)
+
+  @@index([missionId])
+  @@index([employeeId])
+  @@map("context_notes")
 }

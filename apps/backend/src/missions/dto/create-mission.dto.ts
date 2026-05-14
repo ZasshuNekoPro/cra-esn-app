@@ -6,6 +6,8 @@ import {
   IsNumber,
   IsPositive,
   IsUUID,
+  IsArray,
+  ArrayMinSize,
 } from 'class-validator';
 
 export class CreateMissionDto {
@@ -29,8 +31,10 @@ export class CreateMissionDto {
   @IsPositive()
   dailyRate?: number;
 
-  @IsUUID()
-  employeeId!: string;
+  @IsArray()
+  @ArrayMinSize(1)
+  @IsUUID('4', { each: true })
+  employeeIds!: string[];
 
   @IsOptional()
   @IsUUID()

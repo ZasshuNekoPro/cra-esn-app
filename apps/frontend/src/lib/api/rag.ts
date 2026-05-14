@@ -1,10 +1,10 @@
 import type { RagQueryRequest, RagSource } from '@esn/shared-types';
 
-const BACKEND_URL = process.env['NEXT_PUBLIC_BACKEND_URL'] ?? 'http://localhost:3001';
-
 export type RagStreamEvent =
   | { type: 'token'; content: string }
   | { type: 'sources'; sources: RagSource[] }
+  | { type: 'comparison'; content: string }
+  | { type: 'note_saved'; noteId: string }
   | { type: 'done' }
   | { type: 'error'; message: string };
 
@@ -15,9 +15,11 @@ export type RagStreamEvent =
 export async function* streamRagQuery(
   dto: RagQueryRequest,
   token: string,
+  signal?: AbortSignal,
 ): AsyncGenerator<RagStreamEvent> {
-  const res = await fetch(`${BACKEND_URL}/api/rag/stream`, {
+  const res = await fetch(`/api/proxy/rag/stream`, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,

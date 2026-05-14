@@ -1,10 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
+import type { Readable } from 'stream';
 import { IStorageService, STORAGE_SERVICE } from './storage.interface';
 
-/**
- * Thin facade so existing code can inject StorageService directly
- * while the actual implementation is selected at runtime via STORAGE_DRIVER.
- */
 @Injectable()
 export class StorageService implements IStorageService {
   constructor(
@@ -17,6 +14,10 @@ export class StorageService implements IStorageService {
 
   getDownloadUrl(key: string, expiresInSeconds?: number): Promise<string> {
     return this.driver.getDownloadUrl(key, expiresInSeconds);
+  }
+
+  getObjectStream(key: string): Promise<Readable> {
+    return this.driver.getObjectStream(key);
   }
 
   deleteObject(key: string): Promise<void> {

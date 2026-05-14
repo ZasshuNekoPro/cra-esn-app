@@ -1,6 +1,7 @@
 import { auth } from '../../../auth';
 import { redirect } from 'next/navigation';
 import { Role } from '@esn/shared-types';
+import { missionsApi } from '../../../lib/api/missions';
 import { ChatContainer } from '../../../components/rag/ChatContainer';
 
 export default async function AssistantPage(): Promise<JSX.Element> {
@@ -10,9 +11,11 @@ export default async function AssistantPage(): Promise<JSX.Element> {
     redirect('/dashboard');
   }
 
+  const missions = await missionsApi.list().catch(() => []);
+
   return (
     <div className="h-full flex flex-col max-w-3xl mx-auto">
-      <ChatContainer accessToken={session.accessToken} />
+      <ChatContainer accessToken={session.accessToken} missions={missions} />
     </div>
   );
 }

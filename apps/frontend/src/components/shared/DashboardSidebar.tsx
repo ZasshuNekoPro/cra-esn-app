@@ -21,7 +21,7 @@ interface NavItem {
 const EMPLOYEE_NAV: NavItem[] = [
   { href: '/dashboard', label: 'Tableau de bord' },
   { href: '/cra', label: 'Mes CRA' },
-  { href: '/projects', label: 'Mes projets' },
+  { href: '/projects', label: 'Missions et projets' },
   { href: '/documents', label: 'Documents' },
   { href: '/assistant', label: 'Assistant IA' },
   { href: '/reports', label: 'Rapports' },
@@ -32,6 +32,7 @@ const PLATFORM_NAV: NavItem[] = [
   { href: '/platform/admin/dashboard', label: 'Tableau de bord' },
   { href: '/platform/admin/esn', label: 'Entreprises ESN' },
   { href: '/platform/admin/users', label: 'Administrateurs ESN' },
+  { href: '/platform/admin/logs', label: 'Logs d\'activité' },
 ];
 
 const ESN_NAV: NavItem[] = [
@@ -41,14 +42,6 @@ const ESN_NAV: NavItem[] = [
   { href: '/esn/admin/missions', label: 'Missions' },
   { href: '/esn/admin/reports', label: 'Validation & Rapports' },
   { href: '/esn/admin/consent', label: 'Consentements' },
-];
-
-const MANAGER_NAV: NavItem[] = [
-  { href: '/manager/dashboard', label: 'Tableau de bord' },
-  { href: '/manager/employees', label: 'Salariés' },
-  { href: '/manager/clients', label: 'Clients' },
-  { href: '/manager/missions', label: 'Missions' },
-  { href: '/manager/cra-validation', label: 'Validation CRA' },
 ];
 
 const CLIENT_NAV: NavItem[] = [
@@ -69,11 +62,9 @@ export function DashboardSidebar({ user }: Props): JSX.Element {
       ? PLATFORM_NAV
       : user.role === Role.ESN_ADMIN
         ? ESN_NAV
-        : user.role === Role.ESN_MANAGER
-          ? MANAGER_NAV
-          : user.role === Role.CLIENT
-            ? CLIENT_NAV
-            : EMPLOYEE_NAV;
+        : user.role === Role.CLIENT
+          ? CLIENT_NAV
+          : EMPLOYEE_NAV;
 
   return (
     <aside className="w-64 bg-white shadow-sm flex flex-col">
