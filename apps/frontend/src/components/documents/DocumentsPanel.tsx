@@ -4,12 +4,13 @@ import { useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { DocumentCard } from './DocumentCard';
 import { UploadDropzone } from './UploadDropzone';
-import { documentsApi } from '../../lib/api/documents';
+import { DocumentMetadataDrawer } from './DocumentMetadataDrawer';
+import { documentsClientApi } from '../../lib/api/documents';
 import type { DocumentWithRelations } from '../../lib/api/documents';
 
 interface DocumentsPanelProps {
   initialDocuments: DocumentWithRelations[];
-  missionId: string;
+  missionId?: string;
   projectId?: string;
 }
 
@@ -18,10 +19,13 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
   const [documents, setDocuments] = useState(initialDocuments);
   const [showUpload, setShowUpload] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [metaDocId, setMetaDocId] = useState<string | null>(null);
+
+  const metaDoc = documents.find((d) => d.id === metaDocId);
 
   const refresh = useCallback(async () => {
     try {
-      const updated = await documentsApi.list({ missionId });
+      const updated = await documentsClientApi.list({ missionId });
       setDocuments(updated);
     } catch {
       // Keep existing state on refresh failure
@@ -30,7 +34,7 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
 
   async function handleDownload(id: string) {
     try {
-      const { url } = await documentsApi.getDownloadUrl(id);
+      const { url } = await documentsClientApi.getDownloadUrl(id);
       window.open(url, '_blank');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de téléchargement');
@@ -40,7 +44,7 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce document ?')) return;
     try {
-      await documentsApi.delete(id);
+      await documentsClientApi.delete(id);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de suppression');
@@ -57,15 +61,17 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-gray-700">Documents</h2>
-        <button
-          onClick={() => setShowUpload((v) => !v)}
-          className="text-xs px-3 py-1.5 font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
-        >
-          {showUpload ? 'Annuler' : '+ Ajouter'}
-        </button>
+        {missionId && (
+          <button
+            onClick={() => setShowUpload((v) => !v)}
+            className="text-xs px-3 py-1.5 font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50 transition-colors"
+          >
+            {showUpload ? 'Annuler' : '+ Ajouter'}
+          </button>
+        )}
       </div>
 
-      {showUpload && (
+      {showUpload && missionId && (
         <UploadDropzone missionId={missionId} projectId={projectId} onUploaded={handleUploaded} />
       )}
 
@@ -83,9 +89,19 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
               document={doc}
               onDownload={(id) => void handleDownload(id)}
               onDelete={(id) => void handleDelete(id)}
+              onMetadata={(id) => setMetaDocId(id)}
             />
           ))}
         </div>
+      )}
+
+      {metaDocId && metaDoc && (
+        <DocumentMetadataDrawer
+          documentId={metaDocId}
+          documentName={metaDoc.name}
+          isOpen={!!metaDocId}
+          onClose={() => setMetaDocId(null)}
+        />
       )}
     </div>
   );

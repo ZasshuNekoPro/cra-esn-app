@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { CommentVisibility } from '@esn/shared-types';
 import type { ProjectComment } from '@esn/shared-types';
 import { CommentCard } from './CommentCard';
-import { projectsApi } from '../../lib/api/projects';
+import { createCommentAction } from '../../app/(dashboard)/projects/actions';
 
 interface ProjectCommentsProps {
   projectId: string;
@@ -30,7 +30,7 @@ export function ProjectComments({
     setSubmitting(true);
     setError(null);
     try {
-      const newComment = await projectsApi.createComment(projectId, {
+      const newComment = await createCommentAction(projectId, {
         content: content.trim(),
         visibility,
         isBlocker,

@@ -3,6 +3,7 @@ import {
   Role,
   CraStatus,
   CraEntryType,
+  CraEntryModifier,
   PortionType,
   WeatherState,
   LeaveType,
@@ -13,6 +14,7 @@ import {
   ProjectStatus,
   CommentVisibility,
   MilestoneStatus,
+  ClientContactType,
 } from './enums';
 
 // ── Base ──────────────────────────────────────────────────────────────────────
@@ -42,10 +44,27 @@ export interface User extends BaseEntity {
   avatarUrl?: string | null;
   esnId?: string | null;
   deletedAt?: Date | null;
+  clientCompanyId?: string | null;
+  clientContactType?: ClientContactType | null;
 }
 
 /** User without sensitive fields — safe to expose via API */
 export type PublicUser = Omit<User, 'deletedAt'>;
+
+// ── Client Company ─────────────────────────────────────────────────────────────
+
+export interface ClientCompany extends BaseEntity {
+  name: string;
+  siren?: string | null;
+  address?: string | null;
+  website?: string | null;
+  notes?: string | null;
+  esnId: string;
+}
+
+export interface ClientCompanyWithContacts extends ClientCompany {
+  contacts: PublicUser[];
+}
 
 // ── Mission ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +75,7 @@ export interface Mission extends BaseEntity {
   endDate?: Date | null;
   dailyRate?: number | null;
   isActive: boolean;
+  ragEnabled: boolean;
   employeeId: string;
   esnAdminId?: string | null;
   clientId?: string | null;
@@ -83,6 +103,8 @@ export interface CraEntry {
   date: Date;
   dayFraction: number; // 0.5 or 1.0
   entryType: CraEntryType;
+  modifiers: CraEntryModifier[];
+  secondHalfType: CraEntryType | null;
   comment?: string | null;
   craMonthId: string;
   createdAt: Date;
@@ -267,6 +289,37 @@ export interface AuditLog {
   userAgent?: string | null;
   initiatorId: string;
   createdAt: Date;
+}
+
+// ── Document Metadata ─────────────────────────────────────────────────────────
+
+export interface DocumentMetadata {
+  id: string;
+  version: string;
+  isObsolete: boolean;
+  documentDate: Date | null;
+  serviceInvolved: string | null;
+  tags: string[];
+  author: string | null;
+  summary: string | null;
+  language: string | null;
+  confidentialityLevel: string | null;
+  applicableFromDate: Date | null;
+  applicableUntilDate: Date | null;
+  documentId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+// ── Context Note ──────────────────────────────────────────────────────────────
+
+export interface ContextNote {
+  id: string;
+  content: string;
+  missionId: string;
+  employeeId: string;
+  createdAt: Date;
+  // userInput intentionally omitted from entity — PII, excluded from API responses
 }
 
 // ── Notification ──────────────────────────────────────────────────────────────

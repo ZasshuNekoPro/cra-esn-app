@@ -118,7 +118,7 @@ export class ReportsController {
 
   /** GET /reports/for-esn — reports sent to ESN for the caller's ESN employees */
   @Get('for-esn')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   getReportsForEsn(@CurrentUser() user: JwtPayload) {
     return this.reportsService.listReportsForEsn(user.sub);
   }
@@ -160,7 +160,7 @@ export class ReportsController {
   // ── ESN actions on validation requests ────────────────────────────────────
 
   @Get('validation/:id')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   getValidationItem(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
@@ -168,8 +168,17 @@ export class ReportsController {
     return this.reportsValidateService.getValidationItem(id, user.sub);
   }
 
+  @Get('validation/:id/cra-preview')
+  @Roles(Role.ESN_ADMIN)
+  getValidationCraPreview(
+    @Param('id') id: string,
+    @CurrentUser() user: JwtPayload,
+  ) {
+    return this.reportsValidateService.getValidationCraPreview(id, user.sub);
+  }
+
   @Get('validation/:id/download')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   getValidationPdfUrl(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
@@ -178,7 +187,7 @@ export class ReportsController {
   }
 
   @Get('validation/:id/pdf')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   streamValidationPdf(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
@@ -187,7 +196,7 @@ export class ReportsController {
   }
 
   @Patch('validation/:id/archive')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   archiveValidation(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,
@@ -196,7 +205,7 @@ export class ReportsController {
   }
 
   @Patch('validation/:id/remind')
-  @Roles(Role.ESN_ADMIN, Role.ESN_MANAGER)
+  @Roles(Role.ESN_ADMIN)
   remindEmployee(
     @Param('id') id: string,
     @CurrentUser() user: JwtPayload,

@@ -1,7 +1,7 @@
 // ─── API Types — request/response contracts ───────────────────────────────────
 
-import { Role, CraStatus, CraEntryType, PortionType, WeatherState, LeaveType, ProjectStatus, CommentVisibility, MilestoneStatus, ValidationStatus } from './enums';
-import { PublicUser, Mission, CraMonth, CraEntry, Project, WeatherEntry, ProjectComment, Milestone, ProjectValidationRequest } from './entities';
+import { Role, CraStatus, CraEntryType, CraEntryModifier, PortionType, WeatherState, LeaveType, ProjectStatus, CommentVisibility, MilestoneStatus, ValidationStatus } from './enums';
+import { PublicUser, Mission, CraMonth, CraEntry, Project, WeatherEntry, ProjectComment, Milestone, ProjectValidationRequest, DocumentMetadata, ContextNote } from './entities';
 
 // ── Generic wrappers ──────────────────────────────────────────────────────────
 
@@ -109,7 +109,7 @@ export interface CreateMissionRequest {
   startDate: string; // ISO date string
   endDate?: string;
   dailyRate?: number;
-  employeeId: string;
+  employeeIds: string[];
   esnAdminId?: string;
   clientId?: string;
 }
@@ -130,6 +130,8 @@ export interface CreateCraEntryRequest {
   date: string; // ISO date YYYY-MM-DD
   entryType: CraEntryType;
   dayFraction: number; // 0.5 or 1.0
+  modifiers?: CraEntryModifier[];
+  secondHalfType?: CraEntryType | null;
   comment?: string;
   projectEntries?: Array<{ projectId: string; portion: PortionType }>;
 }
@@ -137,6 +139,8 @@ export interface CreateCraEntryRequest {
 export interface UpdateCraEntryRequest {
   entryType?: CraEntryType;
   dayFraction?: number;
+  modifiers?: CraEntryModifier[];
+  secondHalfType?: CraEntryType | null;
   comment?: string;
   projectEntries?: Array<{ projectId: string; portion: PortionType }>;
 }
@@ -354,11 +358,16 @@ export interface ConversationTurn {
   content: string;
 }
 
+export type RagMode = 'question' | 'information';
+
 export interface RagFilters {
   sourceType?: RagSourceType[];
+  /** Ignored when missionId is provided — @Transform applied server-side */
   projectId?: string;
+  missionId?: string;
   year?: number;
   month?: number;
+  includeNonDocumentSources?: boolean;
 }
 
 export interface RagSource {
@@ -372,6 +381,7 @@ export interface RagQueryRequest {
   question: string;
   messages?: ConversationTurn[];
   filters?: RagFilters;
+  mode?: RagMode;
 }
 
 export interface RagQueryResponse {
@@ -384,4 +394,70 @@ export interface RagIndexEvent {
   employeeId: string;
   sourceType: RagSourceType;
   sourceId: string;
+}
+
+// ── RAG SSE stream events ─────────────────────────────────────────────────────
+
+export type RagStreamEvent =
+  | { type: 'token'; content: string }
+  | { type: 'sources'; sources: RagSource[] }
+  | { type: 'comparison'; content: string }
+  | { type: 'note_saved'; noteId: string }
+  | { type: 'done' }
+  | { type: 'error'; message: string };
+
+// ── Document Metadata ─────────────────────────────────────────────────────────
+
+export interface UpsertDocumentMetadataRequest {
+  version?: string;
+  isObsolete?: boolean;
+  documentDate?: string | null;
+  serviceInvolved?: string | null;
+  tags?: string[];
+  author?: string | null;
+  summary?: string | null;
+  language?: string | null;
+  confidentialityLevel?: string | null;
+  applicableFromDate?: string | null;
+  applicableUntilDate?: string | null;
+}
+
+export type { DocumentMetadata };
+
+// ── Mission RAG toggle ────────────────────────────────────────────────────────
+
+export interface ToggleMissionRagRequest {
+  ragEnabled: boolean;
+}
+
+// ── Context Notes ─────────────────────────────────────────────────────────────
+
+export type { ContextNote };
+
+export interface ContextNoteListQuery extends PaginationQuery {
+  missionId: string;
+  sortBy?: 'createdAt';
+}
+
+
+// ── Audit Logs (PLATFORM_ADMIN) ───────────────────────────────────────────────
+
+export interface AuditLogItem {
+  id: string;
+  action: string;
+  resource: string;
+  metadata: Record<string, unknown> | null;
+  ipAddress: string | null;
+  userAgent: string | null;
+  createdAt: string;        // ISO 8601
+  initiatorId: string;
+  initiatorName: string;
+  initiatorEmail: string;
+}
+
+export interface AuditLogListResponse {
+  items: AuditLogItem[];
+  total: number;
+  page: number;
+  totalPages: number;
 }

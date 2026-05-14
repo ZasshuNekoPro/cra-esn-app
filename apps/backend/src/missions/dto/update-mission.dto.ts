@@ -5,6 +5,8 @@ import {
   IsNumber,
   IsPositive,
   IsBoolean,
+  IsUUID,
+  IsArray,
 } from 'class-validator';
 
 export class UpdateMissionDto {
@@ -28,4 +30,19 @@ export class UpdateMissionDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  employeeIds?: string[];
+
+  // null explicitly removes the client assignment
+  @IsOptional()
+  @IsUUID()
+  clientId?: string | null;
+
+  // null explicitly removes the ESN admin assignment
+  @IsOptional()
+  @IsUUID()
+  esnAdminId?: string | null;
 }

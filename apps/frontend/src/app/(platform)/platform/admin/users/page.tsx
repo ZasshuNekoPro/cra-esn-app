@@ -18,7 +18,7 @@ export default function CreateEsnAdminPage(): JSX.Element {
     password: '',
     phone: '',
     esnId: '',
-    role: Role.ESN_ADMIN as Role.ESN_ADMIN | Role.ESN_MANAGER,
+    role: Role.ESN_ADMIN as Role.ESN_ADMIN,
   });
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -115,11 +115,10 @@ export default function CreateEsnAdminPage(): JSX.Element {
           <label className="block text-sm font-medium text-gray-700 mb-1">Rôle</label>
           <select
             value={form.role}
-            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role.ESN_ADMIN | Role.ESN_MANAGER }))}
+            onChange={(e) => setForm((f) => ({ ...f, role: e.target.value as Role.ESN_ADMIN }))}
             className="w-full border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             <option value={Role.ESN_ADMIN}>ESN Admin</option>
-            <option value={Role.ESN_MANAGER}>ESN Manager</option>
           </select>
         </div>
 

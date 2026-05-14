@@ -11,13 +11,8 @@ export function isEsnAdmin(user: Pick<User, 'role'>): boolean {
   return user.role === Role.ESN_ADMIN;
 }
 
-export function isEsnManager(user: Pick<User, 'role'>): boolean {
-  return user.role === Role.ESN_MANAGER;
-}
-
-/** Returns true for any ESN staff: ESN_ADMIN or ESN_MANAGER */
 export function isEsnStaff(user: Pick<User, 'role'>): boolean {
-  return user.role === Role.ESN_ADMIN || user.role === Role.ESN_MANAGER;
+  return user.role === Role.ESN_ADMIN;
 }
 
 export function isClient(user: Pick<User, 'role'>): boolean {

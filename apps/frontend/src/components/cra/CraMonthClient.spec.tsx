@@ -96,6 +96,8 @@ const STUB_ENTRY: CraEntry = {
   date: new Date(2026, 3, 10), // April 10
   entryType: CraEntryType.WORK_ONSITE,
   dayFraction: 1,
+  modifiers: [],
+  secondHalfType: null,
   comment: null,
   craMonthId: 'cra-1',
   createdAt: new Date(),

@@ -6,6 +6,10 @@ const TYPE_LABELS: Record<DocumentType, string> = {
   [DocumentType.AMENDMENT]: 'Avenant',
   [DocumentType.MISSION_ORDER]: 'Ordre de mission',
   [DocumentType.CRA_PDF]: 'CRA PDF',
+  [DocumentType.NOTE]: 'Note',
+  [DocumentType.PROCEDURE]: 'Procédure',
+  [DocumentType.REPORT]: 'Rapport',
+  [DocumentType.SPECIFICATION]: 'Spécification',
   [DocumentType.OTHER]: 'Autre',
 };
 
@@ -20,9 +24,10 @@ interface DocumentCardProps {
   onDownload: (id: string) => void;
   onShare?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onMetadata?: (id: string) => void;
 }
 
-export function DocumentCard({ document, onDownload, onShare, onDelete }: DocumentCardProps) {
+export function DocumentCard({ document, onDownload, onShare, onDelete, onMetadata }: DocumentCardProps) {
   const latestVersion = document.versions.at(-1);
   const activeShares = document.shares.filter((s) => !s.revokedAt);
 
@@ -61,6 +66,14 @@ export function DocumentCard({ document, onDownload, onShare, onDelete }: Docume
             className="px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
           >
             Partager
+          </button>
+        )}
+        {onMetadata && (
+          <button
+            onClick={() => onMetadata(document.id)}
+            className="px-3 py-1.5 text-xs font-medium text-gray-500 border border-gray-200 rounded hover:bg-gray-50 transition-colors"
+          >
+            Métadonnées
           </button>
         )}
         {onDelete && document.type !== DocumentType.CRA_PDF && (

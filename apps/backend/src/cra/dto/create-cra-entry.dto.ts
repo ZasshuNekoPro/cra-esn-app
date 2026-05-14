@@ -10,7 +10,7 @@ import {
   Matches,
 } from 'class-validator';
 import { Type } from 'class-transformer';
-import { CraEntryType, PortionType } from '@esn/shared-types';
+import { CraEntryType, CraEntryModifier, PortionType } from '@esn/shared-types';
 
 class ProjectEntryItemDto {
   @IsString()
@@ -34,6 +34,15 @@ export class CreateCraEntryDto {
   @Min(0.5)
   @Max(1.0)
   dayFraction!: number;
+
+  @IsOptional()
+  @IsArray()
+  @IsEnum(CraEntryModifier, { each: true })
+  modifiers?: CraEntryModifier[];
+
+  @IsOptional()
+  @IsEnum(CraEntryType)
+  secondHalfType?: CraEntryType | null;
 
   @IsOptional()
   @IsString()

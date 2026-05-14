@@ -93,9 +93,11 @@ PORT=3100
 
 ---
 
-## 4. Initialiser le compte ESN_ADMIN (une seule fois)
+## 4. Initialiser les comptes (une seule fois)
 
 Via **Coolify → Backend → Terminal** (ou en SSH sur le container) :
+
+### Compte ESN_ADMIN de production
 
 ```bash
 ADMIN_EMAIL=admin@votre-esn.fr \
@@ -109,6 +111,25 @@ Résultat attendu :
 ```
 
 > Cette commande est **idempotente** — sans effet si le compte existe déjà.
+
+### Comptes de test (preprod uniquement)
+
+Pour créer les 4 comptes de test (`password123`) sur l'environnement preprod :
+
+```bash
+pnpm --filter backend db:seed
+```
+
+Comptes créés :
+
+| Email | Rôle | Mot de passe |
+|---|---|---|
+| `platform@esn-app.local` | PLATFORM_ADMIN | `password123` |
+| `admin@esn-corp.local` | ESN_ADMIN | `password123` |
+| `alice@example.com` | EMPLOYEE | `password123` |
+| `contact@client-corp.local` | CLIENT | `password123` |
+
+> ⚠️ Ne jamais exécuter `db:seed` en production — les mots de passe `password123` sont publics.
 
 ---
 

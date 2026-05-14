@@ -113,6 +113,48 @@ gh pr view --web                    # Ouvrir la PR dans le navigateur
 - **Rate limiting** : configurable via `RATE_LIMIT_TTL` (secondes) et `RATE_LIMIT_MAX`
 - **Module missions/users** : Phase 2 — missions créées directement en DB au déploiement initial
 
+## Outillage Claude Code (Phase 1 adoption)
+
+Voir `docs/TOOLING.md` pour le pipeline complet par type de tâche.
+
+### Agents spécialisés disponibles (`.claude/agents/`)
+- `nestjs-expert` — patterns NestJS 10, DI, modules
+- `prisma-expert` — schéma, migrations, relations, pgvector
+- `nextjs-developer` — App Router, server actions, Core Web Vitals
+- `vitest-expert` — tests unitaires, mocking, coverage
+- `playwright-expert` — tests e2e, fixtures, workflows
+- `security-auditor` — audit vulnérabilités OWASP + data protection
+
+### Commands craESN existants (`.claude/commands/`) — PRIORITAIRES
+Privilégier ces commands craESN-specific sur leurs équivalents génériques :
+- `/review-security` — audit ConsentGuard, ResourceOwnerGuard, RBAC, RAG isolation, S3 TTL (préféré à `/cso` gstack)
+- `/new-module <nom>` — scaffold NestJS module complet avec branche + entities Prisma
+- `/git-commit`, `/git-pr` — aligné `.gitmessage` et conventional commits
+- `/startapp`, `/stopapp` — dev local
+
+### Skills de déploiement (`.claude/skills/`)
+- `deploy-craesn` — redéploie sur pop-os-neko (.138) via chaîne SSH Coolify. À utiliser après merge main→preprod.
+
+### Règles outillage
+- **TDD strict non-négociable** : tout skill (gstack `/review`, agent `nestjs-expert`…) qui suggère un fix doit être suivi d'un test AVANT merge. Les skills assument les tests écrits.
+- **ConsentGuard enforcement** : `/review-security` OBLIGATOIRE avant merge sur toute branche touchant les données salarié. `/cso` gstack = complément OWASP générique, pas substitut.
+- **Branches protégées** : JAMAIS merger `preprod → main`. Le Dockerfile frontend preprod contient `NEXT_PUBLIC_BACKEND_URL=http://192.168.1.138:3001` qui ne doit pas remonter.
+- **Design skills gstack** (`/design-*`) : uniquement sur branches `ui/*`. Ignorer sur backend/api.
+
+## Skill routing
+
+When the user's request matches an available skill, invoke it via the Skill tool. The
+skill has multi-step workflows, checklists, and quality gates that produce better
+results than an ad-hoc answer. When in doubt, invoke the skill. A false positive is
+cheaper than a false negative.
+
+Key routing rules:
+- Bugs, errors, "why is this broken", "wtf", "this doesn't work" → invoke /investigate
+- Code review, check the diff, "look at my changes" → invoke /review
+- Ship, deploy, create a PR, "send it" → invoke /ship
+- Security audit, OWASP, "is this secure" → invoke /review-security (project-specific) or /cso
+- Test the site, find bugs, "does this work" → invoke /qa
+
 ## Ce que Claude ne doit PAS faire
 - Ne pas modifier le schéma Prisma sans mettre à jour les types partagés
 - Ne pas bypasser ConsentGuard même pour des tests rapides

@@ -9,6 +9,7 @@ import { NotificationBell } from '../../../components/reports/NotificationBell';
 import { ShareDashboardButton } from '../../../components/reports/ShareDashboardButton';
 import { SendReportButton } from '../../../components/reports/SendReportButton';
 import { SentReportsTable } from '../../../components/reports/SentReportsTable';
+import { MonthNavigator } from '../../../components/reports/MonthNavigator';
 import type { MonthlyReport, SentReportHistoryItem } from '@esn/shared-types';
 
 async function getReport(year: number, month: number): Promise<MonthlyReport | null> {
@@ -27,16 +28,39 @@ async function getSentHistory(): Promise<SentReportHistoryItem[]> {
   }
 }
 
-export default async function ReportsPage(): Promise<JSX.Element> {
+function resolveYearMonth(params: { year?: string; month?: string }): { year: number; month: number } {
+  const now = new Date();
+  const currentYear = now.getFullYear();
+  const currentMonth = now.getMonth() + 1;
+
+  const parsedYear = params.year ? parseInt(params.year, 10) : NaN;
+  const parsedMonth = params.month ? parseInt(params.month, 10) : NaN;
+
+  const year = Number.isInteger(parsedYear) && parsedYear >= 2000 && parsedYear <= currentYear
+    ? parsedYear
+    : currentYear;
+
+  const maxMonth = year === currentYear ? currentMonth : 12;
+  const month = Number.isInteger(parsedMonth) && parsedMonth >= 1 && parsedMonth <= maxMonth
+    ? parsedMonth
+    : (year === currentYear ? currentMonth : 12);
+
+  return { year, month };
+}
+
+export default async function ReportsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ year?: string; month?: string }>;
+}): Promise<JSX.Element> {
   const session = await auth();
   if (!session) redirect('/login');
 
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth() + 1;
+  const params = await searchParams;
+  const { year, month } = resolveYearMonth(params);
   const [report, sentHistory] = await Promise.all([getReport(year, month), getSentHistory()]);
 
-  const monthLabel = now.toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
+  const monthLabel = new Date(year, month - 1, 1).toLocaleString('fr-FR', { month: 'long', year: 'numeric' });
 
   return (
     <div className="space-y-6">
@@ -51,6 +75,7 @@ export default async function ReportsPage(): Promise<JSX.Element> {
           </p>
         </div>
         <div className="flex items-center gap-3">
+          <MonthNavigator year={year} month={month} />
           <NotificationBell />
           <SendReportButton year={year} month={month} />
           <ShareDashboardButton />

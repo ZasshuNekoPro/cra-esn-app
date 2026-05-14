@@ -83,6 +83,32 @@ export interface ValidateReportResponse {
 /** Available TTL options for validation links (hours). */
 export type SendReportTtlHours = 24 | 48 | 72 | 168;
 
+// ── Validation CRA Preview ────────────────────────────────────────────────────
+
+export interface ValidationCraPreviewEntry {
+  date: string;        // ISO 8601
+  entryType: string;   // CraEntryType value
+  dayFraction: number;
+  modifiers: string[]; // CraEntryModifier values
+  secondHalfType: string | null; // CraEntryType when dayFraction === 0.5
+  comment: string | null;
+}
+
+export interface ValidationWeatherEntry {
+  date: string;        // ISO 8601
+  state: string;       // WeatherState value
+  projectName: string;
+  comment: string | null;
+}
+
+export interface ValidationCraPreview {
+  year: number;
+  month: number;
+  reportType: string;  // ReportType value
+  craEntries: ValidationCraPreviewEntry[];
+  weatherEntries: ValidationWeatherEntry[];
+}
+
 /** Presigned download URL returned by GET /reports/sent-history/:id/download. */
 export interface ReportDownloadResponse {
   url: string;                  // presigned S3 URL (TTL: 300s)

@@ -27,6 +27,7 @@ describe('apiFetch', () => {
   it('should call fetch with the correct URL and headers', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      text: () => Promise.resolve(JSON.stringify({ data: 'ok' })),
       json: () => Promise.resolve({ data: 'ok' }),
     });
 
@@ -47,6 +48,7 @@ describe('apiFetch', () => {
 
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      text: () => Promise.resolve('{}'),
       json: () => Promise.resolve({}),
     });
 
@@ -85,6 +87,7 @@ describe('apiFetch', () => {
   it('should serialize body as JSON', async () => {
     mockFetch.mockResolvedValueOnce({
       ok: true,
+      text: () => Promise.resolve('{}'),
       json: () => Promise.resolve({}),
     });
 
@@ -102,6 +105,7 @@ describe('apiClient', () => {
     mockFetch.mockReset();
     mockFetch.mockResolvedValue({
       ok: true,
+      text: () => Promise.resolve('{}'),
       json: () => Promise.resolve({}),
     });
   });

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { consentApi } from '../../lib/api/consent';
+import type { PublicUser } from '../../lib/api/users';
 
 const SCOPE_OPTIONS = [
   { value: 'cra', label: 'CRA (feuilles de temps)' },
@@ -9,7 +10,11 @@ const SCOPE_OPTIONS = [
   { value: 'documents', label: 'Documents' },
 ];
 
-export function RequestConsentForm() {
+interface RequestConsentFormProps {
+  employees: PublicUser[];
+}
+
+export function RequestConsentForm({ employees }: RequestConsentFormProps) {
   const [employeeId, setEmployeeId] = useState('');
   const [scope, setScope] = useState<string[]>(['cra']);
   const [loading, setLoading] = useState(false);
@@ -24,12 +29,12 @@ export function RequestConsentForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!employeeId.trim() || scope.length === 0) return;
+    if (!employeeId || scope.length === 0) return;
     setLoading(true);
     setError(null);
     setSuccess(false);
     try {
-      await consentApi.request(employeeId.trim(), scope);
+      await consentApi.request(employeeId, scope);
       setSuccess(true);
       setEmployeeId('');
       setScope(['cra']);
@@ -40,20 +45,33 @@ export function RequestConsentForm() {
     }
   }
 
+  if (employees.length === 0) {
+    return (
+      <p className="text-sm text-gray-400">
+        Aucun salarié enregistré. Ajoutez d'abord des salariés pour pouvoir demander des accès.
+      </p>
+    );
+  }
+
   return (
     <form onSubmit={(e) => void handleSubmit(e)} className="space-y-4">
       <div>
         <label className="block text-xs font-medium text-gray-700 mb-1">
-          ID du salarié (UUID)
+          Salarié
         </label>
-        <input
-          type="text"
+        <select
           value={employeeId}
           onChange={(e) => setEmployeeId(e.target.value)}
-          placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-          className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
           required
-        />
+          className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
+        >
+          <option value="">— Sélectionner un salarié —</option>
+          {employees.map((emp) => (
+            <option key={emp.id} value={emp.id}>
+              {emp.firstName} {emp.lastName} ({emp.email})
+            </option>
+          ))}
+        </select>
       </div>
 
       <div>
@@ -78,7 +96,7 @@ export function RequestConsentForm() {
 
       <button
         type="submit"
-        disabled={loading || !employeeId.trim() || scope.length === 0}
+        disabled={loading || !employeeId || scope.length === 0}
         className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {loading ? 'Envoi…' : 'Envoyer la demande'}

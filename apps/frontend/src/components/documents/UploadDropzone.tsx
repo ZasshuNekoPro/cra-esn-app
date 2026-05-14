@@ -18,15 +18,16 @@ const ALLOWED_MIME = [
 
 interface UploadDropzoneProps {
   missionId: string;
+  missionTitle?: string;
   projectId?: string;
   onUploaded: () => void;
 }
 
-export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropzoneProps) {
+export function UploadDropzone({ missionId, missionTitle, projectId, onUploaded }: UploadDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
   const [name, setName] = useState('');
-  const [type, setType] = useState<DocumentType>(DocumentType.OTHER);
+  const [type, setType] = useState<DocumentType>(DocumentType.NOTE);
   const [file, setFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,7 +66,7 @@ export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropz
       await documentsApi.upload({ name: name.trim(), type, missionId, projectId, file });
       setFile(null);
       setName('');
-      setType(DocumentType.OTHER);
+      setType(DocumentType.NOTE);
       onUploaded();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur lors de l\'upload');
@@ -76,6 +77,11 @@ export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropz
 
   return (
     <div className="space-y-3">
+      {missionTitle && (
+        <p className="text-xs text-blue-700 bg-blue-50 border border-blue-200 rounded-lg px-3 py-2">
+          Mission : <span className="font-semibold">{missionTitle}</span>
+        </p>
+      )}
       <div
         onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
         onDragLeave={() => setIsDragging(false)}
@@ -121,10 +127,18 @@ export function UploadDropzone({ missionId, projectId, onUploaded }: UploadDropz
               onChange={(e) => setType(e.target.value as DocumentType)}
               className="w-full border border-gray-300 rounded px-3 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-blue-500"
             >
+              <optgroup label="Documents de mission">
+                <option value={DocumentType.NOTE}>Note</option>
+                <option value={DocumentType.PROCEDURE}>Procédure</option>
+                <option value={DocumentType.REPORT}>Rapport</option>
+                <option value={DocumentType.SPECIFICATION}>Spécification</option>
+              </optgroup>
+              <optgroup label="Documents officiels">
+                <option value={DocumentType.CONTRACT}>Contrat</option>
+                <option value={DocumentType.AMENDMENT}>Avenant</option>
+                <option value={DocumentType.MISSION_ORDER}>Ordre de mission</option>
+              </optgroup>
               <option value={DocumentType.OTHER}>Autre</option>
-              <option value={DocumentType.CONTRACT}>Contrat</option>
-              <option value={DocumentType.AMENDMENT}>Avenant</option>
-              <option value={DocumentType.MISSION_ORDER}>Ordre de mission</option>
             </select>
           </div>
         </div>

@@ -10,7 +10,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/pre-bash-guard.sh"
+            "command": "bash /home/neko/Projects/craESN/.claude/hooks/pre-bash-guard.sh"
           }
         ]
       }
@@ -21,7 +21,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/post-edit-hint.sh"
+            "command": "bash /home/neko/Projects/craESN/.claude/hooks/post-edit-hint.sh"
           }
         ]
       }
@@ -31,7 +31,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "bash .claude/hooks/stop-remind-doc.sh"
+            "command": "bash /home/neko/Projects/craESN/.claude/hooks/stop-remind-doc.sh"
           }
         ]
       }

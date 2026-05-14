@@ -8,9 +8,10 @@ import {
 import {
   CraStatus as PrismaCraStatus,
   CraEntryType as PrismaCraEntryType,
+  CraEntryModifier as PrismaCraEntryModifier,
   PortionType as PrismaPortionType,
 } from '@prisma/client';
-import { CraStatus as SharedCraStatus, CraEntryType, LeaveType } from '@esn/shared-types';
+import { CraStatus as SharedCraStatus, CraEntryType, CraEntryModifier, LeaveType } from '@esn/shared-types';
 import type { CraMonthSummary, LeaveBalanceSummary, CreateCraEntryRequest, UpdateCraEntryRequest, RagIndexEvent, PendingCraItem, PendingCraListResponse } from '@esn/shared-types';
 import { PrismaService } from '../database/prisma.service';
 import { countWorkingDays } from './utils/working-days.util';
@@ -49,6 +50,8 @@ type CraEntryRow = {
   date: Date;
   dayFraction: number | { toNumber: () => number };
   entryType: string;
+  modifiers: string[];
+  secondHalfType: string | null;
   comment: string | null;
   craMonthId: string;
   projectEntries: ProjectEntryRow[];
@@ -77,6 +80,8 @@ type NormalizedCraEntry = {
   date: Date;
   dayFraction: number;
   entryType: CraEntryType;
+  modifiers: CraEntryModifier[];
+  secondHalfType: CraEntryType | null;
   comment: string | null;
   craMonthId: string;
   createdAt: Date;
@@ -207,6 +212,8 @@ export class CraService {
         date: entryDate,
         entryType: dto.entryType as PrismaCraEntryType,
         dayFraction: dto.dayFraction,
+        modifiers: (dto.modifiers ?? []) as PrismaCraEntryModifier[],
+        secondHalfType: (dto.secondHalfType ?? null) as PrismaCraEntryType | null,
         comment: dto.comment ?? null,
       },
       include: { projectEntries: true },
@@ -301,13 +308,21 @@ export class CraService {
     const updateData: {
       entryType?: PrismaCraEntryType;
       dayFraction?: number;
-      comment?: string;
+      modifiers?: PrismaCraEntryModifier[];
+      secondHalfType?: PrismaCraEntryType | null;
+      comment?: string | null;
     } = {};
     if (dto.entryType !== undefined) {
       updateData.entryType = dto.entryType as PrismaCraEntryType;
     }
     if (dto.dayFraction !== undefined) {
       updateData.dayFraction = dto.dayFraction;
+    }
+    if (dto.modifiers !== undefined) {
+      updateData.modifiers = dto.modifiers as PrismaCraEntryModifier[];
+    }
+    if ('secondHalfType' in dto) {
+      updateData.secondHalfType = (dto.secondHalfType ?? null) as PrismaCraEntryType | null;
     }
     if (dto.comment !== undefined) {
       updateData.comment = dto.comment;
@@ -676,6 +691,8 @@ function normalizeEntry(entry: CraEntryRow): NormalizedCraEntry {
     date: entry.date,
     dayFraction: toNumber(entry.dayFraction),
     entryType: entry.entryType as CraEntryType,
+    modifiers: entry.modifiers as CraEntryModifier[],
+    secondHalfType: (entry.secondHalfType ?? null) as CraEntryType | null,
     comment: entry.comment,
     craMonthId: entry.craMonthId,
     createdAt: entry.createdAt,
