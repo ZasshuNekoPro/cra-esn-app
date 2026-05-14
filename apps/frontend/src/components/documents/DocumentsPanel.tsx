@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { DocumentCard } from './DocumentCard';
 import { UploadDropzone } from './UploadDropzone';
 import { DocumentMetadataDrawer } from './DocumentMetadataDrawer';
-import { documentsApi } from '../../lib/api/documents';
+import { documentsClientApi } from '../../lib/api/documents';
 import type { DocumentWithRelations } from '../../lib/api/documents';
 
 interface DocumentsPanelProps {
@@ -25,7 +25,7 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
 
   const refresh = useCallback(async () => {
     try {
-      const updated = await documentsApi.list({ missionId });
+      const updated = await documentsClientApi.list({ missionId });
       setDocuments(updated);
     } catch {
       // Keep existing state on refresh failure
@@ -34,7 +34,7 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
 
   async function handleDownload(id: string) {
     try {
-      const { url } = await documentsApi.getDownloadUrl(id);
+      const { url } = await documentsClientApi.getDownloadUrl(id);
       window.open(url, '_blank');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de téléchargement');
@@ -44,7 +44,7 @@ export function DocumentsPanel({ initialDocuments, missionId, projectId }: Docum
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce document ?')) return;
     try {
-      await documentsApi.delete(id);
+      await documentsClientApi.delete(id);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de suppression');

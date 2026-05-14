@@ -18,6 +18,7 @@ const MISSION_WITH_USERS = {
   endDate: true,
   dailyRate: true,
   isActive: true,
+  ragEnabled: true,
   employeeId: true,
   esnAdminId: true,
   clientId: true,

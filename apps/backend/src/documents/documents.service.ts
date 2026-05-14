@@ -50,9 +50,15 @@ export class DocumentsService {
       throw new BadRequestException(`File too large: max ${MAX_SIZE_BYTES} bytes`);
     }
 
-    // Verify mission ownership
+    // Verify mission ownership — covers both legacy primary employee and multi-employee join table
     const mission = await this.prisma.mission.findFirst({
-      where: { id: dto.missionId, employeeId: ownerId },
+      where: {
+        id: dto.missionId,
+        OR: [
+          { employeeId: ownerId },
+          { missionEmployees: { some: { employeeId: ownerId } } },
+        ],
+      },
     });
     if (!mission) {
       throw new NotFoundException('Mission not found or does not belong to you');

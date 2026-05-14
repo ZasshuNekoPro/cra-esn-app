@@ -6,7 +6,7 @@ import { DocumentCard } from './DocumentCard';
 import { DocumentMetadataDrawer } from './DocumentMetadataDrawer';
 import { UploadDropzone } from './UploadDropzone';
 import { ContextNotesSection } from './ContextNotesSection';
-import { documentsApi } from '../../lib/api/documents';
+import { documentsClientApi } from '../../lib/api/documents';
 import { missionsClientApi } from '../../lib/api/missions';
 import type { DocumentWithRelations } from '../../lib/api/documents';
 
@@ -37,7 +37,7 @@ export function MissionDocspacePanel({
 
   const refresh = useCallback(async () => {
     try {
-      const updated = await documentsApi.list({ missionId });
+      const updated = await documentsClientApi.list({ missionId });
       setDocuments(updated);
     } catch {
       // Keep existing state
@@ -46,7 +46,7 @@ export function MissionDocspacePanel({
 
   async function handleDownload(id: string) {
     try {
-      const { url } = await documentsApi.getDownloadUrl(id);
+      const { url } = await documentsClientApi.getDownloadUrl(id);
       window.open(url, '_blank');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de téléchargement');
@@ -56,7 +56,7 @@ export function MissionDocspacePanel({
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce document ?')) return;
     try {
-      await documentsApi.delete(id);
+      await documentsClientApi.delete(id);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de suppression');
