@@ -300,6 +300,12 @@ export interface DocumentMetadata {
   documentDate: Date | null;
   serviceInvolved: string | null;
   tags: string[];
+  author: string | null;
+  summary: string | null;
+  language: string | null;
+  confidentialityLevel: string | null;
+  applicableFromDate: Date | null;
+  applicableUntilDate: Date | null;
   documentId: string;
   createdAt: Date;
   updatedAt: Date;

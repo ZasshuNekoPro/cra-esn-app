@@ -12,6 +12,20 @@ interface Props {
   onClose: () => void;
 }
 
+const EMPTY_FORM: UpsertMetadataRequest = {
+  version: '1.0',
+  isObsolete: false,
+  documentDate: null,
+  serviceInvolved: null,
+  tags: [],
+  author: null,
+  summary: null,
+  language: null,
+  confidentialityLevel: null,
+  applicableFromDate: null,
+  applicableUntilDate: null,
+};
+
 export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClose }: Props): JSX.Element {
   const [metadata, setMetadata] = useState<DocumentMetadata | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -19,13 +33,7 @@ export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClo
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const [form, setForm] = useState<UpsertMetadataRequest>({
-    version: '1.0',
-    isObsolete: false,
-    documentDate: null,
-    serviceInvolved: null,
-    tags: [],
-  });
+  const [form, setForm] = useState<UpsertMetadataRequest>(EMPTY_FORM);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -42,12 +50,17 @@ export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClo
           documentDate: data.documentDate ?? null,
           serviceInvolved: data.serviceInvolved ?? null,
           tags: data.tags,
+          author: data.author ?? null,
+          summary: data.summary ?? null,
+          language: data.language ?? null,
+          confidentialityLevel: data.confidentialityLevel ?? null,
+          applicableFromDate: data.applicableFromDate ?? null,
+          applicableUntilDate: data.applicableUntilDate ?? null,
         });
       })
       .catch(() => {
-        // No metadata yet — use defaults
         setMetadata(null);
-        setForm({ version: '1.0', isObsolete: false, documentDate: null, serviceInvolved: null, tags: [] });
+        setForm(EMPTY_FORM);
       })
       .finally(() => setIsLoading(false));
   }, [isOpen, documentId]);
@@ -102,7 +115,7 @@ export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClo
           <div className="flex-1 overflow-y-auto px-6 py-5 space-y-5">
             {isLoading ? (
               <div className="space-y-3">
-                {[1, 2, 3, 4].map((i) => (
+                {[1, 2, 3, 4, 5].map((i) => (
                   <div key={i} className="h-10 bg-gray-100 rounded animate-pulse" />
                 ))}
               </div>
@@ -110,9 +123,7 @@ export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClo
               <>
                 {/* Version */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Version
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Version</label>
                   <input
                     type="text"
                     value={form.version ?? ''}
@@ -122,11 +133,33 @@ export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClo
                   />
                 </div>
 
+                {/* Author */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Auteur</label>
+                  <input
+                    type="text"
+                    value={form.author ?? ''}
+                    onChange={(e) => setForm((f) => ({ ...f, author: e.target.value || null }))}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    placeholder="Nom de l'auteur ou de l'équipe"
+                  />
+                </div>
+
+                {/* Summary */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Résumé</label>
+                  <textarea
+                    value={form.summary ?? ''}
+                    onChange={(e) => setForm((f) => ({ ...f, summary: e.target.value || null }))}
+                    rows={3}
+                    className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+                    placeholder="Résumé du contenu pour le RAG…"
+                  />
+                </div>
+
                 {/* Document date */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date du document
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Date du document</label>
                   <input
                     type="date"
                     value={form.documentDate ?? ''}
@@ -135,11 +168,31 @@ export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClo
                   />
                 </div>
 
+                {/* Applicable dates */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Valide à partir du</label>
+                    <input
+                      type="date"
+                      value={form.applicableFromDate ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, applicableFromDate: e.target.value || null }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Valide jusqu'au</label>
+                    <input
+                      type="date"
+                      value={form.applicableUntilDate ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, applicableUntilDate: e.target.value || null }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                </div>
+
                 {/* Service involved */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Service concerné
-                  </label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Service concerné</label>
                   <input
                     type="text"
                     value={form.serviceInvolved ?? ''}
@@ -147,6 +200,38 @@ export function DocumentMetadataDrawer({ documentId, documentName, isOpen, onClo
                     className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
                     placeholder="ex: RH, DSI, Direction…"
                   />
+                </div>
+
+                {/* Language + Confidentiality */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Langue</label>
+                    <select
+                      value={form.language ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, language: e.target.value || null }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">—</option>
+                      <option value="fr">Français</option>
+                      <option value="en">Anglais</option>
+                      <option value="de">Allemand</option>
+                      <option value="es">Espagnol</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Confidentialité</label>
+                    <select
+                      value={form.confidentialityLevel ?? ''}
+                      onChange={(e) => setForm((f) => ({ ...f, confidentialityLevel: e.target.value || null }))}
+                      className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    >
+                      <option value="">—</option>
+                      <option value="public">Public</option>
+                      <option value="interne">Interne</option>
+                      <option value="confidentiel">Confidentiel</option>
+                      <option value="secret">Secret</option>
+                    </select>
+                  </div>
                 </div>
 
                 {/* Tags */}

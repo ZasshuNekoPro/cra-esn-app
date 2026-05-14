@@ -6,7 +6,7 @@ import { DocumentCard } from './DocumentCard';
 import { DocumentMetadataDrawer } from './DocumentMetadataDrawer';
 import { UploadDropzone } from './UploadDropzone';
 import { ContextNotesSection } from './ContextNotesSection';
-import { documentsApi } from '../../lib/api/documents';
+import { documentsClientApi } from '../../lib/api/documents';
 import { missionsClientApi } from '../../lib/api/missions';
 import type { DocumentWithRelations } from '../../lib/api/documents';
 
@@ -15,7 +15,7 @@ interface Props {
   missionTitle: string;
   initialDocuments: DocumentWithRelations[];
   ragEnabled: boolean;
-  isPrimaryEmployee: boolean;
+  isEmployeeOnMission: boolean;
 }
 
 export function MissionDocspacePanel({
@@ -23,7 +23,7 @@ export function MissionDocspacePanel({
   missionTitle,
   initialDocuments,
   ragEnabled: initialRagEnabled,
-  isPrimaryEmployee,
+  isEmployeeOnMission,
 }: Props): JSX.Element {
   const router = useRouter();
   const [documents, setDocuments] = useState(initialDocuments);
@@ -37,7 +37,7 @@ export function MissionDocspacePanel({
 
   const refresh = useCallback(async () => {
     try {
-      const updated = await documentsApi.list({ missionId });
+      const updated = await documentsClientApi.list({ missionId });
       setDocuments(updated);
     } catch {
       // Keep existing state
@@ -46,7 +46,7 @@ export function MissionDocspacePanel({
 
   async function handleDownload(id: string) {
     try {
-      const { url } = await documentsApi.getDownloadUrl(id);
+      const { url } = await documentsClientApi.getDownloadUrl(id);
       window.open(url, '_blank');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de téléchargement');
@@ -56,7 +56,7 @@ export function MissionDocspacePanel({
   async function handleDelete(id: string) {
     if (!confirm('Supprimer ce document ?')) return;
     try {
-      await documentsApi.delete(id);
+      await documentsClientApi.delete(id);
       await refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Erreur de suppression');
@@ -84,8 +84,8 @@ export function MissionDocspacePanel({
 
   return (
     <div className="space-y-8">
-      {/* RAG toggle (primary employee only) */}
-      {isPrimaryEmployee && (
+      {/* RAG toggle — any employee on this mission */}
+      {isEmployeeOnMission && (
         <div className="flex items-center justify-between p-4 bg-white border border-gray-200 rounded-xl">
           <div>
             <p className="text-sm font-semibold text-gray-900">Assistant IA sur cet espace</p>
@@ -126,7 +126,7 @@ export function MissionDocspacePanel({
         </div>
 
         {showUpload && (
-          <UploadDropzone missionId={missionId} onUploaded={handleUploaded} />
+          <UploadDropzone missionId={missionId} missionTitle={missionTitle} onUploaded={handleUploaded} />
         )}
 
         {error && (

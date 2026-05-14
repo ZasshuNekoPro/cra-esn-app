@@ -17,6 +17,8 @@ const missionId = 'mission-uuid-1';
 const documentId = 'doc-uuid-1';
 const shareId = 'share-uuid-1';
 
+const secondaryEmployeeId = 'secondary-uuid-3';
+
 const mockMission = { id: missionId, employeeId: ownerId };
 
 const mockDocument = {
@@ -181,6 +183,34 @@ describe('DocumentsService', () => {
           ownerId,
         ),
       ).rejects.toThrow(NotFoundException);
+    });
+
+    it('should allow upload for a secondary employee (MissionEmployee join table)', async () => {
+      // secondary employee is not the primary employeeId but is in missionEmployees
+      vi.mocked(mockPrisma.mission.findFirst).mockResolvedValue(mockMission as never);
+      vi.mocked(mockPrisma.document.findFirst).mockResolvedValue(null);
+      vi.mocked(mockPrisma.document.create).mockResolvedValue(mockDocument as never);
+
+      const result = await service.upload(
+        { name: 'Doc secondaire', type: DocumentType.NOTE, missionId },
+        Buffer.from('pdf-content'),
+        'doc.pdf',
+        'application/pdf',
+        512,
+        secondaryEmployeeId,
+      );
+
+      expect(result).toMatchObject({ id: documentId });
+      expect(mockPrisma.mission.findFirst).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            OR: expect.arrayContaining([
+              { employeeId: secondaryEmployeeId },
+              { missionEmployees: { some: { employeeId: secondaryEmployeeId } } },
+            ]),
+          }),
+        }),
+      );
     });
   });
 

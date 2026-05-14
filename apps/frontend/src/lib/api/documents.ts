@@ -3,6 +3,7 @@ import { clientApiClient } from './clientFetch';
 import { getSession } from 'next-auth/react';
 import type { Document, DocumentVersion, DocumentShare } from '@esn/shared-types';
 
+
 export interface DocumentMetadata {
   id: string;
   documentId: string;
@@ -11,6 +12,12 @@ export interface DocumentMetadata {
   documentDate: string | null;
   serviceInvolved: string | null;
   tags: string[];
+  author: string | null;
+  summary: string | null;
+  language: string | null;
+  confidentialityLevel: string | null;
+  applicableFromDate: string | null;
+  applicableUntilDate: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -21,6 +28,12 @@ export interface UpsertMetadataRequest {
   documentDate?: string | null;
   serviceInvolved?: string | null;
   tags?: string[];
+  author?: string | null;
+  summary?: string | null;
+  language?: string | null;
+  confidentialityLevel?: string | null;
+  applicableFromDate?: string | null;
+  applicableUntilDate?: string | null;
 }
 
 export interface DocumentWithRelations extends Document {
@@ -91,6 +104,23 @@ export const documentsApi = {
 
   listSharedWithMe: (): Promise<DocumentWithRelations[]> =>
     apiClient.get('/documents/shared-with-me'),
+};
+
+// Client-side documents API (use in 'use client' components via /api/proxy)
+export const documentsClientApi = {
+  list: (params?: { missionId?: string; type?: string }): Promise<DocumentWithRelations[]> => {
+    const query = new URLSearchParams();
+    if (params?.missionId) query.set('missionId', params.missionId);
+    if (params?.type) query.set('type', params.type);
+    const qs = query.toString();
+    return clientApiClient.get<DocumentWithRelations[]>(`/documents${qs ? `?${qs}` : ''}`);
+  },
+
+  getDownloadUrl: (id: string): Promise<{ url: string }> =>
+    clientApiClient.get<{ url: string }>(`/documents/${id}/download`),
+
+  delete: (id: string): Promise<void> =>
+    clientApiClient.delete<void>(`/documents/${id}`),
 };
 
 // Client-side metadata API
