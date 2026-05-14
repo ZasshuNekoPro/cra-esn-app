@@ -7,7 +7,7 @@ import type { RagSourceType } from '@esn/rag-engine';
 import { EmbedderService } from '@esn/rag-engine';
 import { PrismaService } from '../database/prisma.service';
 import type { RagQueryDto } from './dto/rag-query.dto';
-import type { ContextNotesService } from './context-notes.service';
+import { ContextNotesService } from './context-notes.service';
 
 const MODEL = 'claude-sonnet-4-6';
 const MAX_TOKENS = 1024;
