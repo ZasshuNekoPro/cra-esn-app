@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConfigService } from '@nestjs/config';
+import { NotFoundException } from '@nestjs/common';
 import { S3StorageService } from '../../../src/storage/drivers/s3.storage';
 
 // ── Mock AWS SDK ──────────────────────────────────────────────────────────────
@@ -86,5 +87,48 @@ describe('S3StorageService', () => {
     } as unknown as ConfigService;
 
     expect(() => new S3StorageService(config)).toThrow();
+  });
+
+  // ── getDownloadUrl — S3_PUBLIC_ENDPOINT rewrite ───────────────────────────
+
+  it('should rewrite internal hostname in presigned URL when S3_PUBLIC_ENDPOINT is set', async () => {
+    const { getSignedUrl } = await import('@aws-sdk/s3-request-presigner');
+    vi.mocked(getSignedUrl).mockResolvedValueOnce('http://minio:9000/bucket/key?X-Amz-Signature=abc');
+
+    const svc = new S3StorageService(
+      makeConfig({
+        S3_ENDPOINT: 'http://minio:9000',
+        S3_PUBLIC_ENDPOINT: 'https://storage.example.com',
+      }),
+    );
+    const url = await svc.getDownloadUrl('some/key.pdf');
+
+    expect(url).toBe('https://storage.example.com/bucket/key?X-Amz-Signature=abc');
+  });
+
+  // ── getObjectStream ───────────────────────────────────────────────────────
+
+  it('should return a readable stream when Body is present', async () => {
+    const fakeStream = { pipe: vi.fn() };
+    mockSend.mockResolvedValueOnce({ Body: fakeStream });
+
+    const stream = await service.getObjectStream('owner/mission/file.pdf');
+
+    expect(mockSend).toHaveBeenCalledOnce();
+    expect(stream).toBe(fakeStream);
+  });
+
+  it('should throw NotFoundException when Body is null', async () => {
+    mockSend.mockResolvedValueOnce({ Body: null });
+
+    await expect(service.getObjectStream('owner/mission/missing.pdf')).rejects.toThrow(
+      NotFoundException,
+    );
+  });
+
+  it('should propagate S3 errors from getObjectStream', async () => {
+    mockSend.mockRejectedValueOnce(new Error('NoSuchKey'));
+
+    await expect(service.getObjectStream('owner/mission/gone.pdf')).rejects.toThrow('NoSuchKey');
   });
 });
